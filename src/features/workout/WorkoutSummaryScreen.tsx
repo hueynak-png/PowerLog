@@ -6,8 +6,10 @@ import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
 import { MetricCard } from '@/src/components/ui/MetricCard';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
+import { useDatabase } from '@/src/hooks/useDatabase';
 import { calculateWorkoutSummary } from '@/src/lib/workoutSummary';
-import { isAIConfigured, requestSessionSummary, type SessionSummaryResponse } from '@/src/services/aiService';
+import { getRecentExerciseHistory } from '@/src/repositories';
+import { isAIConfigured, requestDailyStrengthAnalysis, type DailyStrengthAnalysisResponse } from '@/src/services/aiService';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { colors } from '@/src/theme/colors';
 import { spacing } from '@/src/theme/spacing';
@@ -24,10 +26,11 @@ const formatDuration = (seconds: number): string => {
 
 export function WorkoutSummaryScreen() {
   const router = useRouter();
+  const db = useDatabase();
   const session = useActiveWorkoutStore((state) => state.session);
   const exercises = useActiveWorkoutStore((state) => state.exercises);
 
-  const [aiSummary, setAiSummary] = useState<SessionSummaryResponse['data'] | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<DailyStrengthAnalysisResponse['data'] | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -36,34 +39,68 @@ export function WorkoutSummaryScreen() {
     session?.durationSeconds ?? 0,
   );
 
-  // Request AI summary on mount
   useEffect(() => {
     if (!isAIConfigured()) return;
+    if (!db || !session) return;
 
-    setAiLoading(true);
-    requestSessionSummary({
-      exercises: exercises.map((ex) => ({
-        nameEn: ex.exercise.nameEn,
-        nameZh: ex.exercise.nameZh,
-        role: ex.exercise.role,
-        sets: ex.sets.map((s) => ({
-          plannedWeight: s.plannedWeight,
-          actualWeight: s.actualWeight,
-          plannedReps: s.plannedReps,
-          actualReps: s.actualReps,
-          plannedRpe: s.plannedRpe,
-          actualRpe: s.actualRpe,
-          completed: s.completed,
-        })),
-      })),
-      durationSeconds: summary.durationSeconds,
-      totalVolume: summary.totalVolume,
-      completionRate: summary.completionRate,
-    })
-      .then((res) => setAiSummary(res.data))
-      .catch((err) => setAiError(err instanceof Error ? err.message : 'AI unavailable'))
-      .finally(() => setAiLoading(false));
-  }, []);
+    let cancelled = false;
+
+    const requestAnalysis = async () => {
+      setAiLoading(true);
+      setAiError(null);
+
+      try {
+        const history = (
+          await Promise.all(
+            exercises.map((ex) => getRecentExerciseHistory(db, ex.exercise.id, session.id, 3)),
+          )
+        ).flat();
+
+        const res = await requestDailyStrengthAnalysis({
+          session: {
+            durationSeconds: summary.durationSeconds,
+            totalVolume: summary.totalVolume,
+            completionRate: summary.completionRate,
+            notes: session.notes,
+          },
+          exercises: exercises.map((ex) => ({
+            nameEn: ex.exercise.nameEn,
+            nameZh: ex.exercise.nameZh,
+            category: ex.exercise.category,
+            liftFamily: ex.exercise.liftFamily,
+            role: ex.exercise.role,
+            muscleGroups: ex.exercise.muscleGroups,
+            sets: ex.sets.map((s) => ({
+              setNumber: s.setNumber,
+              plannedWeight: s.plannedWeight,
+              actualWeight: s.actualWeight,
+              plannedReps: s.plannedReps,
+              actualReps: s.actualReps,
+              plannedRpe: s.plannedRpe,
+              actualRpe: s.actualRpe,
+              rir: typeof s.actualRpe === 'number' ? Math.max(0, Math.round((10 - s.actualRpe) * 10) / 10) : undefined,
+              completed: s.completed,
+              isWarmup: s.isWarmup,
+              notes: s.notes,
+            })),
+          })),
+          history,
+        });
+
+        if (!cancelled) setAiAnalysis(res.data);
+      } catch (err) {
+        if (!cancelled) setAiError(err instanceof Error ? err.message : 'AI unavailable');
+      } finally {
+        if (!cancelled) setAiLoading(false);
+      }
+    };
+
+    void requestAnalysis();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [db, exercises, session, summary.completionRate, summary.durationSeconds, summary.totalVolume]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -136,36 +173,56 @@ export function WorkoutSummaryScreen() {
               {aiError === 'AI service not configured' ? 'AI not configured. Set up in Settings.' : `AI unavailable: ${aiError}`}
             </Text>
           )}
-          {aiSummary && (
+          {aiAnalysis && (
             <View style={styles.aiContent}>
-              <Text style={styles.aiSummaryText}>{aiSummary.summary}</Text>
-              {aiSummary.highlights.length > 0 && (
+              <Text style={styles.aiSummaryText}>{aiAnalysis.oneLineConclusion}</Text>
+              <View style={styles.scoreGrid}>
+                <Text style={styles.scoreItem}>完成度 {aiAnalysis.scores.completion}/10</Text>
+                <Text style={styles.scoreItem}>刺激 {aiAnalysis.scores.stimulusEffectiveness}/10</Text>
+                <Text style={styles.scoreItem}>强度 {aiAnalysis.scores.intensityRationality}/10</Text>
+                <Text style={styles.scoreItem}>疲劳 {aiAnalysis.scores.fatigueControl}/10</Text>
+                <Text style={styles.scoreItem}>结构 {aiAnalysis.scores.exerciseStructure}/10</Text>
+              </View>
+              <View style={styles.aiSection}>
+                <Text style={styles.aiSectionTitle}>完成度分析</Text>
+                <Text style={styles.aiBullet}>{aiAnalysis.completionAnalysis}</Text>
+              </View>
+              <View style={styles.aiSection}>
+                <Text style={styles.aiSectionTitle}>训练刺激分析</Text>
+                <Text style={styles.aiBullet}>{aiAnalysis.stimulusAnalysis}</Text>
+              </View>
+              <View style={styles.aiSection}>
+                <Text style={styles.aiSectionTitle}>强度分析</Text>
+                <Text style={styles.aiBullet}>{aiAnalysis.intensityAnalysis}</Text>
+              </View>
+              <View style={styles.aiSection}>
+                <Text style={[styles.aiSectionTitle, { color: colors.warning }]}>疲劳与风险</Text>
+                <Text style={styles.aiBullet}>{aiAnalysis.fatigueAndRiskAnalysis}</Text>
+              </View>
+              <View style={styles.aiSection}>
+                <Text style={styles.aiSectionTitle}>与目标匹配度</Text>
+                <Text style={styles.aiBullet}>{aiAnalysis.goalMatchAnalysis}</Text>
+              </View>
+              {aiAnalysis.nextSessionAdjustments.length > 0 && (
                 <View style={styles.aiSection}>
-                  <Text style={styles.aiSectionTitle}>Highlights</Text>
-                  {aiSummary.highlights.map((h, i) => (
-                    <Text key={i} style={styles.aiBullet}>• {h}</Text>
+                  <Text style={styles.aiSectionTitle}>下一次同类训练调整</Text>
+                  {aiAnalysis.nextSessionAdjustments.map((adjustment, i) => (
+                    <Text key={`${adjustment.exercise}-${i}`} style={styles.aiBullet}>
+                      • {adjustment.exercise}: {adjustment.recommendation}（{adjustment.reason}）
+                    </Text>
                   ))}
                 </View>
               )}
-              {aiSummary.concerns.length > 0 && (
-                <View style={styles.aiSection}>
-                  <Text style={[styles.aiSectionTitle, { color: colors.warning }]}>Concerns</Text>
-                  {aiSummary.concerns.map((c, i) => (
-                    <Text key={i} style={styles.aiBullet}>• {c}</Text>
-                  ))}
-                </View>
-              )}
-              {aiSummary.suggestions.length > 0 && (
-                <View style={styles.aiSection}>
-                  <Text style={styles.aiSectionTitle}>AI Suggestions</Text>
-                  {aiSummary.suggestions.map((s, i) => (
-                    <Text key={i} style={styles.aiBullet}>• {s}</Text>
-                  ))}
-                </View>
-              )}
+              <View style={styles.aiSection}>
+                <Text style={styles.aiSectionTitle}>结构化总结</Text>
+                <Text style={styles.aiBullet}>目标: {aiAnalysis.structuredSummary.identifiedGoal}</Text>
+                <Text style={styles.aiBullet}>有效组: {aiAnalysis.structuredSummary.effectiveSets}</Text>
+                <Text style={styles.aiBullet}>下次重点: {aiAnalysis.structuredSummary.nextFocus}</Text>
+                <Text style={styles.aiBullet}>{aiAnalysis.structuredSummary.libraryNote}</Text>
+              </View>
             </View>
           )}
-          {!aiLoading && !aiError && !aiSummary && (
+          {!aiLoading && !aiError && !aiAnalysis && (
             <Text style={styles.empty}>AI not configured. Local rules applied above.</Text>
           )}
         </Card>
@@ -200,6 +257,8 @@ const styles = StyleSheet.create({
   aiError: { ...typography.callout, color: colors.textSecondary, fontStyle: 'italic' },
   aiContent: { gap: spacing.sm },
   aiSummaryText: { ...typography.body, color: colors.textPrimary, lineHeight: 22 },
+  scoreGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  scoreItem: { ...typography.footnote, backgroundColor: colors.surfaceSecondary, color: colors.textPrimary, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   aiSection: { marginTop: spacing.xs },
   aiSectionTitle: { ...typography.footnote, color: colors.primary, fontWeight: '700', marginBottom: spacing.xs },
   aiBullet: { ...typography.callout, color: colors.textPrimary, lineHeight: 20, paddingLeft: spacing.xs },

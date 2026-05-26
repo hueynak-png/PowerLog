@@ -96,6 +96,34 @@ export interface SessionSummaryResponse {
   };
 }
 
+export interface DailyStrengthAnalysisResponse {
+  success: boolean;
+  data: {
+    oneLineConclusion: string;
+    completionAnalysis: string;
+    stimulusAnalysis: string;
+    intensityAnalysis: string;
+    fatigueAndRiskAnalysis: string;
+    goalMatchAnalysis: string;
+    nextSessionAdjustments: Array<{ exercise: string; recommendation: string; reason: string }>;
+    scores: {
+      completion: number;
+      stimulusEffectiveness: number;
+      intensityRationality: number;
+      fatigueControl: number;
+      exerciseStructure: number;
+    };
+    structuredSummary: {
+      identifiedGoal: 'hypertrophy' | 'strength' | 'powerbuilding' | 'fat_loss_maintenance' | 'technique' | 'recovery' | 'unknown';
+      effectiveSets: number;
+      mainStimulus: string[];
+      keyRisks: string[];
+      nextFocus: string;
+      libraryNote: string;
+    };
+  };
+}
+
 export interface WorkoutSuggestionResponse {
   success: boolean;
   data: {
@@ -150,6 +178,55 @@ export const requestSessionSummary = (data: {
   completionRate: number;
 }): Promise<SessionSummaryResponse> =>
   aiRequest('/session-summary', data);
+
+export const requestDailyStrengthAnalysis = (data: {
+  session: {
+    durationSeconds: number;
+    totalVolume: number;
+    completionRate: number;
+    perceivedGoal?: 'hypertrophy' | 'strength' | 'powerbuilding' | 'fat_loss_maintenance' | 'technique' | 'recovery' | 'unknown';
+    notes?: string;
+  };
+  exercises: Array<{
+    nameEn: string;
+    nameZh: string;
+    category?: string;
+    liftFamily?: string;
+    role: string;
+    muscleGroups?: string[];
+    sets: Array<{
+      setNumber: number;
+      plannedWeight?: number;
+      actualWeight?: number;
+      plannedReps?: number;
+      actualReps?: number;
+      plannedRpe?: number;
+      actualRpe?: number;
+      rir?: number;
+      completed: boolean;
+      isWarmup?: boolean;
+      notes?: string;
+    }>;
+  }>;
+  history?: Array<{
+    date: string;
+    exerciseNameEn: string;
+    exerciseNameZh: string;
+    topWeight?: number;
+    topReps?: number;
+    avgRpe?: number;
+    setsCompleted?: number;
+    setsTotal?: number;
+    notes?: string;
+  }>;
+  recovery?: {
+    sleepQuality?: string;
+    soreness?: string;
+    stress?: string;
+    painNotes?: string;
+  };
+}): Promise<DailyStrengthAnalysisResponse> =>
+  aiRequest('/daily-strength-analysis', data, { timeout: 45000 });
 
 /**
  * Get AI suggestion for next set during workout.
