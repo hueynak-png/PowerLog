@@ -77,6 +77,6 @@ const styles = StyleSheet.create({
     ...typography.callout, color: colors.textPrimary, textAlign: 'center',
     backgroundColor: colors.surfaceSecondary, borderRadius: radius.sm,
     paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
-    minWidth: 50, minHeight: 36,
+    width: '100%', minHeight: 36, borderWidth: 1, borderColor: colors.borderLight,
   },
 });

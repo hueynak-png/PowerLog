@@ -68,6 +68,6 @@ const styles = StyleSheet.create({
   },
   stepperText: { fontSize: 22, color: colors.primary, fontWeight: '600' },
   inputWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginHorizontal: spacing.sm },
-  input: { ...typography.title2, color: colors.textPrimary, textAlign: 'center', minWidth: 60 },
+  input: { ...typography.title2, color: colors.textPrimary, textAlign: 'center', minWidth: 60, width: 80, minHeight: 40, borderWidth: 1, borderColor: colors.borderLight, borderRadius: radius.sm, paddingHorizontal: spacing.sm },
   unit: { ...typography.subhead, color: colors.textSecondary, marginLeft: spacing.xs },
 });
