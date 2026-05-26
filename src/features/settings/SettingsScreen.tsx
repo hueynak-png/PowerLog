@@ -65,6 +65,8 @@ export function SettingsScreen() {
       // Save AI config
       if (aiBaseUrl && aiAuthToken) {
         configureAI(aiBaseUrl, aiAuthToken);
+        setAiBaseUrl(getAIConfig().baseUrl);
+        setAiAuthToken(getAIConfig().authToken);
         setAiConfigured(true);
         setAiExpanded(false);
       }

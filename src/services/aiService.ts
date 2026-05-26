@@ -12,6 +12,9 @@ interface AIConfig {
   authToken: string;
 }
 
+const normalizeAIBaseUrl = (baseUrl: string): string =>
+  baseUrl.trim().replace(/\/+$/, '').replace(/\/ai$/i, '');
+
 /**
  * Load config from localStorage (web) on startup.
  */
@@ -19,7 +22,10 @@ const loadConfig = (): AIConfig => {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) return JSON.parse(stored) as AIConfig;
+      if (stored) {
+        const parsed = JSON.parse(stored) as AIConfig;
+        return { ...parsed, baseUrl: normalizeAIBaseUrl(parsed.baseUrl) };
+      }
     } catch { /* ignore */ }
   }
   return { baseUrl: '', authToken: '' };
@@ -28,7 +34,7 @@ const loadConfig = (): AIConfig => {
 let config: AIConfig = loadConfig();
 
 export const configureAI = (baseUrl: string, authToken: string) => {
-  config = { baseUrl, authToken };
+  config = { baseUrl: normalizeAIBaseUrl(baseUrl), authToken: authToken.trim() };
   // Persist to localStorage on web
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
     try {
