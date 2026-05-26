@@ -5,6 +5,7 @@ import type { Env } from '../index';
 import { buildSessionSummaryPrompt } from '../prompts/sessionSummary';
 import { buildWorkoutSuggestionPrompt, buildNutritionTagsPrompt } from '../prompts/workoutSuggestion';
 import { buildWeeklyReviewPrompt } from '../prompts/weeklyReview';
+import { buildPlanGenerationPrompt } from '../prompts/planGeneration';
 import { createDeepSeekProvider } from '../services/deepseek';
 import { createGPTProvider } from '../services/gpt';
 
@@ -174,6 +175,48 @@ aiRoutes.post('/weekly-review', async (c) => {
 
   try {
     const response = await provider.chat(messages, { temperature: 0.7, maxTokens: 3000 });
+    const content = JSON.parse(response.content);
+    return c.json({ success: true, data: content, usage: response.usage });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return c.json({ error: 'AI request failed', message }, 500);
+  }
+});
+
+// --- Plan Generation ---
+
+const planGenerationSchema = z.object({
+  goal: z.string(),
+  trainingDaysPerWeek: z.number(),
+  maxSessionDuration: z.number(),
+  durationWeeks: z.number(),
+  includesDeload: z.boolean(),
+  squatMax: z.number(),
+  benchMax: z.number(),
+  deadliftMax: z.number(),
+  currentBodyweight: z.number().optional(),
+  avoidExercises: z.array(z.string()).optional(),
+  includeExercises: z.array(z.string()).optional(),
+});
+
+/**
+ * POST /ai/generate-plan
+ * Generate a complete training program using GPT.
+ * Provider: GPT (advanced coaching)
+ */
+aiRoutes.post('/generate-plan', async (c) => {
+  const body = await c.req.json();
+  const parsed = planGenerationSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return c.json({ error: 'Invalid request', details: parsed.error.issues }, 400);
+  }
+
+  const provider = createGPTProvider(c.env.GPT_API_KEY);
+  const messages = buildPlanGenerationPrompt(parsed.data);
+
+  try {
+    const response = await provider.chat(messages, { temperature: 0.7, maxTokens: 8000 });
     const content = JSON.parse(response.content);
     return c.json({ success: true, data: content, usage: response.usage });
   } catch (error) {

@@ -155,8 +155,14 @@ export function HomeDashboard() {
 
         <Card style={styles.card}>
           <Text style={styles.cardTitle}>Start Workout</Text>
-          <Text style={styles.cardText}>Jump into today’s training session and keep your streak alive.</Text>
+          <Text style={styles.cardText}>Jump into today's training session and keep your streak alive.</Text>
           <Button title="Start Workout" onPress={() => router.push('../workout')} style={styles.cardButton} />
+        </Card>
+
+        <Card style={styles.card} variant="outlined">
+          <Text style={styles.cardTitle}>Weekly Review</Text>
+          <Text style={styles.cardText}>AI-powered analysis of your training week.</Text>
+          <Button title="View Review" onPress={() => router.push('/review')} variant="secondary" size="md" />
         </Card>
 
         <Card style={styles.card} variant="outlined">

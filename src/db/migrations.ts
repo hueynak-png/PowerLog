@@ -2,7 +2,7 @@ import type { PowerLogDatabase } from './types';
 import { createTables } from './schema';
 import { seedExercises } from './seedExercises';
 
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 2;
 
 export const runMigrations = async (db: PowerLogDatabase): Promise<void> => {
   await db.execAsync(`

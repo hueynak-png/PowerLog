@@ -203,3 +203,52 @@ export const requestWeeklyReview = (data: {
   weekNumber?: number;
 }): Promise<WeeklyReviewResponse> =>
   aiRequest('/weekly-review', data, { timeout: 60000 });
+
+// --- Plan Generation ---
+
+export interface PlanGenerationResponse {
+  success: boolean;
+  data: {
+    name: string;
+    type: string;
+    description: string;
+    weeks: Array<{
+      weekNumber: number;
+      phase: string;
+      focus: string;
+      days: Array<{
+        dayNumber: number;
+        title: string;
+        mainFocus: string;
+        estimatedDuration: number;
+        exercises: Array<{
+          exerciseNameEn: string;
+          role: string;
+          targetSets: number;
+          targetReps: number;
+          targetRpe: number | null;
+          targetPercent: number | null;
+          notes: string;
+        }>;
+      }>;
+    }>;
+  };
+}
+
+/**
+ * Generate a complete training program via AI.
+ */
+export const requestPlanGeneration = (data: {
+  goal: string;
+  trainingDaysPerWeek: number;
+  maxSessionDuration: number;
+  durationWeeks: number;
+  includesDeload: boolean;
+  squatMax: number;
+  benchMax: number;
+  deadliftMax: number;
+  currentBodyweight?: number;
+  avoidExercises?: string[];
+  includeExercises?: string[];
+}): Promise<PlanGenerationResponse> =>
+  aiRequest('/generate-plan', data, { timeout: 120000 });

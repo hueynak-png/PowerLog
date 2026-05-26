@@ -57,6 +57,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
       <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
+      <Stack.Screen name="review" options={{ headerShown: false }} />
     </Stack>
   );
 }

@@ -87,5 +87,66 @@ CREATE TABLE IF NOT EXISTS nutrition_entries (
   notes TEXT,
   ai_tags TEXT
 );
+
+CREATE TABLE IF NOT EXISTS programs (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  goal TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'manual',
+  duration_weeks INTEGER NOT NULL,
+  includes_deload INTEGER NOT NULL DEFAULT 0,
+  description TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS program_weeks (
+  id TEXT PRIMARY KEY NOT NULL,
+  program_id TEXT NOT NULL,
+  week_number INTEGER NOT NULL,
+  phase TEXT NOT NULL,
+  focus TEXT,
+  notes TEXT,
+  FOREIGN KEY (program_id) REFERENCES programs(id)
+);
+
+CREATE TABLE IF NOT EXISTS program_days (
+  id TEXT PRIMARY KEY NOT NULL,
+  program_week_id TEXT NOT NULL,
+  day_number INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  main_focus TEXT,
+  estimated_duration INTEGER,
+  scheduled_date TEXT,
+  FOREIGN KEY (program_week_id) REFERENCES program_weeks(id)
+);
+
+CREATE TABLE IF NOT EXISTS planned_exercises (
+  id TEXT PRIMARY KEY NOT NULL,
+  program_day_id TEXT NOT NULL,
+  exercise_id TEXT NOT NULL,
+  order_index INTEGER NOT NULL,
+  target_sets INTEGER,
+  target_reps INTEGER,
+  target_load REAL,
+  target_rpe REAL,
+  target_percent REAL,
+  accessory_category TEXT,
+  notes TEXT,
+  FOREIGN KEY (program_day_id) REFERENCES program_days(id),
+  FOREIGN KEY (exercise_id) REFERENCES exercises(id)
+);
+
+CREATE TABLE IF NOT EXISTS current_cycle (
+  id TEXT PRIMARY KEY NOT NULL,
+  program_id TEXT NOT NULL,
+  goal TEXT NOT NULL,
+  current_week INTEGER NOT NULL DEFAULT 1,
+  current_phase TEXT NOT NULL DEFAULT 'entry',
+  training_days_per_week INTEGER NOT NULL DEFAULT 4,
+  started_at TEXT NOT NULL,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  FOREIGN KEY (program_id) REFERENCES programs(id)
+);
 `);
 };

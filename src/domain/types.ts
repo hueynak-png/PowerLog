@@ -123,3 +123,62 @@ export interface RpeDistribution {
   medium: number;
   high: number;
 }
+
+export type ProgramSource = 'ai_generated' | 'imported_excel' | 'manual';
+export type CyclePhase = 'entry' | 'accumulation' | 'intensification' | 'deload' | 'peak' | 'test' | 'maintenance';
+
+export interface Program {
+  id: string;
+  name: string;
+  type: string;
+  goal: string;
+  source: ProgramSource;
+  durationWeeks: number;
+  includesDeload: boolean;
+  description?: string;
+  createdAt: string;
+}
+
+export interface ProgramWeek {
+  id: string;
+  programId: string;
+  weekNumber: number;
+  phase: CyclePhase;
+  focus?: string;
+  notes?: string;
+}
+
+export interface ProgramDay {
+  id: string;
+  programWeekId: string;
+  dayNumber: number;
+  title: string;
+  mainFocus?: string;
+  estimatedDuration?: number;
+  scheduledDate?: string;
+}
+
+export interface PlannedExercise {
+  id: string;
+  programDayId: string;
+  exerciseId: string;
+  orderIndex: number;
+  targetSets?: number;
+  targetReps?: number;
+  targetLoad?: number;
+  targetRpe?: number;
+  targetPercent?: number;
+  accessoryCategory?: string;
+  notes?: string;
+}
+
+export interface CurrentCycle {
+  id: string;
+  programId: string;
+  goal: string;
+  currentWeek: number;
+  currentPhase: CyclePhase;
+  trainingDaysPerWeek: number;
+  startedAt: string;
+  isActive: boolean;
+}
