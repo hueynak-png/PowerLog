@@ -1,4 +1,4 @@
-const CACHE_NAME = 'powerlog-v1';
+const CACHE_NAME = 'powerlog-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -22,14 +22,13 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first for API, cache-first for static
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Never cache AI API calls
-  if (url.pathname.startsWith('/ai')) return;
+  if (event.request.method !== 'GET') return;
 
-  // Network-first for navigation
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/ai')) return;
+
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(() => caches.match('/'))
@@ -37,16 +36,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for static assets
   event.respondWith(
-    caches.match(event.request).then((cached) =>
-      cached || fetch(event.request).then((response) => {
+    fetch(event.request)
+      .then((response) => {
         if (response.ok && response.type === 'basic') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
       })
-    )
+      .catch(() => caches.match(event.request))
   );
 });
