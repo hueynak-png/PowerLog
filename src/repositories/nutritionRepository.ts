@@ -1,4 +1,4 @@
-import type { PowerLogDatabase as SQLiteDatabase } from '@/src/db/database';
+import type { PowerLogDatabase as SQLiteDatabase } from '@/src/db/types';
 
 import type { NutritionEntry } from '@/src/domain/types';
 import generateId from '@/src/lib/uuid';

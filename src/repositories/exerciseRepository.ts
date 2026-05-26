@@ -1,4 +1,4 @@
-import type { PowerLogDatabase as SQLiteDatabase } from '@/src/db/database';
+import type { PowerLogDatabase as SQLiteDatabase } from '@/src/db/types';
 
 import type { Exercise, ExerciseCategory, ExerciseRole, LiftFamily } from '@/src/domain/types';
 

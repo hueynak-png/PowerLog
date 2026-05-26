@@ -1,4 +1,4 @@
-import type { PowerLogDatabase } from './database';
+import type { PowerLogDatabase } from './types';
 import { createTables } from './schema';
 import { seedExercises } from './seedExercises';
 

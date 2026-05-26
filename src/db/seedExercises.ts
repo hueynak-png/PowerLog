@@ -1,7 +1,7 @@
 import type { ExerciseCategory, ExerciseRole, LiftFamily } from '@/src/domain/types';
 import generateId from '@/src/lib/uuid';
 
-import type { PowerLogDatabase } from './database';
+import type { PowerLogDatabase } from './types';
 
 interface ExerciseSeed {
   nameEn: string;

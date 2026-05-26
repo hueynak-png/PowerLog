@@ -1,6 +1,6 @@
 import initSqlJs, { type Database } from 'sql.js';
 
-import type { PowerLogDatabase } from './database';
+import type { PowerLogDatabase } from './types';
 
 const DB_STORAGE_KEY = 'powerlog-db';
 
@@ -67,7 +67,7 @@ const rowsToObjects = <T>(columns: string[], values: unknown[][]): T[] =>
  * Web database implementation using sql.js (SQLite compiled to WASM).
  * Data is persisted to IndexedDB after every write operation.
  */
-export const createWebDatabase = async (): Promise<PowerLogDatabase> => {
+const createWebDatabase = async (): Promise<PowerLogDatabase> => {
   const SQL = await initSqlJs({
     locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
   });
@@ -102,5 +102,12 @@ export const createWebDatabase = async (): Promise<PowerLogDatabase> => {
       return rowsToObjects<T>(result[0].columns, result[0].values);
     },
   };
+};
+
+let databasePromise: Promise<PowerLogDatabase> | null = null;
+
+export const getDatabase = async (): Promise<PowerLogDatabase> => {
+  databasePromise ??= createWebDatabase();
+  return databasePromise;
 };
 

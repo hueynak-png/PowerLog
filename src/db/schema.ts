@@ -1,4 +1,4 @@
-import type { PowerLogDatabase } from './database';
+import type { PowerLogDatabase } from './types';
 
 export const createTables = async (db: PowerLogDatabase): Promise<void> => {
   await db.execAsync(`
