@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import type { Env } from '../index';
+import { buildDailyStrengthAnalysisPrompt } from '../prompts/dailyStrengthAnalysis';
 import { buildSessionSummaryPrompt } from '../prompts/sessionSummary';
 import { buildWorkoutSuggestionPrompt, buildNutritionTagsPrompt } from '../prompts/workoutSuggestion';
 import { buildWeeklyReviewPrompt } from '../prompts/weeklyReview';
@@ -31,6 +32,54 @@ const sessionSummarySchema = z.object({
   durationSeconds: z.number(),
   totalVolume: z.number(),
   completionRate: z.number(),
+});
+
+const dailyStrengthAnalysisSchema = z.object({
+  session: z.object({
+    durationSeconds: z.number(),
+    totalVolume: z.number(),
+    completionRate: z.number(),
+    perceivedGoal: z.enum(['hypertrophy', 'strength', 'powerbuilding', 'fat_loss_maintenance', 'technique', 'recovery', 'unknown']).optional(),
+    notes: z.string().optional(),
+  }),
+  exercises: z.array(z.object({
+    nameEn: z.string(),
+    nameZh: z.string(),
+    category: z.string().optional(),
+    liftFamily: z.string().optional(),
+    role: z.string(),
+    muscleGroups: z.array(z.string()).optional(),
+    sets: z.array(z.object({
+      setNumber: z.number(),
+      plannedWeight: z.number().optional(),
+      actualWeight: z.number().optional(),
+      plannedReps: z.number().optional(),
+      actualReps: z.number().optional(),
+      plannedRpe: z.number().optional(),
+      actualRpe: z.number().optional(),
+      rir: z.number().optional(),
+      completed: z.boolean(),
+      isWarmup: z.boolean().optional(),
+      notes: z.string().optional(),
+    })),
+  })),
+  history: z.array(z.object({
+    date: z.string(),
+    exerciseNameEn: z.string(),
+    exerciseNameZh: z.string(),
+    topWeight: z.number().optional(),
+    topReps: z.number().optional(),
+    avgRpe: z.number().optional(),
+    setsCompleted: z.number().optional(),
+    setsTotal: z.number().optional(),
+    notes: z.string().optional(),
+  })).optional(),
+  recovery: z.object({
+    sleepQuality: z.string().optional(),
+    soreness: z.string().optional(),
+    stress: z.string().optional(),
+    painNotes: z.string().optional(),
+  }).optional(),
 });
 
 const workoutSuggestionSchema = z.object({
@@ -97,6 +146,27 @@ aiRoutes.post('/session-summary', async (c) => {
 
   try {
     const response = await provider.chat(messages, { temperature: 0.6 });
+    const content = JSON.parse(response.content);
+    return c.json({ success: true, data: content, usage: response.usage });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return c.json({ error: 'AI request failed', message }, 500);
+  }
+});
+
+aiRoutes.post('/daily-strength-analysis', async (c) => {
+  const body = await c.req.json();
+  const parsed = dailyStrengthAnalysisSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return c.json({ error: 'Invalid request', details: parsed.error.issues }, 400);
+  }
+
+  const provider = createDeepSeekProvider(c.env.DEEPSEEK_API_KEY);
+  const messages = buildDailyStrengthAnalysisPrompt(parsed.data);
+
+  try {
+    const response = await provider.chat(messages, { temperature: 0.45, maxTokens: 3000 });
     const content = JSON.parse(response.content);
     return c.json({ success: true, data: content, usage: response.usage });
   } catch (error) {
