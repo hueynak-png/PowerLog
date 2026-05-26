@@ -40,6 +40,19 @@ interface WorkoutSetRow {
   notes: string | null;
 }
 
+interface ExerciseHistoryRow {
+  date: string;
+  exercise_name_en: string;
+  exercise_name_zh: string;
+  top_weight: number | null;
+  top_reps: number | null;
+  avg_rpe: number | null;
+  sets_completed: number | null;
+  sets_total: number | null;
+  session_notes: string | null;
+  exercise_notes: string | null;
+}
+
 const toOptional = <T>(value: T | null | undefined): T | undefined => value ?? undefined;
 
 const toWorkoutSession = (row: WorkoutSessionRow): WorkoutSession => ({
@@ -131,6 +144,60 @@ export const getRecentWorkouts = async (db: SQLiteDatabase, limit = 10): Promise
   );
 
   return rows.map(toWorkoutSession);
+};
+
+export const getRecentExerciseHistory = async (
+  db: SQLiteDatabase,
+  exerciseId: string,
+  excludeSessionId: string,
+  limit = 3,
+): Promise<Array<{
+  date: string;
+  exerciseNameEn: string;
+  exerciseNameZh: string;
+  topWeight?: number;
+  topReps?: number;
+  avgRpe?: number;
+  setsCompleted?: number;
+  setsTotal?: number;
+  notes?: string;
+}>> => {
+  const rows = await db.getAllAsync<ExerciseHistoryRow>(
+    `SELECT
+      ws.date,
+      e.name_en AS exercise_name_en,
+      e.name_zh AS exercise_name_zh,
+      MAX(wset.actual_weight) AS top_weight,
+      MAX(wset.actual_reps) AS top_reps,
+      AVG(wset.actual_rpe) AS avg_rpe,
+      SUM(CASE WHEN wset.completed = 1 THEN 1 ELSE 0 END) AS sets_completed,
+      COUNT(wset.id) AS sets_total,
+      ws.notes AS session_notes,
+      we.notes AS exercise_notes
+    FROM workout_sets wset
+    JOIN workout_exercises we ON we.id = wset.workout_exercise_id
+    JOIN workout_sessions ws ON ws.id = we.workout_session_id
+    JOIN exercises e ON e.id = we.exercise_id
+    WHERE we.exercise_id = ?
+      AND ws.id <> ?
+      AND wset.is_warmup = 0
+    GROUP BY ws.id, e.name_en, e.name_zh
+    ORDER BY ws.date DESC, ws.started_at DESC
+    LIMIT ?`,
+    [exerciseId, excludeSessionId, limit],
+  );
+
+  return rows.map((row) => ({
+    date: row.date,
+    exerciseNameEn: row.exercise_name_en,
+    exerciseNameZh: row.exercise_name_zh,
+    topWeight: toOptional(row.top_weight),
+    topReps: toOptional(row.top_reps),
+    avgRpe: typeof row.avg_rpe === 'number' ? Math.round(row.avg_rpe * 10) / 10 : undefined,
+    setsCompleted: toOptional(row.sets_completed),
+    setsTotal: toOptional(row.sets_total),
+    notes: [row.session_notes, row.exercise_notes].filter(Boolean).join('；') || undefined,
+  }));
 };
 
 export const updateWorkoutSession = async (
