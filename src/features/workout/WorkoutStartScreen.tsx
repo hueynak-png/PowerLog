@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 
 import { Button } from '@/src/components/ui/Button';
@@ -7,6 +7,7 @@ import { Card } from '@/src/components/ui/Card';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
 import type { WorkoutSession } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
+import { confirmAction, showAlert } from '@/src/lib/alert';
 import { deleteWorkoutSession, getRecentWorkouts } from '@/src/repositories/workoutRepository';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { colors } from '@/src/theme/colors';
@@ -70,7 +71,7 @@ export function WorkoutStartScreen() {
 
   const handleStartPastWorkout = () => {
     if (!customDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      Alert.alert('Invalid date', 'Please use YYYY-MM-DD format (e.g. 2024-12-25)');
+      showAlert('Invalid date', 'Please use YYYY-MM-DD format (e.g. 2024-12-25)');
       return;
     }
     void handleStartWorkout(customDate);
@@ -78,19 +79,13 @@ export function WorkoutStartScreen() {
 
   const handleDeleteWorkout = useCallback(async (session: WorkoutSession) => {
     if (!db) return;
-    Alert.alert(
+    confirmAction(
       'Delete Workout',
       `Delete workout from ${session.date}? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete', style: 'destructive',
-          onPress: async () => {
-            await deleteWorkoutSession(db, session.id);
-            setRecentWorkouts((prev) => prev.filter((w) => w.id !== session.id));
-          },
-        },
-      ],
+      async () => {
+        await deleteWorkoutSession(db, session.id);
+        setRecentWorkouts((prev) => prev.filter((w) => w.id !== session.id));
+      },
     );
   }, [db]);
 

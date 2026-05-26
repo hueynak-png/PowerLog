@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 
 import { Button } from '@/src/components/ui/Button';
@@ -11,6 +11,7 @@ import { SetInput } from '@/src/components/workout/SetInput';
 import { TimerPill } from '@/src/components/workout/TimerPill';
 import type { WorkoutSet } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
+import { showAlert } from '@/src/lib/alert';
 import { isAIConfigured, requestWorkoutSuggestion, type WorkoutSuggestionResponse } from '@/src/services/aiService';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { useTimerStore } from '@/src/stores/useTimerStore';
@@ -57,7 +58,7 @@ export function WorkoutRecordingScreen() {
       }));
 
     if (completedSets.length === 0) {
-      Alert.alert('No data', 'Complete at least one set with weight, reps, and RPE before requesting AI suggestion.');
+      showAlert('No data', 'Complete at least one set with weight, reps, and RPE before requesting AI suggestion.');
       return;
     }
 
@@ -74,7 +75,7 @@ export function WorkoutRecordingScreen() {
       });
       setAiSuggestions((prev) => ({ ...prev, [workoutExerciseId]: response.data }));
     } catch {
-      Alert.alert('AI unavailable', 'Could not get suggestion. Check AI settings.');
+      showAlert('AI unavailable', 'Could not get suggestion. Check AI settings.');
     } finally {
       setAiLoading((prev) => ({ ...prev, [workoutExerciseId]: false }));
     }
@@ -103,7 +104,7 @@ export function WorkoutRecordingScreen() {
       if (value === true) {
         const nextRpe = set.actualRpe;
         if (rpeRequired && typeof nextRpe !== 'number') {
-          Alert.alert('RPE required', 'Main lift sets need an RPE before completion.');
+          showAlert('RPE required', 'Main lift sets need an RPE before completion.');
           return;
         }
         await completeSet(db, set.id);
@@ -141,7 +142,7 @@ export function WorkoutRecordingScreen() {
       isMainLiftRole(exercise.exercise.role) && exercise.sets.some((set) => set.completed && typeof set.actualRpe !== 'number'),
     );
     if (missingRpe) {
-      Alert.alert('RPE required', 'Add RPE to every completed main lift set before finishing.');
+      showAlert('RPE required', 'Add RPE to every completed main lift set before finishing.');
       return;
     }
 

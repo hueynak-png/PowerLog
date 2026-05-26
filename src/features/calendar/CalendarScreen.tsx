@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, SectionHeader } from '@/src/components/ui';
 import type { WorkoutSession } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
+import { confirmAction } from '@/src/lib/alert';
 import { deleteWorkoutSession, getWorkoutsByDate, getWorkoutsByMonth } from '@/src/repositories';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { colors, spacing, typography } from '@/src/theme';
@@ -78,20 +79,14 @@ export function CalendarScreen() {
 
   const handleDeleteWorkout = useCallback(async (session: WorkoutSession) => {
     if (!db) return;
-    Alert.alert(
+    confirmAction(
       'Delete Workout',
       `Delete workout from ${session.date}? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete', style: 'destructive',
-          onPress: async () => {
-            await deleteWorkoutSession(db, session.id);
-            setDayWorkouts((prev) => prev.filter((w) => w.id !== session.id));
-            setMonthWorkouts((prev) => prev.filter((w) => w.id !== session.id));
-          },
-        },
-      ],
+      async () => {
+        await deleteWorkoutSession(db, session.id);
+        setDayWorkouts((prev) => prev.filter((w) => w.id !== session.id));
+        setMonthWorkouts((prev) => prev.filter((w) => w.id !== session.id));
+      },
     );
   }, [db]);
 
