@@ -10,6 +10,7 @@ import { useDatabase } from '@/src/hooks/useDatabase';
 import { confirmAction, showAlert } from '@/src/lib/alert';
 import { deleteWorkoutSession, getRecentWorkouts } from '@/src/repositories/workoutRepository';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
+import { getPersistedActiveSession } from '@/src/stores/useActiveWorkoutStore';
 import { colors } from '@/src/theme/colors';
 import { radius } from '@/src/theme/radius';
 import { spacing } from '@/src/theme/spacing';
@@ -90,15 +91,24 @@ export function WorkoutStartScreen() {
   }, [db]);
 
   const lastWorkout = recentWorkouts[0];
+  const persistedSessionId = getPersistedActiveSession();
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>PowerLog</Text>
-          <Text style={styles.title}>Record today’s work.</Text>
+          <Text style={styles.title}>Record today's work.</Text>
           <Text style={styles.subtitle}>Fast offline logging with sets, RPE, and instant post-session feedback.</Text>
         </View>
+
+        {persistedSessionId && (
+          <Card style={styles.startCard}>
+            <Text style={styles.cardTitle}>Active workout in progress</Text>
+            <Text style={styles.lastWorkout}>You have an unfinished session.</Text>
+            <Button title="Resume Workout" onPress={() => router.push(`/workout/${persistedSessionId}` as Href)} />
+          </Card>
+        )}
 
         <Card style={styles.startCard}>
           <Text style={styles.cardTitle}>Workout deck</Text>

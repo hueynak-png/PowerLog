@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 
 import { Button } from '@/src/components/ui/Button';
@@ -30,6 +30,7 @@ export function WorkoutRecordingScreen() {
   const session = useActiveWorkoutStore((state) => state.session);
   const exercises = useActiveWorkoutStore((state) => state.exercises);
   const addSet = useActiveWorkoutStore((state) => state.addSet);
+  const removeSet = useActiveWorkoutStore((state) => state.removeSet);
   const updateSet = useActiveWorkoutStore((state) => state.updateSet);
   const completeSet = useActiveWorkoutStore((state) => state.completeSet);
   const completeWorkout = useActiveWorkoutStore((state) => state.completeWorkout);
@@ -133,6 +134,11 @@ export function WorkoutRecordingScreen() {
     await addSet(db, workoutExerciseId);
   };
 
+  const handleRemoveSet = async (workoutExerciseId: string, setId: string) => {
+    if (!db) return;
+    await removeSet(db, workoutExerciseId, setId);
+  };
+
   const handleCompleteWorkout = async () => {
     if (!db || !session) {
       return;
@@ -159,6 +165,11 @@ export function WorkoutRecordingScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {/* Back button */}
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>‹ Back</Text>
+        </Pressable>
+
         <Card style={styles.topCard}>
           <View style={styles.topRow}>
             <TimerPill elapsedSeconds={elapsedSeconds} isRunning={isRunning} />
@@ -196,19 +207,30 @@ export function WorkoutRecordingScreen() {
               >
                 {workoutExercise.sets.map((set) => (
                   <View key={set.id} style={styles.setBlock}>
-                    <SetInput
-                      setNumber={set.setNumber}
-                      plannedWeight={set.plannedWeight}
-                      plannedReps={set.plannedReps}
-                      plannedRpe={set.plannedRpe}
-                      actualWeight={set.actualWeight ?? null}
-                      actualReps={set.actualReps ?? null}
-                      actualRpe={set.actualRpe ?? null}
-                      completed={set.completed}
-                      isWarmup={set.isWarmup}
-                      rpeRequired={rpeRequired}
-                      onUpdate={(field, value) => void handleSetUpdate(set, field, value, rpeRequired)}
-                    />
+                    <View style={styles.setRow}>
+                      <View style={{ flex: 1 }}>
+                        <SetInput
+                          setNumber={set.setNumber}
+                          plannedWeight={set.plannedWeight}
+                          plannedReps={set.plannedReps}
+                          plannedRpe={set.plannedRpe}
+                          actualWeight={set.actualWeight ?? null}
+                          actualReps={set.actualReps ?? null}
+                          actualRpe={set.actualRpe ?? null}
+                          completed={set.completed}
+                          isWarmup={set.isWarmup}
+                          rpeRequired={rpeRequired}
+                          onUpdate={(field, value) => void handleSetUpdate(set, field, value, rpeRequired)}
+                        />
+                      </View>
+                      <Pressable
+                        onPress={() => void handleRemoveSet(workoutExercise.id, set.id)}
+                        style={styles.deleteSetBtn}
+                        accessibilityLabel={`Delete set ${set.setNumber}`}
+                      >
+                        <Text style={styles.deleteSetText}>×</Text>
+                      </Pressable>
+                    </View>
                     <RpeSelector value={set.actualRpe ?? null} required={rpeRequired} onChange={(rpe) => void handleRpeChange(set.id, rpe)} />
                   </View>
                 ))}
@@ -250,6 +272,8 @@ export function WorkoutRecordingScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.md },
+  backBtn: { paddingVertical: spacing.sm },
+  backBtnText: { ...typography.callout, color: colors.primary, fontWeight: '600' },
   topCard: { marginBottom: spacing.sm },
   topRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   progressBlock: { alignItems: 'flex-end' },
@@ -259,6 +283,9 @@ const styles = StyleSheet.create({
   emptyTitle: { ...typography.headline, color: colors.textPrimary },
   emptyCopy: { ...typography.callout, color: colors.textSecondary, lineHeight: 20 },
   setBlock: { marginBottom: spacing.md },
+  setRow: { flexDirection: 'row', alignItems: 'center' },
+  deleteSetBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.xs },
+  deleteSetText: { fontSize: 20, color: colors.danger, fontWeight: '700' },
   aiBlock: { marginTop: spacing.sm, gap: spacing.sm },
   aiCard: { backgroundColor: colors.surfaceSecondary, padding: spacing.sm },
   aiSeverity: { ...typography.caption, color: colors.warning, fontWeight: '700', textTransform: 'uppercase' },

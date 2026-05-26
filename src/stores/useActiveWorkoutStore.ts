@@ -1,4 +1,5 @@
 import type { PowerLogDatabase as SQLiteDatabase } from '@/src/db/types';
+import { Platform } from 'react-native';
 import { create } from 'zustand';
 
 import type { Exercise, WorkoutExercise, WorkoutSession, WorkoutSet } from '@/src/domain/types';
@@ -9,6 +10,7 @@ import {
   completeWorkoutSession,
   createWorkoutSession,
   deleteWorkoutExercise,
+  deleteWorkoutSet,
   getExerciseById,
   getSessionSets,
   getWorkoutExercises,
@@ -27,6 +29,7 @@ interface ActiveWorkoutState {
   addExercise: (db: SQLiteDatabase, exerciseId: string) => Promise<void>;
   removeExercise: (db: SQLiteDatabase, workoutExerciseId: string) => Promise<void>;
   addSet: (db: SQLiteDatabase, workoutExerciseId: string) => Promise<void>;
+  removeSet: (db: SQLiteDatabase, workoutExerciseId: string, setId: string) => Promise<void>;
   updateSet: (db: SQLiteDatabase, setId: string, updates: Partial<WorkoutSet>) => Promise<void>;
   completeSet: (db: SQLiteDatabase, setId: string) => Promise<void>;
   completeWorkout: (db: SQLiteDatabase) => Promise<WorkoutSession>;
@@ -41,6 +44,25 @@ const emptyWorkoutState = {
   session: null,
   exercises: [],
   isActive: false,
+};
+
+const ACTIVE_SESSION_KEY = 'powerlog-active-session';
+
+const persistActiveSession = (sessionId: string | null) => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+    try {
+      if (sessionId) window.localStorage.setItem(ACTIVE_SESSION_KEY, sessionId);
+      else window.localStorage.removeItem(ACTIVE_SESSION_KEY);
+    } catch { /* ignore */ }
+  }
+};
+
+export const getPersistedActiveSession = (): string | null => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+    try { return window.localStorage.getItem(ACTIVE_SESSION_KEY); }
+    catch { return null; }
+  }
+  return null;
 };
 
 const getSetVolume = (set: WorkoutSet): number => {
@@ -67,6 +89,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
     });
 
     set({ session, exercises: [], isActive: true });
+    persistActiveSession(session.id);
   },
 
   loadWorkout: async (db, sessionId) => {
@@ -157,6 +180,18 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
     }));
   },
 
+  removeSet: async (db, workoutExerciseId, setId) => {
+    await deleteWorkoutSet(db, setId);
+
+    set((state) => ({
+      exercises: state.exercises.map((exercise) =>
+        exercise.id === workoutExerciseId
+          ? { ...exercise, sets: exercise.sets.filter((s) => s.id !== setId) }
+          : exercise,
+      ),
+    }));
+  },
+
   updateSet: async (db, setId, updates) => {
     await updateWorkoutSet(db, setId, updates);
 
@@ -197,6 +232,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
     };
 
     set({ session: completedSession, isActive: false });
+    persistActiveSession(null);
 
     return completedSession;
   },
@@ -206,6 +242,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
 
     if (!session) {
       set(emptyWorkoutState);
+      persistActiveSession(null);
       return;
     }
 
@@ -213,6 +250,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
     await completeWorkoutSession(db, session.id, new Date().toISOString(), 0, 0, 0);
 
     set(emptyWorkoutState);
+    persistActiveSession(null);
   },
 
   getTotalVolume: () =>
