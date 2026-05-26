@@ -9,6 +9,7 @@ interface ProfileRow {
   preferred_unit: Profile['preferredUnit'];
   default_session_duration: number;
   preferred_training_days_per_week: number;
+  last_settings_saved_at: string | null;
 }
 
 const toProfile = (row: ProfileRow): Profile => ({
@@ -17,6 +18,7 @@ const toProfile = (row: ProfileRow): Profile => ({
   preferredUnit: row.preferred_unit,
   defaultSessionDuration: row.default_session_duration,
   preferredTrainingDaysPerWeek: row.preferred_training_days_per_week,
+  lastSettingsSavedAt: row.last_settings_saved_at ?? undefined,
 });
 
 export const getProfile = async (db: SQLiteDatabase): Promise<Profile | null> => {
@@ -32,6 +34,7 @@ export const createDefaultProfile = async (db: SQLiteDatabase): Promise<Profile>
     preferredUnit: 'kg',
     defaultSessionDuration: 90,
     preferredTrainingDaysPerWeek: 4,
+    lastSettingsSavedAt: undefined,
   };
 
   await db.runAsync(
@@ -40,26 +43,24 @@ export const createDefaultProfile = async (db: SQLiteDatabase): Promise<Profile>
       name,
       preferred_unit,
       default_session_duration,
-      preferred_training_days_per_week
-    ) VALUES (?, ?, ?, ?, ?)`,
+      preferred_training_days_per_week,
+      last_settings_saved_at
+    ) VALUES (?, ?, ?, ?, ?, ?)`,
     [
       profile.id,
       profile.name,
       profile.preferredUnit,
       profile.defaultSessionDuration,
       profile.preferredTrainingDaysPerWeek,
+      profile.lastSettingsSavedAt ?? null,
     ],
   );
 
   return profile;
 };
 
-export const updateProfile = async (db: SQLiteDatabase, updates: Partial<Profile>): Promise<void> => {
-  const existing = await getProfile(db);
-
-  if (!existing) {
-    return;
-  }
+export const updateProfile = async (db: SQLiteDatabase, updates: Partial<Profile>): Promise<Profile> => {
+  const existing = (await getProfile(db)) ?? (await createDefaultProfile(db));
 
   const next: Profile = {
     ...existing,
@@ -72,14 +73,18 @@ export const updateProfile = async (db: SQLiteDatabase, updates: Partial<Profile
       name = ?,
       preferred_unit = ?,
       default_session_duration = ?,
-      preferred_training_days_per_week = ?
+      preferred_training_days_per_week = ?,
+      last_settings_saved_at = ?
     WHERE id = ?`,
     [
       next.name,
       next.preferredUnit,
       next.defaultSessionDuration,
       next.preferredTrainingDaysPerWeek,
+      next.lastSettingsSavedAt ?? null,
       existing.id,
     ],
   );
+
+  return next;
 };

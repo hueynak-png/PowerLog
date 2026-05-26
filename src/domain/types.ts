@@ -4,6 +4,7 @@ export interface Profile {
   preferredUnit: 'kg';
   defaultSessionDuration: number;
   preferredTrainingDaysPerWeek: number;
+  lastSettingsSavedAt?: string;
 }
 
 export type LiftType = 'squat' | 'bench' | 'deadlift' | 'overhead_press';

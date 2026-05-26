@@ -10,7 +10,7 @@ interface SettingsState {
   isLoaded: boolean;
   loadSettings: (db: SQLiteDatabase) => Promise<void>;
   updateMax: (db: SQLiteDatabase, liftType: LiftType, oneRm: number) => Promise<void>;
-  updateProfile: (db: SQLiteDatabase, updates: Partial<Profile>) => Promise<void>;
+  updateProfile: (db: SQLiteDatabase, updates: Partial<Profile>) => Promise<Profile>;
   getMaxForLift: (liftType: LiftType) => Max | null;
 }
 
@@ -44,11 +44,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   updateProfile: async (db, updates) => {
-    await saveProfile(db, updates);
+    const profile = await saveProfile(db, updates);
 
-    set((state) => ({
-      profile: state.profile ? { ...state.profile, ...updates, id: state.profile.id } : state.profile,
-    }));
+    set({ profile });
+
+    return profile;
   },
 
   getMaxForLift: (liftType) => get().maxes.find((max) => max.liftType === liftType) ?? null,

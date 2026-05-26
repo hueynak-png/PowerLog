@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS profile (
   name TEXT NOT NULL DEFAULT 'Athlete',
   preferred_unit TEXT NOT NULL DEFAULT 'kg',
   default_session_duration INTEGER NOT NULL DEFAULT 90,
-  preferred_training_days_per_week INTEGER NOT NULL DEFAULT 4
+  preferred_training_days_per_week INTEGER NOT NULL DEFAULT 4,
+  last_settings_saved_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS maxes (

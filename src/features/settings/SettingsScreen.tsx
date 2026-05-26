@@ -21,6 +21,8 @@ export function SettingsScreen() {
   const [deadlift, setDeadlift] = useState<number | null>(null);
   const [duration, setDuration] = useState<number | null>(60);
   const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(profile?.lastSettingsSavedAt ?? null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // AI configuration
   const savedAIConfig = getAIConfig();
@@ -34,7 +36,8 @@ export function SettingsScreen() {
     setBench(getMaxForLift('bench')?.oneRm ?? null);
     setDeadlift(getMaxForLift('deadlift')?.oneRm ?? null);
     setDuration(profile?.defaultSessionDuration ?? 60);
-  }, [getMaxForLift, profile?.defaultSessionDuration]);
+    setLastSavedAt(profile?.lastSettingsSavedAt ?? null);
+  }, [getMaxForLift, profile?.defaultSessionDuration, profile?.lastSettingsSavedAt]);
 
   const saveLiftMax = async (liftType: LiftType, value: number | null) => {
     if (!db || value === null) return;
@@ -45,21 +48,33 @@ export function SettingsScreen() {
     if (!db) return;
 
     setIsSaving(true);
-    await Promise.all([
-      saveLiftMax('squat', squat),
-      saveLiftMax('bench', bench),
-      saveLiftMax('deadlift', deadlift),
-      duration !== null ? updateProfile(db, { defaultSessionDuration: duration }) : Promise.resolve(),
-    ]);
+    setSaveError(null);
 
-    // Save AI config
-    if (aiBaseUrl && aiAuthToken) {
-      configureAI(aiBaseUrl, aiAuthToken);
-      setAiConfigured(true);
-      setAiExpanded(false);
+    try {
+      const savedAt = new Date().toISOString();
+      await Promise.all([
+        saveLiftMax('squat', squat),
+        saveLiftMax('bench', bench),
+        saveLiftMax('deadlift', deadlift),
+        updateProfile(db, {
+          ...(duration !== null ? { defaultSessionDuration: duration } : {}),
+          lastSettingsSavedAt: savedAt,
+        }),
+      ]);
+
+      // Save AI config
+      if (aiBaseUrl && aiAuthToken) {
+        configureAI(aiBaseUrl, aiAuthToken);
+        setAiConfigured(true);
+        setAiExpanded(false);
+      }
+
+      setLastSavedAt(savedAt);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to save settings.');
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsSaving(false);
   };
 
   if (!db) {
@@ -125,6 +140,8 @@ export function SettingsScreen() {
         </Card>
 
         <Button title="Save Settings" onPress={handleSave} loading={isSaving} />
+        {lastSavedAt ? <Text style={styles.savedText}>Last saved: {new Date(lastSavedAt).toLocaleString()}</Text> : null}
+        {saveError ? <Text style={styles.errorText}>Save failed: {saveError}</Text> : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -173,5 +190,17 @@ const styles = StyleSheet.create({
   aiToggle: {
     ...typography.callout,
     color: colors.textSecondary,
+  },
+  savedText: {
+    ...typography.footnote,
+    color: colors.success,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },
+  errorText: {
+    ...typography.footnote,
+    color: colors.danger,
+    marginTop: spacing.sm,
+    textAlign: 'center',
   },
 });
