@@ -17,5 +17,10 @@ export const initDatabase = async (): Promise<void> => {
 const initDatabaseOnce = async (): Promise<void> => {
   const db = await getDatabase();
 
+  if (db.withBatchAsync) {
+    await db.withBatchAsync(() => runMigrations(db));
+    return;
+  }
+
   await runMigrations(db);
 };
