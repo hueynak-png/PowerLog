@@ -19,9 +19,6 @@ const loadFromIndexedDB = (): Promise<Uint8Array | null> =>
     request.onerror = () => reject(request.error);
   });
 
-/**
- * Persist database to IndexedDB.
- */
 const saveToIndexedDB = (data: Uint8Array): Promise<void> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open('PowerLogStorage', 1);
@@ -38,19 +35,12 @@ const saveToIndexedDB = (data: Uint8Array): Promise<void> =>
     request.onerror = () => reject(request.error);
   });
 
-/**
- * Auto-persist after every write operation.
- */
-const withPersist = (db: Database, fn: () => void): void => {
+const withPersist = async (db: Database, fn: () => void): Promise<void> => {
   fn();
   const data = db.export();
-  saveToIndexedDB(data).catch(console.error);
+  await saveToIndexedDB(data);
 };
 
-/**
- * Web database implementation using sql.js (SQLite compiled to WASM).
- * Data is persisted to IndexedDB after every write operation.
- */
 const createWebDatabase = async (): Promise<PowerLogDatabase> => {
   const SQL = await initSqlJs({
     locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
@@ -61,15 +51,18 @@ const createWebDatabase = async (): Promise<PowerLogDatabase> => {
 
   return {
     execAsync: async (sql: string) => {
-      withPersist(db, () => db.run(sql));
+      await withPersist(db, () => db.run(sql));
     },
 
     runAsync: async (sql: string, params?: unknown[]) => {
-      withPersist(db, () => {
+      await withPersist(db, () => {
         const stmt = db.prepare(sql);
-        stmt.bind(params as never[] | undefined);
-        stmt.step();
-        stmt.free();
+        try {
+          stmt.bind(params as never[] | undefined);
+          stmt.step();
+        } finally {
+          stmt.free();
+        }
       });
       const changesResult = db.exec('SELECT changes() as c');
       const changes = changesResult[0]?.values[0]?.[0] as number ?? 0;
@@ -113,4 +106,3 @@ export const getDatabase = async (): Promise<PowerLogDatabase> => {
   databasePromise ??= createWebDatabase();
   return databasePromise;
 };
-
