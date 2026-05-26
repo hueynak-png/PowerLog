@@ -1,8 +1,9 @@
 import type { PowerLogDatabase } from './types';
 import { createTables } from './schema';
 import { seedExercises } from './seedExercises';
+import { seedPrograms } from './seedPrograms';
 
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 
 export const runMigrations = async (db: PowerLogDatabase): Promise<void> => {
   await db.execAsync(`
@@ -24,4 +25,5 @@ CREATE TABLE IF NOT EXISTS schema_version (
   }
 
   await seedExercises(db);
+  await seedPrograms(db);
 };
