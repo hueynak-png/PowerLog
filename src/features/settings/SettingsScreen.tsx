@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
@@ -27,6 +27,7 @@ export function SettingsScreen() {
   const [aiBaseUrl, setAiBaseUrl] = useState(savedAIConfig.baseUrl);
   const [aiAuthToken, setAiAuthToken] = useState(savedAIConfig.authToken);
   const [aiConfigured, setAiConfigured] = useState(isAIConfigured());
+  const [aiExpanded, setAiExpanded] = useState(!isAIConfigured());
 
   useEffect(() => {
     setSquat(getMaxForLift('squat')?.oneRm ?? null);
@@ -55,6 +56,7 @@ export function SettingsScreen() {
     if (aiBaseUrl && aiAuthToken) {
       configureAI(aiBaseUrl, aiAuthToken);
       setAiConfigured(true);
+      setAiExpanded(false);
     }
 
     setIsSaving(false);
@@ -98,21 +100,28 @@ export function SettingsScreen() {
 
         <SectionHeader title="AI Coach" />
         <Card style={styles.card}>
-          <Text style={styles.aiStatus}>
-            {aiConfigured ? '✓ AI configured' : 'Not configured'}
-          </Text>
-          <TextField
-            label="Backend URL"
-            value={aiBaseUrl}
-            onChangeText={setAiBaseUrl}
-            placeholder="https://your-worker.workers.dev"
-          />
-          <TextField
-            label="Auth Token"
-            value={aiAuthToken}
-            onChangeText={setAiAuthToken}
-            placeholder="Your auth token"
-          />
+          <Pressable onPress={() => setAiExpanded(!aiExpanded)} style={styles.aiHeader}>
+            <Text style={[styles.aiStatus, !aiConfigured && styles.aiNotConfigured]}>
+              {aiConfigured ? '✓ AI configured' : '✗ Not configured'}
+            </Text>
+            <Text style={styles.aiToggle}>{aiExpanded ? '▲' : '▼'}</Text>
+          </Pressable>
+          {aiExpanded && (
+            <>
+              <TextField
+                label="Backend URL"
+                value={aiBaseUrl}
+                onChangeText={setAiBaseUrl}
+                placeholder="https://your-worker.workers.dev"
+              />
+              <TextField
+                label="Auth Token"
+                value={aiAuthToken}
+                onChangeText={setAiAuthToken}
+                placeholder="Your auth token"
+              />
+            </>
+          )}
         </Card>
 
         <Button title="Save Settings" onPress={handleSave} loading={isSaving} />
@@ -148,10 +157,21 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: spacing.lg,
   },
+  aiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   aiStatus: {
     ...typography.footnote,
     color: colors.success,
     fontWeight: '700',
-    marginBottom: spacing.sm,
+  },
+  aiNotConfigured: {
+    color: colors.textSecondary,
+  },
+  aiToggle: {
+    ...typography.callout,
+    color: colors.textSecondary,
   },
 });

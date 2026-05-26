@@ -3,10 +3,6 @@ import initSqlJs, { type Database } from 'sql.js';
 import type { PowerLogDatabase } from './types';
 
 const DB_STORAGE_KEY = 'powerlog-db';
-
-/**
- * Load persisted database from IndexedDB.
- */
 const loadFromIndexedDB = (): Promise<Uint8Array | null> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open('PowerLogStorage', 1);
@@ -52,18 +48,6 @@ const withPersist = (db: Database, fn: () => void): void => {
 };
 
 /**
- * Convert sql.js row arrays to objects with column names as keys.
- */
-const rowsToObjects = <T>(columns: string[], values: unknown[][]): T[] =>
-  values.map((row) => {
-    const obj: Record<string, unknown> = {};
-    columns.forEach((col, i) => {
-      obj[col] = row[i];
-    });
-    return obj as T;
-  });
-
-/**
  * Web database implementation using sql.js (SQLite compiled to WASM).
  * Data is persisted to IndexedDB after every write operation.
  */
@@ -81,8 +65,12 @@ const createWebDatabase = async (): Promise<PowerLogDatabase> => {
     },
 
     runAsync: async (sql: string, params?: unknown[]) => {
-      withPersist(db, () => db.run(sql, params as never));
-      // sql.js doesn't expose changes/lastInsertRowId easily
+      withPersist(db, () => {
+        const stmt = db.prepare(sql);
+        stmt.bind(params as never[] | undefined);
+        stmt.step();
+        stmt.free();
+      });
       const changesResult = db.exec('SELECT changes() as c');
       const changes = changesResult[0]?.values[0]?.[0] as number ?? 0;
       const lastIdResult = db.exec('SELECT last_insert_rowid() as id');
@@ -91,15 +79,30 @@ const createWebDatabase = async (): Promise<PowerLogDatabase> => {
     },
 
     getFirstAsync: async <T>(sql: string, params?: unknown[]): Promise<T | null> => {
-      const result = db.exec(sql, params as never);
-      if (!result[0] || result[0].values.length === 0) return null;
-      return rowsToObjects<T>(result[0].columns, [result[0].values[0]])[0];
+      const stmt = db.prepare(sql);
+      if (params && params.length > 0) stmt.bind(params as never[]);
+      if (!stmt.step()) { stmt.free(); return null; }
+      const columns = stmt.getColumnNames();
+      const values = stmt.get();
+      stmt.free();
+      const obj: Record<string, unknown> = {};
+      columns.forEach((col, i) => { obj[col] = values[i]; });
+      return obj as T;
     },
 
     getAllAsync: async <T>(sql: string, params?: unknown[]): Promise<T[]> => {
-      const result = db.exec(sql, params as never);
-      if (!result[0] || result[0].values.length === 0) return [];
-      return rowsToObjects<T>(result[0].columns, result[0].values);
+      const stmt = db.prepare(sql);
+      if (params && params.length > 0) stmt.bind(params as never[]);
+      const results: T[] = [];
+      while (stmt.step()) {
+        const columns = stmt.getColumnNames();
+        const values = stmt.get();
+        const obj: Record<string, unknown> = {};
+        columns.forEach((col, i) => { obj[col] = values[i]; });
+        results.push(obj as T);
+      }
+      stmt.free();
+      return results;
     },
   };
 };
