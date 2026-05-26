@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
+import { WorkoutDetailScreen } from '@/src/features/workout/WorkoutDetailScreen';
 import { WorkoutRecordingScreen } from '@/src/features/workout/WorkoutRecordingScreen';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
@@ -53,12 +54,16 @@ export default function WorkoutSessionScreen() {
     );
   }
 
-  if (!session || !isActive) {
+  if (!session) {
     return (
       <SafeAreaView style={styles.centered}>
-        <Text style={styles.loadingText}>Workout not found or already completed.</Text>
+        <Text style={styles.loadingText}>Workout not found.</Text>
       </SafeAreaView>
     );
+  }
+
+  if (!isActive) {
+    return <WorkoutDetailScreen />;
   }
 
   return <WorkoutRecordingScreen />;
