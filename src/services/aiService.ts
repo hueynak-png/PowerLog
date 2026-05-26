@@ -62,8 +62,12 @@ const aiRequest = async <T>(
   }
 
   const controller = new AbortController();
+  let didTimeout = false;
   const timeout = setTimeout(
-    () => controller.abort(),
+    () => {
+      didTimeout = true;
+      controller.abort();
+    },
     options.timeout ?? 30000,
   );
 
@@ -84,6 +88,11 @@ const aiRequest = async <T>(
     }
 
     return await response.json() as T;
+  } catch (error) {
+    if (didTimeout) {
+      throw new Error('AI request timed out. Please try again.');
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
@@ -232,7 +241,7 @@ export const requestDailyStrengthAnalysis = (data: {
     painNotes?: string;
   };
 }): Promise<DailyStrengthAnalysisResponse> =>
-  aiRequest('/daily-strength-analysis', data, { timeout: 45000 });
+  aiRequest('/daily-strength-analysis', data, { timeout: 120000 });
 
 /**
  * Get AI suggestion for next set during workout.
