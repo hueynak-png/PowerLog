@@ -6,6 +6,7 @@ interface TimerState {
   startTime: number | null;
   intervalId: ReturnType<typeof setInterval> | null;
   start: () => void;
+  startFrom: (startedAt: string) => void;
   pause: () => void;
   resume: () => void;
   reset: () => void;
@@ -33,6 +34,20 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       elapsedSeconds: 0,
       isRunning: true,
       startTime: Date.now(),
+      intervalId,
+    });
+  },
+
+  startFrom: (startedAt) => {
+    clearTimerInterval(get().intervalId);
+
+    const startTime = new Date(startedAt).getTime();
+    const intervalId = setInterval(() => get().tick(), 1000);
+
+    set({
+      elapsedSeconds: Math.max(0, Math.floor((Date.now() - startTime) / 1000)),
+      isRunning: true,
+      startTime,
       intervalId,
     });
   },

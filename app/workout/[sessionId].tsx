@@ -16,7 +16,7 @@ export default function WorkoutSessionScreen() {
   const loadWorkout = useActiveWorkoutStore((state) => state.loadWorkout);
   const session = useActiveWorkoutStore((state) => state.session);
   const isActive = useActiveWorkoutStore((state) => state.isActive);
-  const startTimer = useTimerStore((state) => state.start);
+  const startTimerFrom = useTimerStore((state) => state.startFrom);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function WorkoutSessionScreen() {
       .then(() => {
         const loaded = useActiveWorkoutStore.getState().session;
         if (loaded && !loaded.endedAt) {
-          startTimer();
+          startTimerFrom(loaded.startedAt);
         }
       })
       .finally(() => {
@@ -42,7 +42,7 @@ export default function WorkoutSessionScreen() {
     return () => {
       mounted = false;
     };
-  }, [db, loadWorkout, sessionId, startTimer]);
+  }, [db, loadWorkout, sessionId, startTimerFrom]);
 
   if (isLoading || !db) {
     return (
