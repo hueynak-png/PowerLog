@@ -265,6 +265,7 @@ export const updateWorkoutExercise = async (
 };
 
 export const deleteWorkoutExercise = async (db: SQLiteDatabase, id: string): Promise<void> => {
+  await db.runAsync('DELETE FROM workout_sets WHERE workout_exercise_id = ?', [id]);
   await db.runAsync('DELETE FROM workout_exercises WHERE id = ?', [id]);
 };
 

@@ -30,6 +30,7 @@ export function WorkoutRecordingScreen() {
   const session = useActiveWorkoutStore((state) => state.session);
   const exercises = useActiveWorkoutStore((state) => state.exercises);
   const addSet = useActiveWorkoutStore((state) => state.addSet);
+  const removeExercise = useActiveWorkoutStore((state) => state.removeExercise);
   const removeSet = useActiveWorkoutStore((state) => state.removeSet);
   const updateSet = useActiveWorkoutStore((state) => state.updateSet);
   const completeSet = useActiveWorkoutStore((state) => state.completeSet);
@@ -132,6 +133,18 @@ export function WorkoutRecordingScreen() {
     }
 
     await addSet(db, workoutExerciseId);
+    setExpandedIds((current) => new Set(current).add(workoutExerciseId));
+  };
+
+  const handleRemoveExercise = async (workoutExerciseId: string) => {
+    if (!db) return;
+
+    await removeExercise(db, workoutExerciseId);
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      next.delete(workoutExerciseId);
+      return next;
+    });
   };
 
   const handleRemoveSet = async (workoutExerciseId: string, setId: string) => {
@@ -205,6 +218,13 @@ export function WorkoutRecordingScreen() {
                 isExpanded={expandedIds.has(workoutExercise.id) || workoutExercise.sets.length <= 1}
                 onToggle={() => toggleExpanded(workoutExercise.id)}
               >
+                <Pressable
+                  onPress={() => void handleRemoveExercise(workoutExercise.id)}
+                  style={styles.deleteExerciseBtn}
+                  accessibilityLabel={`Delete ${workoutExercise.exercise.nameEn}`}
+                >
+                  <Text style={styles.deleteExerciseText}>Delete Exercise</Text>
+                </Pressable>
                 {workoutExercise.sets.map((set) => (
                   <View key={set.id} style={styles.setBlock}>
                     <View style={styles.setRow}>
@@ -284,6 +304,8 @@ const styles = StyleSheet.create({
   emptyCopy: { ...typography.callout, color: colors.textSecondary, lineHeight: 20 },
   setBlock: { marginBottom: spacing.md },
   setRow: { flexDirection: 'row', alignItems: 'center' },
+  deleteExerciseBtn: { alignSelf: 'flex-start', marginBottom: spacing.sm, paddingVertical: spacing.xs },
+  deleteExerciseText: { ...typography.footnote, color: colors.danger, fontWeight: '700' },
   deleteSetBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.xs },
   deleteSetText: { fontSize: 20, color: colors.danger, fontWeight: '700' },
   aiBlock: { marginTop: spacing.sm, gap: spacing.sm },
