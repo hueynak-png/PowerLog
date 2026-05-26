@@ -8,7 +8,7 @@ import { MetricCard } from '@/src/components/ui/MetricCard';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { calculateWorkoutSummary } from '@/src/lib/workoutSummary';
-import { getRecentExerciseHistory } from '@/src/repositories';
+import { getRecentExerciseHistory, updateWorkoutSession } from '@/src/repositories';
 import { isAIConfigured, requestDailyStrengthAnalysis, type DailyStrengthAnalysisResponse } from '@/src/services/aiService';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { colors } from '@/src/theme/colors';
@@ -39,55 +39,86 @@ export function WorkoutSummaryScreen() {
     session?.durationSeconds ?? 0,
   );
 
+  const requestAnalysis = async (force = false) => {
+    if (!db || !session || !isAIConfigured()) return;
+
+    setAiLoading(true);
+    setAiError(null);
+
+    try {
+      if (!force && session.aiSummaryJson) {
+        setAiAnalysis(JSON.parse(session.aiSummaryJson) as DailyStrengthAnalysisResponse['data']);
+        return;
+      }
+
+      await updateWorkoutSession(db, session.id, { aiSummaryStatus: 'pending' });
+
+      const history = (
+        await Promise.all(
+          exercises.map((ex) => getRecentExerciseHistory(db, ex.exercise.id, session.id, 3)),
+        )
+      ).flat();
+
+      const res = await requestDailyStrengthAnalysis({
+        session: {
+          durationSeconds: summary.durationSeconds,
+          totalVolume: summary.totalVolume,
+          completionRate: summary.completionRate,
+          notes: session.notes,
+        },
+        exercises: exercises.map((ex) => ({
+          nameEn: ex.exercise.nameEn,
+          nameZh: ex.exercise.nameZh,
+          category: ex.exercise.category,
+          liftFamily: ex.exercise.liftFamily,
+          role: ex.exercise.role,
+          muscleGroups: ex.exercise.muscleGroups,
+          sets: ex.sets.map((s) => ({
+            setNumber: s.setNumber,
+            plannedWeight: s.plannedWeight,
+            actualWeight: s.actualWeight,
+            plannedReps: s.plannedReps,
+            actualReps: s.actualReps,
+            plannedRpe: s.plannedRpe,
+            actualRpe: s.actualRpe,
+            rir: typeof s.actualRpe === 'number' ? Math.max(0, Math.round((10 - s.actualRpe) * 10) / 10) : undefined,
+            completed: s.completed,
+            isWarmup: s.isWarmup,
+            notes: s.notes,
+          })),
+        })),
+        history,
+      });
+
+      setAiAnalysis(res.data);
+      await updateWorkoutSession(db, session.id, {
+        aiSummaryStatus: 'generated',
+        aiSummaryJson: JSON.stringify(res.data),
+      });
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'AI unavailable');
+      await updateWorkoutSession(db, session.id, { aiSummaryStatus: 'failed' });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isAIConfigured()) return;
     if (!db || !session) return;
 
     let cancelled = false;
 
-    const requestAnalysis = async () => {
+    const loadOrRequestAnalysis = async () => {
       setAiLoading(true);
       setAiError(null);
 
       try {
-        const history = (
-          await Promise.all(
-            exercises.map((ex) => getRecentExerciseHistory(db, ex.exercise.id, session.id, 3)),
-          )
-        ).flat();
-
-        const res = await requestDailyStrengthAnalysis({
-          session: {
-            durationSeconds: summary.durationSeconds,
-            totalVolume: summary.totalVolume,
-            completionRate: summary.completionRate,
-            notes: session.notes,
-          },
-          exercises: exercises.map((ex) => ({
-            nameEn: ex.exercise.nameEn,
-            nameZh: ex.exercise.nameZh,
-            category: ex.exercise.category,
-            liftFamily: ex.exercise.liftFamily,
-            role: ex.exercise.role,
-            muscleGroups: ex.exercise.muscleGroups,
-            sets: ex.sets.map((s) => ({
-              setNumber: s.setNumber,
-              plannedWeight: s.plannedWeight,
-              actualWeight: s.actualWeight,
-              plannedReps: s.plannedReps,
-              actualReps: s.actualReps,
-              plannedRpe: s.plannedRpe,
-              actualRpe: s.actualRpe,
-              rir: typeof s.actualRpe === 'number' ? Math.max(0, Math.round((10 - s.actualRpe) * 10) / 10) : undefined,
-              completed: s.completed,
-              isWarmup: s.isWarmup,
-              notes: s.notes,
-            })),
-          })),
-          history,
-        });
-
-        if (!cancelled) setAiAnalysis(res.data);
+        if (session.aiSummaryJson) {
+          if (!cancelled) setAiAnalysis(JSON.parse(session.aiSummaryJson) as DailyStrengthAnalysisResponse['data']);
+          return;
+        }
+        await requestAnalysis(false);
       } catch (err) {
         if (!cancelled) setAiError(err instanceof Error ? err.message : 'AI unavailable');
       } finally {
@@ -95,12 +126,12 @@ export function WorkoutSummaryScreen() {
       }
     };
 
-    void requestAnalysis();
+    void loadOrRequestAnalysis();
 
     return () => {
       cancelled = true;
     };
-  }, [db, exercises, session, summary.completionRate, summary.durationSeconds, summary.totalVolume]);
+  }, [db, session?.id]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -175,6 +206,13 @@ export function WorkoutSummaryScreen() {
           )}
           {aiAnalysis && (
             <View style={styles.aiContent}>
+              <Button
+                title={aiLoading ? 'Analyzing...' : 'Re-analyze'}
+                onPress={() => void requestAnalysis(true)}
+                variant="secondary"
+                size="sm"
+                disabled={aiLoading || !db || !session || !isAIConfigured()}
+              />
               <Text style={styles.aiSummaryText}>{aiAnalysis.oneLineConclusion}</Text>
               <View style={styles.scoreGrid}>
                 <Text style={styles.scoreItem}>完成度 {aiAnalysis.scores.completion}/10</Text>

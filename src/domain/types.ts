@@ -48,6 +48,7 @@ export interface WorkoutSession {
   totalVolume?: number;
   notes?: string;
   aiSummaryStatus: AiSummaryStatus;
+  aiSummaryJson?: string;
 }
 
 export interface WorkoutExercise {

@@ -14,6 +14,7 @@ interface WorkoutSessionRow {
   total_volume: number | null;
   notes: string | null;
   ai_summary_status: AiSummaryStatus;
+  ai_summary_json: string | null;
 }
 
 interface WorkoutExerciseRow {
@@ -66,6 +67,7 @@ const toWorkoutSession = (row: WorkoutSessionRow): WorkoutSession => ({
   totalVolume: toOptional(row.total_volume),
   notes: toOptional(row.notes),
   aiSummaryStatus: row.ai_summary_status,
+  aiSummaryJson: toOptional(row.ai_summary_json),
 });
 
 const toWorkoutExercise = (row: WorkoutExerciseRow): WorkoutExercise => ({
@@ -112,8 +114,9 @@ export const createWorkoutSession = async (
       completion_rate,
       total_volume,
       notes,
-      ai_summary_status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ai_summary_status,
+      ai_summary_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       savedSession.id,
       savedSession.programDayId ?? null,
@@ -125,6 +128,7 @@ export const createWorkoutSession = async (
       savedSession.totalVolume ?? null,
       savedSession.notes ?? null,
       savedSession.aiSummaryStatus,
+      savedSession.aiSummaryJson ?? null,
     ],
   );
 
@@ -223,7 +227,8 @@ export const updateWorkoutSession = async (
       completion_rate = ?,
       total_volume = ?,
       notes = ?,
-      ai_summary_status = ?
+      ai_summary_status = ?,
+      ai_summary_json = ?
     WHERE id = ?`,
     [
       next.programDayId ?? null,
@@ -235,6 +240,7 @@ export const updateWorkoutSession = async (
       next.totalVolume ?? null,
       next.notes ?? null,
       next.aiSummaryStatus,
+      next.aiSummaryJson ?? null,
       id,
     ],
   );

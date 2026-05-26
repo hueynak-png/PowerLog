@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS schema_version (
   }
 
   await ensureColumn(db, 'profile', 'last_settings_saved_at', 'ALTER TABLE profile ADD COLUMN last_settings_saved_at TEXT');
+  await ensureColumn(db, 'workout_sessions', 'ai_summary_json', 'ALTER TABLE workout_sessions ADD COLUMN ai_summary_json TEXT');
 
   await seedExercises(db);
   await seedProgramSummaries(db);

@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS workout_sessions (
   completion_rate REAL,
   total_volume REAL,
   notes TEXT,
-  ai_summary_status TEXT NOT NULL DEFAULT 'not_requested'
+  ai_summary_status TEXT NOT NULL DEFAULT 'not_requested',
+  ai_summary_json TEXT
 );
 
 CREATE TABLE IF NOT EXISTS workout_exercises (
