@@ -377,3 +377,40 @@ export const getSessionSets = async (db: SQLiteDatabase, sessionId: string): Pro
 
   return rows.map(toWorkoutSet);
 };
+
+export const deleteWorkoutSession = async (db: SQLiteDatabase, sessionId: string): Promise<void> => {
+  // Delete sets first (foreign key constraint)
+  await db.runAsync(
+    `DELETE FROM workout_sets WHERE workout_exercise_id IN (
+      SELECT id FROM workout_exercises WHERE workout_session_id = ?
+    )`,
+    [sessionId],
+  );
+  // Delete exercises
+  await db.runAsync('DELETE FROM workout_exercises WHERE workout_session_id = ?', [sessionId]);
+  // Delete session
+  await db.runAsync('DELETE FROM workout_sessions WHERE id = ?', [sessionId]);
+};
+
+export const getWorkoutsByMonth = async (db: SQLiteDatabase, year: number, month: number): Promise<WorkoutSession[]> => {
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const endMonth = month === 12 ? 1 : month + 1;
+  const endYear = month === 12 ? year + 1 : year;
+  const endDate = `${endYear}-${String(endMonth).padStart(2, '0')}-01`;
+
+  const rows = await db.getAllAsync<WorkoutSessionRow>(
+    'SELECT * FROM workout_sessions WHERE date >= ? AND date < ? ORDER BY date ASC',
+    [startDate, endDate],
+  );
+
+  return rows.map(toWorkoutSession);
+};
+
+export const getWorkoutsByDate = async (db: SQLiteDatabase, date: string): Promise<WorkoutSession[]> => {
+  const rows = await db.getAllAsync<WorkoutSessionRow>(
+    'SELECT * FROM workout_sessions WHERE date = ? ORDER BY started_at DESC',
+    [date],
+  );
+
+  return rows.map(toWorkoutSession);
+};

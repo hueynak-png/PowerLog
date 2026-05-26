@@ -22,7 +22,7 @@ interface ActiveWorkoutState {
   session: WorkoutSession | null;
   exercises: ActiveWorkoutExercise[];
   isActive: boolean;
-  startWorkout: (db: SQLiteDatabase) => Promise<void>;
+  startWorkout: (db: SQLiteDatabase, date?: string) => Promise<void>;
   loadWorkout: (db: SQLiteDatabase, sessionId: string) => Promise<void>;
   addExercise: (db: SQLiteDatabase, exerciseId: string) => Promise<void>;
   removeExercise: (db: SQLiteDatabase, workoutExerciseId: string) => Promise<void>;
@@ -57,10 +57,11 @@ const getSessionDuration = (session: WorkoutSession): number =>
 export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
   ...emptyWorkoutState,
 
-  startWorkout: async (db) => {
+  startWorkout: async (db, date?) => {
     const now = new Date().toISOString();
+    const workoutDate = date ?? now.slice(0, 10);
     const session = await createWorkoutSession(db, {
-      date: now.slice(0, 10),
+      date: workoutDate,
       startedAt: now,
       aiSummaryStatus: 'not_requested',
     });

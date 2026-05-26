@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 
 import { Button } from '@/src/components/ui/Button';
@@ -7,7 +7,7 @@ import { Card } from '@/src/components/ui/Card';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
 import type { WorkoutSession } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
-import { getRecentWorkouts } from '@/src/repositories/workoutRepository';
+import { deleteWorkoutSession, getRecentWorkouts } from '@/src/repositories/workoutRepository';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { colors } from '@/src/theme/colors';
 import { radius } from '@/src/theme/radius';
@@ -25,6 +25,7 @@ export function WorkoutStartScreen() {
   const [recentWorkouts, setRecentWorkouts] = useState<WorkoutSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
+  const [customDate, setCustomDate] = useState('');
 
   useEffect(() => {
     if (!db) {
@@ -50,14 +51,14 @@ export function WorkoutStartScreen() {
     };
   }, [db]);
 
-  const handleStartWorkout = useCallback(async () => {
+  const handleStartWorkout = useCallback(async (date?: string) => {
     if (!db) {
       return;
     }
 
     setIsStarting(true);
     try {
-      await startWorkout(db);
+      await startWorkout(db, date);
       const sessionId = useActiveWorkoutStore.getState().session?.id ?? activeSession?.id;
       if (sessionId) {
         router.push(`/workout/${sessionId}` as Href);
@@ -66,6 +67,32 @@ export function WorkoutStartScreen() {
       setIsStarting(false);
     }
   }, [activeSession?.id, db, router, startWorkout]);
+
+  const handleStartPastWorkout = () => {
+    if (!customDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      Alert.alert('Invalid date', 'Please use YYYY-MM-DD format (e.g. 2024-12-25)');
+      return;
+    }
+    void handleStartWorkout(customDate);
+  };
+
+  const handleDeleteWorkout = useCallback(async (session: WorkoutSession) => {
+    if (!db) return;
+    Alert.alert(
+      'Delete Workout',
+      `Delete workout from ${session.date}? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive',
+          onPress: async () => {
+            await deleteWorkoutSession(db, session.id);
+            setRecentWorkouts((prev) => prev.filter((w) => w.id !== session.id));
+          },
+        },
+      ],
+    );
+  }, [db]);
 
   const lastWorkout = recentWorkouts[0];
 
@@ -87,7 +114,20 @@ export function WorkoutStartScreen() {
           ) : (
             <Text style={styles.lastWorkout}>No workouts recorded yet.</Text>
           )}
-          <Button title="Start New Workout" onPress={handleStartWorkout} loading={isStarting} disabled={!db} />
+          <Button title="Start Today's Workout" onPress={() => void handleStartWorkout()} loading={isStarting} disabled={!db} />
+        </Card>
+
+        <Card style={styles.startCard}>
+          <Text style={styles.cardTitle}>Log a past workout</Text>
+          <TextInput
+            style={styles.dateInput}
+            value={customDate}
+            onChangeText={setCustomDate}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={colors.textTertiary}
+            accessibilityLabel="Past workout date"
+          />
+          <Button title="Start Past Workout" onPress={handleStartPastWorkout} variant="secondary" disabled={!db || !customDate} />
         </Card>
 
         {recentWorkouts.length > 1 && (
@@ -95,8 +135,13 @@ export function WorkoutStartScreen() {
             <SectionHeader title="Recent" />
             {recentWorkouts.slice(1).map((workout) => (
               <Card key={workout.id} variant="outlined" style={styles.recentCard}>
-                <Text style={styles.recentDate}>{formatDate(workout.date)}</Text>
-                <Text style={styles.recentMeta}>{Math.round((workout.completionRate ?? 0) * 100)}% complete · {Math.round(workout.totalVolume ?? 0)} kg</Text>
+                <View style={styles.recentRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.recentDate}>{formatDate(workout.date)}</Text>
+                    <Text style={styles.recentMeta}>{Math.round((workout.completionRate ?? 0) * 100)}% complete · {Math.round(workout.totalVolume ?? 0)} kg</Text>
+                  </View>
+                  <Button title="Delete" size="sm" variant="secondary" onPress={() => void handleDeleteWorkout(workout)} />
+                </View>
               </Card>
             ))}
           </View>
@@ -118,6 +163,11 @@ const styles = StyleSheet.create({
   lastWorkout: { ...typography.callout, color: colors.textSecondary },
   loader: { alignSelf: 'flex-start' },
   recentCard: { marginBottom: spacing.sm },
+  recentRow: { flexDirection: 'row', alignItems: 'center' },
   recentDate: { ...typography.headline, color: colors.textPrimary },
   recentMeta: { ...typography.footnote, color: colors.textSecondary, marginTop: spacing.xs },
+  dateInput: {
+    ...typography.body, color: colors.textPrimary, backgroundColor: colors.surfaceSecondary,
+    borderRadius: radius.sm, padding: spacing.md, borderWidth: 1, borderColor: colors.borderLight,
+  },
 });
