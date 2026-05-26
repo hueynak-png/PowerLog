@@ -1,3 +1,4 @@
+export * from './analyticsRepository';
 export * from './bodyweightRepository';
 export * from './exerciseRepository';
 export * from './maxRepository';

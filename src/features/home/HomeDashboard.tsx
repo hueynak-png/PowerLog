@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Card, MetricCard, NumberField, SectionHeader } from '@/src/components/ui';
-import type { BodyweightEntry, LiftType, WorkoutSession } from '@/src/domain/types';
+import { Button, Card, MetricCard, NumberField, SectionHeader, TextField } from '@/src/components/ui';
+import type { BodyweightEntry, LiftType, NutritionEntry, WorkoutSession } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
-import { addBodyweightEntry, getLatestBodyweight, getRecentWorkouts, updateBodyweightEntry } from '@/src/repositories';
+import { addBodyweightEntry, addNutritionEntry, getLatestBodyweight, getNutritionByDate, getRecentWorkouts, updateBodyweightEntry, updateNutritionEntry } from '@/src/repositories';
+import { isAIConfigured, requestNutritionTags } from '@/src/services/aiService';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { colors, spacing, typography } from '@/src/theme';
 
@@ -45,6 +46,13 @@ export function HomeDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingBodyweight, setIsSavingBodyweight] = useState(false);
 
+  // Nutrition state
+  const [todayNutrition, setTodayNutrition] = useState<NutritionEntry | null>(null);
+  const [nutritionNotes, setNutritionNotes] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isSavingNutrition, setIsSavingNutrition] = useState(false);
+  const [aiTags, setAiTags] = useState<string[]>([]);
+
   const todayLabel = useMemo(
     () => new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()),
     [],
@@ -54,10 +62,21 @@ export function HomeDashboard() {
     if (!db) return;
 
     setIsLoading(true);
-    const [workouts, bodyweight] = await Promise.all([getRecentWorkouts(db, 1), getLatestBodyweight(db)]);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const [workouts, bodyweight, nutrition] = await Promise.all([
+      getRecentWorkouts(db, 1),
+      getLatestBodyweight(db),
+      getNutritionByDate(db, todayStr),
+    ]);
     setRecentWorkouts(workouts);
     setLatestBodyweight(bodyweight);
     setBodyweightValue(bodyweight?.bodyweight ?? null);
+    setTodayNutrition(nutrition);
+    if (nutrition) {
+      setNutritionNotes(nutrition.notes ?? '');
+      setSelectedTags(nutrition.statusTags);
+      setAiTags(nutrition.aiTags ?? []);
+    }
     setIsLoading(false);
   }, [db]);
 
@@ -77,6 +96,39 @@ export function HomeDashboard() {
     }
     await loadDashboard();
     setIsSavingBodyweight(false);
+  };
+
+  const NUTRITION_STATUS_OPTIONS = ['偏少', '正常', '偏多', '高蛋白', '外食多', '饮酒', '不规律'];
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
+  };
+
+  const handleSaveNutrition = async () => {
+    if (!db) return;
+
+    setIsSavingNutrition(true);
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    if (todayNutrition) {
+      await updateNutritionEntry(db, todayNutrition.id, { statusTags: selectedTags, notes: nutritionNotes });
+    } else {
+      await addNutritionEntry(db, { date: todayStr, statusTags: selectedTags, notes: nutritionNotes });
+    }
+
+    // Request AI tags if configured and notes exist
+    if (isAIConfigured() && nutritionNotes.length > 0) {
+      try {
+        const res = await requestNutritionTags({ notes: nutritionNotes, statusTags: selectedTags, bodyweight: bodyweightValue ?? undefined });
+        setAiTags(res.data.tags);
+        // Save AI tags back
+        const updated = await getNutritionByDate(db, todayStr);
+        if (updated) await updateNutritionEntry(db, updated.id, { aiTags: res.data.tags });
+      } catch { /* AI optional */ }
+    }
+
+    await loadDashboard();
+    setIsSavingNutrition(false);
   };
 
   const lastWorkout = recentWorkouts[0];
@@ -147,6 +199,26 @@ export function HomeDashboard() {
             loading={isSavingBodyweight}
             size="md"
           />
+        </Card>
+
+        <SectionHeader title="Today's Nutrition" />
+        <Card style={styles.card}>
+          <Text style={styles.cardText}>Status tags:</Text>
+          <View style={styles.tagsRow}>
+            {NUTRITION_STATUS_OPTIONS.map((tag) => (
+              <Pressable key={tag} onPress={() => toggleTag(tag)} style={[styles.tag, selectedTags.includes(tag) && styles.tagSelected]}>
+                <Text style={[styles.tagText, selectedTags.includes(tag) && styles.tagTextSelected]}>{tag}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <TextField label="Notes" value={nutritionNotes} onChangeText={setNutritionNotes} placeholder="今天吃了什么..." multiline />
+          {aiTags.length > 0 && (
+            <View style={styles.aiTagsRow}>
+              <Text style={styles.aiTagsLabel}>AI Tags:</Text>
+              {aiTags.map((t) => <Text key={t} style={styles.aiTag}>{t}</Text>)}
+            </View>
+          )}
+          <Button title="Save Nutrition" onPress={handleSaveNutrition} loading={isSavingNutrition} size="md" />
         </Card>
 
         <SectionHeader title="Estimated 1RM" />
@@ -244,4 +316,12 @@ const styles = StyleSheet.create({
   metricWrap: {
     flex: 1,
   },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.md },
+  tag: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: 16, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.borderLight },
+  tagSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tagText: { ...typography.footnote, color: colors.textSecondary },
+  tagTextSelected: { color: '#fff', fontWeight: '600' },
+  aiTagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.md, alignItems: 'center' },
+  aiTagsLabel: { ...typography.footnote, color: colors.textSecondary, marginRight: spacing.xs },
+  aiTag: { ...typography.footnote, color: colors.primary, backgroundColor: colors.surfaceSecondary, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: 10 },
 });
