@@ -1,7 +1,7 @@
 import type { PowerLogDatabase } from './types';
 import { createTables } from './schema';
 import { seedExercises } from './seedExercises';
-import { seedPrograms } from './seedPrograms';
+import { seedProgramSummaries } from './seedProgramSummaries';
 
 const CURRENT_SCHEMA_VERSION = 4;
 
@@ -34,5 +34,5 @@ CREATE TABLE IF NOT EXISTS schema_version (
   await ensureColumn(db, 'profile', 'last_settings_saved_at', 'ALTER TABLE profile ADD COLUMN last_settings_saved_at TEXT');
 
   await seedExercises(db);
-  await seedPrograms(db);
+  await seedProgramSummaries(db);
 };
