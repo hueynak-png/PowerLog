@@ -22,6 +22,7 @@ const createNativeDatabase = async (): Promise<PowerLogDatabase> => {
       db.getFirstAsync<T>(sql, (params ?? []) as SQLiteBindParams),
     getAllAsync: <T>(sql: string, params?: unknown[]) =>
       db.getAllAsync<T>(sql, (params ?? []) as SQLiteBindParams),
+    withBatchAsync: async <T>(fn: () => Promise<T>) => fn(),
   };
 };
 

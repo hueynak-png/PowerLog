@@ -7,4 +7,5 @@ export interface PowerLogDatabase {
   runAsync(sql: string, params?: unknown[]): Promise<{ changes: number; lastInsertRowId: number }>;
   getFirstAsync<T>(sql: string, params?: unknown[]): Promise<T | null>;
   getAllAsync<T>(sql: string, params?: unknown[]): Promise<T[]>;
+  withBatchAsync?<T>(fn: () => Promise<T>): Promise<T>;
 }

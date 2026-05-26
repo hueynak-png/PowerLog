@@ -48,14 +48,30 @@ const createWebDatabase = async (): Promise<PowerLogDatabase> => {
 
   const savedData = await loadFromIndexedDB();
   const db = savedData ? new SQL.Database(savedData) : new SQL.Database();
+  let batchDepth = 0;
+  let batchDirty = false;
+
+  const persist = async (): Promise<void> => {
+    const data = db.export();
+    await saveToIndexedDB(data);
+  };
+
+  const runWrite = async (fn: () => void): Promise<void> => {
+    fn();
+    if (batchDepth > 0) {
+      batchDirty = true;
+      return;
+    }
+    await persist();
+  };
 
   return {
     execAsync: async (sql: string) => {
-      await withPersist(db, () => db.run(sql));
+      await runWrite(() => db.run(sql));
     },
 
     runAsync: async (sql: string, params?: unknown[]) => {
-      await withPersist(db, () => {
+      await runWrite(() => {
         const stmt = db.prepare(sql);
         try {
           stmt.bind(params as never[] | undefined);
@@ -96,6 +112,22 @@ const createWebDatabase = async (): Promise<PowerLogDatabase> => {
       }
       stmt.free();
       return results;
+    },
+
+    withBatchAsync: async <T>(fn: () => Promise<T>): Promise<T> => {
+      batchDepth += 1;
+      try {
+        const result = await fn();
+        batchDepth -= 1;
+        if (batchDepth === 0 && batchDirty) {
+          batchDirty = false;
+          await persist();
+        }
+        return result;
+      } catch (error) {
+        batchDepth -= 1;
+        throw error;
+      }
     },
   };
 };
