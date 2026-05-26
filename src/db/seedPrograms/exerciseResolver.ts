@@ -72,6 +72,7 @@ const ALIASES: Record<string, string> = {
   'low incline dumbbell bench press': 'dumbbell bench press',
   'dumbbell overhead press': 'overhead press',
   'seated dumbbell overhead press': 'overhead press',
+  'barbell overhead press': 'overhead press',
   'quad extension': 'leg extension',
   'quad extensions': 'leg extension',
   'single leg quad extensions': 'leg extension',

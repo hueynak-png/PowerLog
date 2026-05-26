@@ -18,6 +18,63 @@ const dayId = (programId: string, weekNumber: number, dayNumber: number): string
 const exerciseId = (programId: string, weekNumber: number, dayNumber: number, orderIndex: number): string =>
   `${dayId(programId, weekNumber, dayNumber)}-exercise-${String(orderIndex).padStart(2, '0')}`;
 
+const countRows = async (db: PowerLogDatabase, sql: string, params: (string | number)[]): Promise<number> => {
+  const row = await db.getFirstAsync<{ count: number }>(sql, params);
+  return row?.count ?? 0;
+};
+
+const expectedDayCount = (program: ProgramSeed): number => program.weeks.reduce((total, week) => total + week.days.length, 0);
+
+const expectedExerciseCount = (program: ProgramSeed): number =>
+  program.weeks.reduce((weekTotal, week) => weekTotal + week.days.reduce((dayTotal, day) => dayTotal + day.exercises.length, 0), 0);
+
+const isExistingSeedComplete = async (db: PowerLogDatabase, program: ProgramSeed): Promise<boolean> => {
+  const weekCount = await countRows(db, 'SELECT COUNT(*) as count FROM program_weeks WHERE program_id = ?', [program.id]);
+  const dayCount = await countRows(
+    db,
+    `SELECT COUNT(*) as count
+     FROM program_days pd
+     INNER JOIN program_weeks pw ON pw.id = pd.program_week_id
+     WHERE pw.program_id = ?`,
+    [program.id],
+  );
+  const exerciseCount = await countRows(
+    db,
+    `SELECT COUNT(*) as count
+     FROM planned_exercises pe
+     INNER JOIN program_days pd ON pd.id = pe.program_day_id
+     INNER JOIN program_weeks pw ON pw.id = pd.program_week_id
+     WHERE pw.program_id = ?`,
+    [program.id],
+  );
+
+  return weekCount === program.weeks.length && dayCount === expectedDayCount(program) && exerciseCount === expectedExerciseCount(program);
+};
+
+const deleteSeedProgramRows = async (db: PowerLogDatabase, programId: string): Promise<void> => {
+  await db.runAsync(
+    `DELETE FROM planned_exercises
+     WHERE program_day_id IN (
+       SELECT pd.id
+       FROM program_days pd
+       INNER JOIN program_weeks pw ON pw.id = pd.program_week_id
+       WHERE pw.program_id = ?
+     )`,
+    [programId],
+  );
+
+  await db.runAsync(
+    `DELETE FROM program_days
+     WHERE program_week_id IN (
+       SELECT id FROM program_weeks WHERE program_id = ?
+     )`,
+    [programId],
+  );
+
+  await db.runAsync('DELETE FROM program_weeks WHERE program_id = ?', [programId]);
+  await db.runAsync('DELETE FROM programs WHERE id = ?', [programId]);
+};
+
 const validateDay = (program: ProgramSeed, week: ProgramWeekSeed, day: ProgramDaySeed) => {
   if (day.exercises.length === 0) {
     throw new Error(`Seed day has no exercises: ${program.id} week ${week.weekNumber} day ${day.dayNumber}`);
@@ -60,7 +117,10 @@ export const seedPrograms = async (db: PowerLogDatabase): Promise<void> => {
     validateProgram(program);
 
     const existing = await db.getFirstAsync<{ id: string }>('SELECT id FROM programs WHERE id = ? LIMIT 1', [program.id]);
-    if (existing) continue;
+    if (existing) {
+      if (await isExistingSeedComplete(db, program)) continue;
+      await deleteSeedProgramRows(db, program.id);
+    }
 
     await db.runAsync(
       `INSERT INTO programs (id, name, type, goal, source, duration_weeks, includes_deload, description, created_at)
