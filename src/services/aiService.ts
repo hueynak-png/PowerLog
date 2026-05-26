@@ -3,18 +3,41 @@
  * Handles all AI-related API calls with graceful degradation.
  */
 
-// Configure via settings - will be stored in app settings
-const getConfig = () => ({
-  baseUrl: '', // Set via settings screen (e.g., https://powerlog-backend.your-worker.workers.dev)
-  authToken: '', // Set via settings screen
-});
+import { Platform } from 'react-native';
 
-// Allow runtime configuration
-let config = getConfig();
+const STORAGE_KEY = 'powerlog-ai-config';
+
+interface AIConfig {
+  baseUrl: string;
+  authToken: string;
+}
+
+/**
+ * Load config from localStorage (web) on startup.
+ */
+const loadConfig = (): AIConfig => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      if (stored) return JSON.parse(stored) as AIConfig;
+    } catch { /* ignore */ }
+  }
+  return { baseUrl: '', authToken: '' };
+};
+
+let config: AIConfig = loadConfig();
 
 export const configureAI = (baseUrl: string, authToken: string) => {
   config = { baseUrl, authToken };
+  // Persist to localStorage on web
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    } catch { /* ignore */ }
+  }
 };
+
+export const getAIConfig = (): AIConfig => config;
 
 export const isAIConfigured = (): boolean =>
   config.baseUrl.length > 0 && config.authToken.length > 0;

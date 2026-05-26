@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
 import type { LiftType } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
-import { configureAI, isAIConfigured } from '@/src/services/aiService';
+import { configureAI, getAIConfig, isAIConfigured } from '@/src/services/aiService';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { colors, spacing, typography } from '@/src/theme';
 
@@ -23,8 +23,9 @@ export function SettingsScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   // AI configuration
-  const [aiBaseUrl, setAiBaseUrl] = useState('');
-  const [aiAuthToken, setAiAuthToken] = useState('');
+  const savedAIConfig = getAIConfig();
+  const [aiBaseUrl, setAiBaseUrl] = useState(savedAIConfig.baseUrl);
+  const [aiAuthToken, setAiAuthToken] = useState(savedAIConfig.authToken);
   const [aiConfigured, setAiConfigured] = useState(isAIConfigured());
 
   useEffect(() => {
