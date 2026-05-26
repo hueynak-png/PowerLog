@@ -13,7 +13,7 @@ interface ExerciseSeed {
   equipment: string;
 }
 
-const EXERCISE_SEEDS: ExerciseSeed[] = [
+export const EXERCISE_SEEDS: ExerciseSeed[] = [
   {
     nameEn: 'Squat',
     nameZh: '深蹲',
@@ -194,16 +194,225 @@ const EXERCISE_SEEDS: ExerciseSeed[] = [
     muscleGroups: ['quads', 'glutes'],
     equipment: 'dumbbell',
   },
+  {
+    nameEn: 'Pause Squat',
+    nameZh: '暂停深蹲',
+    category: 'barbell',
+    liftFamily: 'squat',
+    role: 'variation',
+    muscleGroups: ['quads', 'glutes', 'core'],
+    equipment: 'barbell',
+  },
+  {
+    nameEn: 'Tempo Squat',
+    nameZh: '节奏深蹲',
+    category: 'barbell',
+    liftFamily: 'squat',
+    role: 'variation',
+    muscleGroups: ['quads', 'glutes', 'core'],
+    equipment: 'barbell',
+  },
+  {
+    nameEn: 'Pause Deadlift',
+    nameZh: '暂停硬拉',
+    category: 'barbell',
+    liftFamily: 'deadlift',
+    role: 'variation',
+    muscleGroups: ['back', 'glutes', 'hamstrings'],
+    equipment: 'barbell',
+  },
+  {
+    nameEn: 'Deficit Deadlift',
+    nameZh: '垫高硬拉',
+    category: 'barbell',
+    liftFamily: 'deadlift',
+    role: 'variation',
+    muscleGroups: ['back', 'glutes', 'hamstrings'],
+    equipment: 'barbell',
+  },
+  {
+    nameEn: 'Block Pull',
+    nameZh: '架上硬拉',
+    category: 'barbell',
+    liftFamily: 'deadlift',
+    role: 'variation',
+    muscleGroups: ['back', 'glutes', 'hamstrings'],
+    equipment: 'barbell',
+  },
+  {
+    nameEn: 'Paused Bench Press',
+    nameZh: '暂停卧推',
+    category: 'barbell',
+    liftFamily: 'bench',
+    role: 'variation',
+    muscleGroups: ['chest', 'triceps', 'front_delt'],
+    equipment: 'barbell',
+  },
+  {
+    nameEn: 'Spoto Press',
+    nameZh: '斯波托卧推',
+    category: 'barbell',
+    liftFamily: 'bench',
+    role: 'variation',
+    muscleGroups: ['chest', 'triceps', 'front_delt'],
+    equipment: 'barbell',
+  },
+  {
+    nameEn: 'Dumbbell Bench Press',
+    nameZh: '哑铃卧推',
+    category: 'dumbbell',
+    liftFamily: 'bench',
+    role: 'variation',
+    muscleGroups: ['chest', 'triceps', 'front_delt'],
+    equipment: 'dumbbell',
+  },
+  {
+    nameEn: 'Chest Supported Row',
+    nameZh: '胸托划船',
+    category: 'machine',
+    liftFamily: 'upper',
+    role: 'accessory',
+    muscleGroups: ['back', 'biceps'],
+    equipment: 'machine',
+  },
+  {
+    nameEn: 'Seated Cable Row',
+    nameZh: '坐姿绳索划船',
+    category: 'cable',
+    liftFamily: 'upper',
+    role: 'accessory',
+    muscleGroups: ['back', 'biceps'],
+    equipment: 'cable',
+  },
+  {
+    nameEn: 'Single Arm Triceps Extension',
+    nameZh: '单臂三头伸展',
+    category: 'cable',
+    liftFamily: 'upper',
+    role: 'accessory',
+    muscleGroups: ['triceps'],
+    equipment: 'cable',
+  },
+  {
+    nameEn: 'Rear Delt Fly',
+    nameZh: '后束飞鸟',
+    category: 'dumbbell',
+    liftFamily: 'upper',
+    role: 'accessory',
+    muscleGroups: ['rear_delt', 'upper_back'],
+    equipment: 'dumbbell',
+  },
+  {
+    nameEn: 'Calf Raise',
+    nameZh: '提踵',
+    category: 'machine',
+    liftFamily: 'lower',
+    role: 'accessory',
+    muscleGroups: ['calves'],
+    equipment: 'machine',
+  },
+  {
+    nameEn: 'Back Extension',
+    nameZh: '背伸',
+    category: 'bodyweight',
+    liftFamily: 'deadlift',
+    role: 'accessory',
+    muscleGroups: ['lower_back', 'glutes', 'hamstrings'],
+    equipment: 'bodyweight',
+  },
+  {
+    nameEn: 'Plank',
+    nameZh: '平板支撑',
+    category: 'bodyweight',
+    liftFamily: 'accessory',
+    role: 'accessory',
+    muscleGroups: ['core'],
+    equipment: 'bodyweight',
+  },
+  {
+    nameEn: 'Ab Wheel',
+    nameZh: '健腹轮',
+    category: 'bodyweight',
+    liftFamily: 'accessory',
+    role: 'accessory',
+    muscleGroups: ['core'],
+    equipment: 'bodyweight',
+  },
+  {
+    nameEn: 'Hip Thrust',
+    nameZh: '臀推',
+    category: 'barbell',
+    liftFamily: 'lower',
+    role: 'accessory',
+    muscleGroups: ['glutes', 'hamstrings'],
+    equipment: 'barbell',
+  },
+  {
+    nameEn: 'Pec Fly',
+    nameZh: '夹胸飞鸟',
+    category: 'machine',
+    liftFamily: 'upper',
+    role: 'accessory',
+    muscleGroups: ['chest'],
+    equipment: 'machine',
+  },
+  {
+    nameEn: 'Hanging Leg Raise',
+    nameZh: '悬垂举腿',
+    category: 'bodyweight',
+    liftFamily: 'accessory',
+    role: 'accessory',
+    muscleGroups: ['core'],
+    equipment: 'bodyweight',
+  },
+  {
+    nameEn: 'Cable Crunch',
+    nameZh: '绳索卷腹',
+    category: 'cable',
+    liftFamily: 'accessory',
+    role: 'accessory',
+    muscleGroups: ['core'],
+    equipment: 'cable',
+  },
+  {
+    nameEn: 'Decline Sit-Up',
+    nameZh: '下斜仰卧起坐',
+    category: 'bodyweight',
+    liftFamily: 'accessory',
+    role: 'accessory',
+    muscleGroups: ['core'],
+    equipment: 'bodyweight',
+  },
+  {
+    nameEn: 'T-Bar Row',
+    nameZh: 'T杠划船',
+    category: 'machine',
+    liftFamily: 'upper',
+    role: 'accessory',
+    muscleGroups: ['back', 'biceps'],
+    equipment: 'machine',
+  },
+  {
+    nameEn: 'Adductor Machine',
+    nameZh: '内收肌训练器',
+    category: 'machine',
+    liftFamily: 'lower',
+    role: 'accessory',
+    muscleGroups: ['adductors'],
+    equipment: 'machine',
+  },
 ];
 
 export const seedExercises = async (db: PowerLogDatabase): Promise<void> => {
-  const existing = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM exercises');
-
-  if ((existing?.count ?? 0) > 0) {
-    return;
-  }
-
   for (const exercise of EXERCISE_SEEDS) {
+    const existing = await db.getFirstAsync<{ id: string }>('SELECT id FROM exercises WHERE lower(name_en) = lower(?) LIMIT 1', [
+      exercise.nameEn,
+    ]);
+
+    if (existing) {
+      continue;
+    }
+
     await db.runAsync(
       `INSERT INTO exercises (
         id,
