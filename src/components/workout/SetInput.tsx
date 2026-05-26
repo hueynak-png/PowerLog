@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { colors } from '@/src/theme/colors';
 import { spacing } from '@/src/theme/spacing';
@@ -25,10 +25,37 @@ export function SetInput({
   actualWeight, actualReps, actualRpe, completed, isWarmup,
   onUpdate, rpeRequired,
 }: SetInputProps) {
+  const [weightText, setWeightText] = useState(actualWeight != null ? String(actualWeight) : '');
+
+  useEffect(() => {
+    setWeightText(actualWeight != null ? String(actualWeight) : '');
+  }, [actualWeight]);
+
   const handleNum = (field: string) => (text: string) => {
-    if (text === '') { onUpdate(field, null); return; }
-    const n = parseFloat(text);
-    if (!isNaN(n)) onUpdate(field, n);
+    if (text === '') {
+      onUpdate(field, null);
+      return;
+    }
+    const n = Number(text);
+    if (Number.isFinite(n)) onUpdate(field, n);
+  };
+
+  const handleWeightText = (text: string) => {
+    if (!/^\d*\.?\d*$/.test(text)) return;
+    setWeightText(text);
+  };
+
+  const commitWeight = () => {
+    if (weightText === '' || weightText === '.') {
+      onUpdate('actualWeight', null);
+      setWeightText('');
+      return;
+    }
+    const n = Number(weightText);
+    if (Number.isFinite(n)) {
+      onUpdate('actualWeight', n);
+      setWeightText(String(n));
+    }
   };
 
   return (
@@ -36,8 +63,8 @@ export function SetInput({
       <Text style={styles.setNum}>{isWarmup ? 'W' : setNumber}</Text>
       <View style={styles.cell}>
         {plannedWeight != null && <Text style={styles.planned}>{plannedWeight}</Text>}
-        <TextInput style={styles.input} value={actualWeight != null ? String(actualWeight) : ''}
-          onChangeText={handleNum('actualWeight')} keyboardType="decimal-pad"
+        <TextInput style={styles.input} value={weightText}
+          onChangeText={handleWeightText} onBlur={commitWeight} keyboardType="decimal-pad" inputMode="decimal"
           placeholder="kg" placeholderTextColor={colors.textTertiary}
           accessibilityLabel={`Set ${setNumber} weight`} />
       </View>
@@ -52,6 +79,7 @@ export function SetInput({
         {plannedRpe != null && <Text style={styles.planned}>{plannedRpe}</Text>}
         <TextInput style={styles.input} value={actualRpe != null ? String(actualRpe) : ''}
           onChangeText={handleNum('actualRpe')} keyboardType="decimal-pad"
+          inputMode="decimal"
           placeholder={rpeRequired ? 'RPE*' : 'RPE'}
           placeholderTextColor={rpeRequired ? colors.warning : colors.textTertiary}
           accessibilityLabel={`Set ${setNumber} RPE`} />
