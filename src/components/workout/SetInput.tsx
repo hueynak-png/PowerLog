@@ -59,25 +59,25 @@ export function SetInput({
   };
 
   return (
-    <View style={[styles.row, isWarmup && styles.warmup]}>
-      <Text style={styles.setNum}>{isWarmup ? 'W' : setNumber}</Text>
+    <View style={[styles.row, completed && styles.completedRow, isWarmup && styles.warmup]}>
+      <Text style={[styles.setNum, completed && styles.setNumCompleted]}>{isWarmup ? 'W' : setNumber}</Text>
       <View style={styles.cell}>
         {plannedWeight != null && <Text style={styles.planned}>{plannedWeight}</Text>}
-        <TextInput style={styles.input} value={weightText}
+        <TextInput style={[styles.input, completed && styles.completedInput]} value={weightText}
           onChangeText={handleWeightText} onBlur={commitWeight} keyboardType="decimal-pad" inputMode="decimal"
           placeholder="kg" placeholderTextColor={colors.textTertiary}
           accessibilityLabel={`Set ${setNumber} weight`} />
       </View>
       <View style={styles.cell}>
         {plannedReps != null && <Text style={styles.planned}>{plannedReps}</Text>}
-        <TextInput style={styles.input} value={actualReps != null ? String(actualReps) : ''}
+        <TextInput style={[styles.input, completed && styles.completedInput]} value={actualReps != null ? String(actualReps) : ''}
           onChangeText={handleNum('actualReps')} keyboardType="number-pad"
           placeholder="reps" placeholderTextColor={colors.textTertiary}
           accessibilityLabel={`Set ${setNumber} reps`} />
       </View>
       <View style={styles.cell}>
         {plannedRpe != null && <Text style={styles.planned}>{plannedRpe}</Text>}
-        <TextInput style={styles.input} value={actualRpe != null ? String(actualRpe) : ''}
+        <TextInput style={[styles.input, completed && styles.completedInput, rpeRequired && actualRpe == null && styles.rpeRequiredInput]} value={actualRpe != null ? String(actualRpe) : ''}
           onChangeText={handleNum('actualRpe')} keyboardType="decimal-pad"
           inputMode="decimal"
           placeholder={rpeRequired ? 'RPE*' : 'RPE'}
@@ -94,17 +94,22 @@ export function SetInput({
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm,
-    borderBottomWidth: 1, borderBottomColor: colors.borderLight, gap: spacing.sm,
+    flexDirection: 'row', alignItems: 'center', padding: spacing.sm,
+    borderWidth: 1, borderColor: colors.borderLight, gap: spacing.sm,
+    backgroundColor: colors.surface, borderRadius: radius.lg, marginBottom: spacing.sm,
   },
+  completedRow: { backgroundColor: colors.successSoft, borderColor: colors.successBorder },
   warmup: { opacity: 0.7 },
-  setNum: { ...typography.footnote, color: colors.textSecondary, width: 20, textAlign: 'center' },
+  setNum: { ...typography.footnote, color: colors.textSecondary, width: 22, textAlign: 'center', fontWeight: '800' },
+  setNumCompleted: { color: colors.success },
   cell: { flex: 1, alignItems: 'center' },
   planned: { ...typography.caption, color: colors.textTertiary, marginBottom: 2 },
   input: {
     ...typography.callout, color: colors.textPrimary, textAlign: 'center',
-    backgroundColor: colors.surfaceSecondary, borderRadius: radius.sm,
+    backgroundColor: colors.surfaceMuted, borderRadius: radius.md,
     paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
     width: '100%', minHeight: 36, borderWidth: 1, borderColor: colors.borderLight,
   },
+  completedInput: { backgroundColor: colors.surface, borderColor: colors.successBorder },
+  rpeRequiredInput: { borderColor: colors.warningBorder, backgroundColor: colors.warningSoft },
 });

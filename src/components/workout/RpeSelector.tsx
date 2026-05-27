@@ -22,7 +22,7 @@ function getRpeColor(rpe: number): string {
 export function RpeSelector({ value, onChange, required }: RpeSelectorProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>RPE{required ? ' *' : ''}</Text>
+      <Text style={[styles.label, required && styles.labelRequired]}>RPE{required ? ' required' : ''}</Text>
       <View style={styles.grid}>
         {RPE_VALUES.map((rpe) => {
           const isSelected = value === rpe;
@@ -32,7 +32,7 @@ export function RpeSelector({ value, onChange, required }: RpeSelectorProps) {
               key={rpe}
               onPress={() => onChange(rpe)}
               accessibilityLabel={`RPE ${rpe}`}
-              style={[styles.chip, isSelected && { backgroundColor: rpeColor }]}
+              style={[styles.chip, isSelected && { backgroundColor: rpeColor, borderColor: rpeColor }]}
             >
               <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
                 {Number.isInteger(rpe) ? rpe : rpe.toFixed(1)}
@@ -47,12 +47,13 @@ export function RpeSelector({ value, onChange, required }: RpeSelectorProps) {
 
 const styles = StyleSheet.create({
   container: { marginVertical: spacing.sm },
-  label: { ...typography.footnote, color: colors.textSecondary, marginBottom: spacing.xs },
+  label: { ...typography.footnote, color: colors.textSecondary, marginBottom: spacing.xs, fontWeight: '700' },
+  labelRequired: { color: colors.warning },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: {
-    minWidth: 40, height: 36, borderRadius: radius.sm,
-    backgroundColor: colors.surfaceSecondary, alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: colors.border,
+    minWidth: 42, height: 38, borderRadius: radius.full,
+    backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: colors.borderLight,
   },
   chipText: { ...typography.callout, color: colors.textPrimary },
   chipTextSelected: { color: '#FFFFFF', fontWeight: '600' },

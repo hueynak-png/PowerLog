@@ -16,6 +16,7 @@ import { isAIConfigured, requestWorkoutSuggestion, type WorkoutSuggestionRespons
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { useTimerStore } from '@/src/stores/useTimerStore';
 import { colors } from '@/src/theme/colors';
+import { radius } from '@/src/theme/radius';
 import { spacing } from '@/src/theme/spacing';
 import { typography } from '@/src/theme/typography';
 import { ExercisePickerModal } from './ExercisePickerModal';
@@ -84,6 +85,7 @@ export function WorkoutRecordingScreen() {
   };
 
   const progressLabel = useMemo(() => `${setsCompleted} / ${setsTotal} sets`, [setsCompleted, setsTotal]);
+  const completionPct = setsTotal > 0 ? Math.round((setsCompleted / setsTotal) * 100) : 0;
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((current) => {
@@ -183,17 +185,22 @@ export function WorkoutRecordingScreen() {
           <Text style={styles.backBtnText}>‹ Back</Text>
         </Pressable>
 
-        <Card style={styles.topCard}>
+        <Card variant="elevated" style={styles.topCard}>
+          <Text style={styles.sessionKicker}>Active workout</Text>
+          <Text style={styles.sessionTitle}>Training cockpit</Text>
           <View style={styles.topRow}>
             <TimerPill elapsedSeconds={elapsedSeconds} isRunning={isRunning} />
             <View style={styles.progressBlock}>
-              <Text style={styles.progressValue}>{progressLabel}</Text>
-              <Text style={styles.progressLabel}>completed</Text>
+              <Text style={styles.progressValue}>{completionPct}%</Text>
+              <Text style={styles.progressLabel}>{progressLabel}</Text>
             </View>
+          </View>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${completionPct}%` }]} />
           </View>
         </Card>
 
-        <SectionHeader title="Exercises" action={{ text: showPicker ? 'Close' : 'Add', onPress: () => setShowPicker((value) => !value) }} />
+        <SectionHeader title="Exercises" subtitle="Log each working set with fast kg/reps/RPE inputs." action={{ text: showPicker ? 'Close' : 'Add' , onPress: () => setShowPicker((value) => !value) }} />
         {showPicker && <ExercisePickerModal onSelect={() => setShowPicker(false)} />}
 
         {exercises.length === 0 ? (
@@ -218,12 +225,12 @@ export function WorkoutRecordingScreen() {
                 isExpanded={expandedIds.has(workoutExercise.id) || workoutExercise.sets.length <= 1}
                 onToggle={() => toggleExpanded(workoutExercise.id)}
               >
-                <Pressable
-                  onPress={() => void handleRemoveExercise(workoutExercise.id)}
+                  <Pressable
+                    onPress={() => void handleRemoveExercise(workoutExercise.id)}
                   style={styles.deleteExerciseBtn}
                   accessibilityLabel={`Delete ${workoutExercise.exercise.nameEn}`}
                 >
-                  <Text style={styles.deleteExerciseText}>Delete Exercise</Text>
+                  <Text style={styles.deleteExerciseText}>Remove exercise</Text>
                 </Pressable>
                 {workoutExercise.sets.map((set) => (
                   <View key={set.id} style={styles.setBlock}>
@@ -254,7 +261,7 @@ export function WorkoutRecordingScreen() {
                     <RpeSelector value={set.actualRpe ?? null} required={rpeRequired} onChange={(rpe) => void handleRpeChange(set.id, rpe)} />
                   </View>
                 ))}
-                <Button title="Add Set" onPress={() => void handleAddSet(workoutExercise.id)} variant="secondary" size="md" disabled={!db} />
+                <Button title="Add Set" onPress={() => void handleAddSet(workoutExercise.id)} variant="secondary" size="md" disabled={!db} fullWidth />
                 {isAIConfigured() && (
                   <View style={styles.aiBlock}>
                     <Button
@@ -265,7 +272,7 @@ export function WorkoutRecordingScreen() {
                       disabled={aiLoading[workoutExercise.id]}
                     />
                     {aiSuggestions[workoutExercise.id] && (
-                      <Card style={styles.aiCard}>
+                      <Card variant="tonal" style={styles.aiCard}>
                         <Text style={[styles.aiSeverity, aiSuggestions[workoutExercise.id].severity === 'alert' && styles.aiAlert]}>
                           {aiSuggestions[workoutExercise.id].severity}
                         </Text>
@@ -282,8 +289,10 @@ export function WorkoutRecordingScreen() {
           })
         )}
 
-        <Button title="Add Exercise" onPress={() => setShowPicker(true)} variant="secondary" disabled={!db} />
-        <Button title="Complete Workout" onPress={handleCompleteWorkout} loading={isCompleting} disabled={!db || !session || setsTotal === 0} />
+        <View style={styles.footerActions}>
+          <Button title="Add Exercise" onPress={() => setShowPicker(true)} variant="secondary" disabled={!db} fullWidth />
+          <Button title="Complete Workout" onPress={handleCompleteWorkout} loading={isCompleting} disabled={!db || !session || setsTotal === 0} fullWidth />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -294,24 +303,29 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.md },
   backBtn: { paddingVertical: spacing.sm },
   backBtnText: { ...typography.callout, color: colors.primary, fontWeight: '600' },
-  topCard: { marginBottom: spacing.sm },
-  topRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  topCard: { marginBottom: spacing.sm, gap: spacing.md },
+  sessionKicker: { ...typography.overline, color: colors.primary },
+  sessionTitle: { ...typography.title2, color: colors.textPrimary },
+  topRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
   progressBlock: { alignItems: 'flex-end' },
-  progressValue: { ...typography.title3, color: colors.textPrimary },
-  progressLabel: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs },
+  progressValue: { ...typography.metric, color: colors.textPrimary },
+  progressLabel: { ...typography.caption, color: colors.textSecondary, marginTop: 2, fontWeight: '700' },
+  progressTrack: { height: 10, borderRadius: radius.full, backgroundColor: colors.surfaceMuted, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: radius.full, backgroundColor: colors.primary },
   emptyCard: { gap: spacing.md },
   emptyTitle: { ...typography.headline, color: colors.textPrimary },
   emptyCopy: { ...typography.callout, color: colors.textSecondary, lineHeight: 20 },
-  setBlock: { marginBottom: spacing.md },
+  setBlock: { marginBottom: spacing.sm },
   setRow: { flexDirection: 'row', alignItems: 'center' },
-  deleteExerciseBtn: { alignSelf: 'flex-start', marginBottom: spacing.sm, paddingVertical: spacing.xs },
+  deleteExerciseBtn: { alignSelf: 'flex-start', marginBottom: spacing.sm, paddingVertical: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: radius.full, backgroundColor: colors.dangerSoft },
   deleteExerciseText: { ...typography.footnote, color: colors.danger, fontWeight: '700' },
   deleteSetBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.xs },
   deleteSetText: { fontSize: 20, color: colors.danger, fontWeight: '700' },
   aiBlock: { marginTop: spacing.sm, gap: spacing.sm },
-  aiCard: { backgroundColor: colors.surfaceSecondary, padding: spacing.sm },
+  aiCard: { padding: spacing.sm },
   aiSeverity: { ...typography.caption, color: colors.warning, fontWeight: '700', textTransform: 'uppercase' },
   aiAlert: { color: colors.danger },
   aiText: { ...typography.callout, color: colors.textPrimary, marginTop: spacing.xs, lineHeight: 20 },
   aiAdjust: { ...typography.footnote, color: colors.primary, fontWeight: '600', marginTop: spacing.xs },
+  footerActions: { gap: spacing.sm, marginTop: spacing.sm },
 });

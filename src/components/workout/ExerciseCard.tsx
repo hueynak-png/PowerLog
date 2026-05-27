@@ -26,6 +26,10 @@ export function ExerciseCard({
       <Pressable onPress={onToggle} style={styles.header} accessibilityRole="button"
         accessibilityLabel={`${exerciseNameEn} ${isExpanded ? 'collapse' : 'expand'}`}>
         <View style={styles.headerLeft}>
+          <View style={styles.metaRow}>
+            {category && <Text style={styles.metaPill}>{category}</Text>}
+            {muscleGroups?.slice(0, 2).map((group) => <Text key={group} style={styles.musclePill}>{group}</Text>)}
+          </View>
           <Text style={styles.nameEn}>{exerciseNameEn}</Text>
           <Text style={styles.nameZh}>{exerciseNameZh}</Text>
           {plannedSummary && <Text style={styles.plan}>{plannedSummary}</Text>}
@@ -42,10 +46,11 @@ export function ExerciseCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface, borderRadius: radius.lg,
+    backgroundColor: colors.surface, borderRadius: radius.xl,
     marginBottom: spacing.md, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    borderWidth: 1, borderColor: colors.borderLight,
+    shadowColor: colors.shadow, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1, shadowRadius: 18, elevation: 1,
   },
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
@@ -53,10 +58,13 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flex: 1 },
   headerRight: { alignItems: 'flex-end', marginLeft: spacing.md },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.sm },
+  metaPill: { ...typography.caption, color: colors.primary, fontWeight: '800', backgroundColor: colors.primarySoft, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 2, overflow: 'hidden' },
+  musclePill: { ...typography.caption, color: colors.textSecondary, fontWeight: '700', backgroundColor: colors.surfaceMuted, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 2, overflow: 'hidden' },
   nameEn: { ...typography.headline, color: colors.textPrimary },
   nameZh: { ...typography.footnote, color: colors.textSecondary, marginTop: 2 },
   plan: { ...typography.caption, color: colors.textTertiary, marginTop: spacing.xs },
-  progress: { ...typography.subhead, color: colors.primary, marginBottom: 2 },
+  progress: { ...typography.headline, color: colors.primary, backgroundColor: colors.primarySoft, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, overflow: 'hidden', marginBottom: spacing.xs },
   chevron: { fontSize: 12, color: colors.textTertiary },
   body: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
 });
