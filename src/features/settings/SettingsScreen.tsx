@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
@@ -7,6 +7,17 @@ import type { BodyweightEntry, LiftType } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { addBodyweightEntry, getLatestBodyweight, updateBodyweightEntry } from '@/src/repositories';
 import { configureAI, getAIConfig, isAIConfigured } from '@/src/services/aiService';
+import {
+  configureSync,
+  createRecoveryKey,
+  downloadLatestSnapshot,
+  getLatestSnapshotMeta,
+  getSyncConfig,
+  isSyncConfigured,
+  type RemoteSnapshotMeta,
+  uploadSnapshot,
+} from '@/src/services/syncService';
+import { createPreRestoreBackup, exportLocalSnapshot, getLocalSnapshotMeta, replaceLocalSnapshot, sha256Hex } from '@/src/db/snapshot';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { colors, radius, spacing, typography } from '@/src/theme';
 
@@ -34,6 +45,16 @@ export function SettingsScreen() {
   const [aiAuthToken, setAiAuthToken] = useState(savedAIConfig.authToken);
   const [aiConfigured, setAiConfigured] = useState(isAIConfigured());
   const [aiExpanded, setAiExpanded] = useState(!isAIConfigured());
+
+  const savedSyncConfig = getSyncConfig();
+  const [syncBaseUrl, setSyncBaseUrl] = useState(savedSyncConfig.baseUrl || savedAIConfig.baseUrl);
+  const [syncRecoveryKey, setSyncRecoveryKey] = useState(savedSyncConfig.recoveryKey);
+  const [syncConfigured, setSyncConfigured] = useState(isSyncConfigured());
+  const [syncExpanded, setSyncExpanded] = useState(!isSyncConfigured());
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [remoteSnapshot, setRemoteSnapshot] = useState<RemoteSnapshotMeta | null>(null);
 
   useEffect(() => {
     setSquat(getMaxForLift('squat')?.oneRm ?? null);
@@ -115,6 +136,88 @@ export function SettingsScreen() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const saveSyncConfig = () => {
+    configureSync(syncBaseUrl, syncRecoveryKey);
+    setSyncBaseUrl(getSyncConfig().baseUrl);
+    setSyncRecoveryKey(getSyncConfig().recoveryKey);
+    setSyncConfigured(isSyncConfigured());
+    setSyncExpanded(false);
+    setSyncMessage('Cloud Sync settings saved.');
+    setSyncError(null);
+  };
+
+  const runSyncAction = async (action: () => Promise<string>) => {
+    setSyncBusy(true);
+    setSyncError(null);
+    setSyncMessage(null);
+    try {
+      setSyncMessage(await action());
+      setSyncConfigured(isSyncConfigured());
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : 'Cloud Sync action failed.');
+    } finally {
+      setSyncBusy(false);
+    }
+  };
+
+  const handleCreateRecoveryKey = () => runSyncAction(async () => {
+    const created = await createRecoveryKey(syncBaseUrl);
+    setSyncRecoveryKey(created.recoveryKey);
+    setSyncBaseUrl(getSyncConfig().baseUrl);
+    setSyncConfigured(true);
+    setSyncExpanded(true);
+    return 'Recovery Key created. Save it somewhere safe before leaving this screen.';
+  });
+
+  const handleCheckCloudSnapshot = () => runSyncAction(async () => {
+    saveSyncConfig();
+    const meta = await getLatestSnapshotMeta();
+    setRemoteSnapshot(meta);
+    return meta ? `Cloud snapshot found from ${new Date(meta.createdAt).toLocaleString()}.` : 'No cloud snapshot found yet.';
+  });
+
+  const handleUploadSnapshot = () => runSyncAction(async () => {
+    saveSyncConfig();
+    const bytes = await exportLocalSnapshot();
+    const localMeta = await getLocalSnapshotMeta();
+    const meta = await uploadSnapshot(bytes, {
+      sha256: localMeta.sha256,
+      schemaVersion: localMeta.schemaVersion,
+      platform: Platform.OS,
+    });
+    setRemoteSnapshot(meta);
+    return `Uploaded ${Math.round(meta.sizeBytes / 1024)} KB backup at ${new Date(meta.createdAt).toLocaleString()}.`;
+  });
+
+  const restoreLatestSnapshot = () => runSyncAction(async () => {
+    saveSyncConfig();
+    const { bytes, meta } = await downloadLatestSnapshot();
+    const downloadedHash = await sha256Hex(bytes);
+    if (downloadedHash !== meta.sha256.toLowerCase()) throw new Error('Downloaded snapshot checksum mismatch.');
+    const backup = await createPreRestoreBackup();
+    await replaceLocalSnapshot(bytes);
+    setRemoteSnapshot(meta);
+    return `Restored cloud backup. Local pre-restore backup saved as ${backup.backupId}. Reload the app to use the restored data.`;
+  });
+
+  const handleRestoreSnapshot = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      const confirmed = window.confirm('Restore the latest cloud backup onto this web app? A local backup will be created first.');
+      if (!confirmed) return;
+      restoreLatestSnapshot();
+      return;
+    }
+
+    Alert.alert(
+      'Restore Cloud Backup?',
+      'A local backup will be created first, then this device will load the cloud snapshot.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Restore', style: 'destructive', onPress: restoreLatestSnapshot },
+      ],
+    );
   };
 
   if (!db) {
@@ -206,6 +309,39 @@ export function SettingsScreen() {
           )}
         </Card>
 
+        <SectionHeader title="Cloud Sync" subtitle="Manual Recovery Key backup and restore for Safari, PWA, and other browsers." />
+        <Card variant="elevated" style={styles.card}>
+          <Pressable onPress={() => setSyncExpanded(!syncExpanded)} style={styles.aiHeader}>
+            <Text style={[styles.aiStatus, !syncConfigured && styles.aiNotConfigured]}>
+              {syncConfigured ? '✓ Cloud Sync configured' : '✗ Not configured'}
+            </Text>
+            <Text style={styles.aiToggle}>{syncExpanded ? '▲' : '▼'}</Text>
+          </Pressable>
+          {syncExpanded && (
+            <>
+              <Text style={styles.cardText}>V1 is manual-only: create or paste a Recovery Key, upload this device, or restore the latest cloud backup.</Text>
+              <TextField label="Backend URL" value={syncBaseUrl} onChangeText={setSyncBaseUrl} placeholder="https://your-worker.workers.dev" />
+              <TextField label="Recovery Key" value={syncRecoveryKey} onChangeText={setSyncRecoveryKey} placeholder="PL-XXXX-XXXX-XXXX-XXXX" />
+              <View style={styles.buttonRow}>
+                <Button title="Create Key" onPress={handleCreateRecoveryKey} loading={syncBusy} size="md" style={styles.rowButton} />
+                <Button title="Save Key" onPress={saveSyncConfig} variant="secondary" disabled={!syncBaseUrl || !syncRecoveryKey} size="md" style={styles.rowButton} />
+              </View>
+              <View style={styles.buttonRow}>
+                <Button title="Check Cloud" onPress={handleCheckCloudSnapshot} variant="secondary" disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="md" style={styles.rowButton} />
+                <Button title="Upload This Device" onPress={handleUploadSnapshot} disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="md" style={styles.rowButton} />
+              </View>
+              <Button title="Restore Cloud Backup" onPress={handleRestoreSnapshot} variant="danger" disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="md" fullWidth />
+            </>
+          )}
+          {remoteSnapshot ? (
+            <Text style={styles.cardText}>
+              Cloud backup: {new Date(remoteSnapshot.createdAt).toLocaleString()} · {Math.round(remoteSnapshot.sizeBytes / 1024)} KB · {remoteSnapshot.sha256.slice(0, 8)}…
+            </Text>
+          ) : null}
+          {syncMessage ? <Text style={styles.savedText}>{syncMessage}</Text> : null}
+          {syncError ? <Text style={styles.errorText}>Cloud Sync failed: {syncError}</Text> : null}
+        </Card>
+
         <Button title="Save Settings" onPress={handleSave} loading={isSaving} fullWidth />
         {lastSavedAt ? <Text style={styles.savedText}>Last saved: {new Date(lastSavedAt).toLocaleString()}</Text> : null}
         {saveError ? <Text style={styles.errorText}>Save failed: {saveError}</Text> : null}
@@ -264,6 +400,14 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.md,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  rowButton: {
+    flex: 1,
+    paddingHorizontal: spacing.md,
   },
   aiHeader: {
     flexDirection: 'row',
