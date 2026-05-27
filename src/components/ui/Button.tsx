@@ -43,7 +43,7 @@ export function Button({ title, onPress, variant = 'primary', disabled, loading,
       {loading ? (
         <ActivityIndicator color={variant === 'primary' ? '#fff' : colors.primary} />
       ) : (
-        <Text style={[styles.text, textVariantStyles[variant]]}>{title}</Text>
+        <Text style={[styles.text, textSizeStyles[size], textVariantStyles[variant]]}>{title}</Text>
       )}
     </Pressable>
   );
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   fullWidth: { width: '100%' },
-  text: { ...typography.headline },
+  text: { ...typography.headline, textAlign: 'center' },
   pressed: { opacity: 0.7 },
   disabled: { opacity: 0.4 },
 });
@@ -74,4 +74,10 @@ const textVariantStyles: Record<ButtonVariant, TextStyle> = {
   secondary: { color: colors.primary },
   ghost: { color: colors.primary },
   danger: { color: '#FFFFFF' },
+};
+
+const textSizeStyles: Record<ButtonSize, TextStyle> = {
+  sm: { ...typography.footnote, fontWeight: '700' },
+  md: { ...typography.subhead, fontWeight: '700' },
+  lg: { ...typography.headline },
 };

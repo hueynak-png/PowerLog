@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,12 +12,18 @@ import {
   createRecoveryKey,
   downloadLatestSnapshot,
   getLatestSnapshotMeta,
+  getLocalSyncStatus,
   getSyncConfig,
   isSyncConfigured,
+  markSnapshotRestored,
   type RemoteSnapshotMeta,
   uploadSnapshot,
 } from '@/src/services/syncService';
-import { createPreRestoreBackup, exportLocalSnapshot, getLocalSnapshotMeta, replaceLocalSnapshot, sha256Hex } from '@/src/db/snapshot';
+import { createPreRestoreBackup, replaceLocalSnapshot, sha256Hex } from '@/src/db/snapshot';
+import { exportBackupFile, importBackupFile } from '@/src/services/localBackupFileService';
+import { createSnapshotUploadPayload, formatSnapshotSize } from '@/src/services/snapshotBackupService';
+import { getAppVersion } from '@/src/services/versionService';
+import { hasPwaUpdateAvailable, reloadForPwaUpdate, subscribeToPwaUpdates } from '@/src/services/pwaUpdateService';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { colors, radius, spacing, typography } from '@/src/theme';
 
@@ -55,6 +61,12 @@ export function SettingsScreen() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [remoteSnapshot, setRemoteSnapshot] = useState<RemoteSnapshotMeta | null>(null);
+  const [syncStatusMeta, setSyncStatusMeta] = useState(getLocalSyncStatus());
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupMessage, setBackupMessage] = useState<string | null>(null);
+  const [backupError, setBackupError] = useState<string | null>(null);
+  const [updateAvailable, setUpdateAvailable] = useState(hasPwaUpdateAvailable());
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setSquat(getMaxForLift('squat')?.oneRm ?? null);
@@ -78,6 +90,8 @@ export function SettingsScreen() {
       mounted = false;
     };
   }, [db]);
+
+  useEffect(() => subscribeToPwaUpdates(() => setUpdateAvailable(true)), []);
 
   const saveLiftMax = async (liftType: LiftType, value: number | null) => {
     if (!db || value === null) return;
@@ -154,6 +168,7 @@ export function SettingsScreen() {
     setSyncMessage(null);
     try {
       setSyncMessage(await action());
+      setSyncStatusMeta(getLocalSyncStatus());
       setSyncConfigured(isSyncConfigured());
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : 'Cloud Sync action failed.');
@@ -180,15 +195,10 @@ export function SettingsScreen() {
 
   const handleUploadSnapshot = () => runSyncAction(async () => {
     saveSyncConfig();
-    const bytes = await exportLocalSnapshot();
-    const localMeta = await getLocalSnapshotMeta();
-    const meta = await uploadSnapshot(bytes, {
-      sha256: localMeta.sha256,
-      schemaVersion: localMeta.schemaVersion,
-      platform: Platform.OS,
-    });
+    const { bytes, meta: localMeta } = await createSnapshotUploadPayload();
+    const meta = await uploadSnapshot(bytes, localMeta);
     setRemoteSnapshot(meta);
-    return `Uploaded ${Math.round(meta.sizeBytes / 1024)} KB backup at ${new Date(meta.createdAt).toLocaleString()}.`;
+    return `Uploaded ${formatSnapshotSize(meta.sizeBytes)} backup at ${new Date(meta.createdAt).toLocaleString()}.`;
   });
 
   const restoreLatestSnapshot = () => runSyncAction(async () => {
@@ -198,8 +208,33 @@ export function SettingsScreen() {
     if (downloadedHash !== meta.sha256.toLowerCase()) throw new Error('Downloaded snapshot checksum mismatch.');
     const backup = await createPreRestoreBackup();
     await replaceLocalSnapshot(bytes);
+    markSnapshotRestored(meta);
     setRemoteSnapshot(meta);
+    setSyncStatusMeta(getLocalSyncStatus());
     return `Restored cloud backup. Local pre-restore backup saved as ${backup.backupId}. Reload the app to use the restored data.`;
+  });
+
+  const runBackupAction = async (action: () => Promise<string>) => {
+    setBackupBusy(true);
+    setBackupError(null);
+    setBackupMessage(null);
+    try {
+      setBackupMessage(await action());
+    } catch (error) {
+      setBackupError(error instanceof Error ? error.message : 'Backup action failed.');
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
+  const handleExportBackup = () => runBackupAction(async () => {
+    const filename = await exportBackupFile();
+    return `Exported ${filename}.`;
+  });
+
+  const handleImportBackup = (file: File) => runBackupAction(async () => {
+    const backup = await importBackupFile(file);
+    return `Imported backup. Previous local data was saved as ${backup.backupId}. Reload the app to use the imported data.`;
   });
 
   const handleRestoreSnapshot = () => {
@@ -319,27 +354,68 @@ export function SettingsScreen() {
           </Pressable>
           {syncExpanded && (
             <>
-              <Text style={styles.cardText}>V1 is manual-only: create or paste a Recovery Key, upload this device, or restore the latest cloud backup.</Text>
+              <Text style={styles.cardText}>Create or paste a Recovery Key, then upload this device or restore the latest cloud backup manually.</Text>
               <TextField label="Backend URL" value={syncBaseUrl} onChangeText={setSyncBaseUrl} placeholder="https://your-worker.workers.dev" />
               <TextField label="Recovery Key" value={syncRecoveryKey} onChangeText={setSyncRecoveryKey} placeholder="PL-XXXX-XXXX-XXXX-XXXX" />
               <View style={styles.buttonRow}>
-                <Button title="Create Key" onPress={handleCreateRecoveryKey} loading={syncBusy} size="md" style={styles.rowButton} />
-                <Button title="Save Key" onPress={saveSyncConfig} variant="secondary" disabled={!syncBaseUrl || !syncRecoveryKey} size="md" style={styles.rowButton} />
+                <Button title="Create" onPress={handleCreateRecoveryKey} loading={syncBusy} size="sm" style={styles.rowButton} />
+                <Button title="Save" onPress={saveSyncConfig} variant="secondary" disabled={!syncBaseUrl || !syncRecoveryKey} size="sm" style={styles.rowButton} />
               </View>
               <View style={styles.buttonRow}>
-                <Button title="Check Cloud" onPress={handleCheckCloudSnapshot} variant="secondary" disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="md" style={styles.rowButton} />
-                <Button title="Upload This Device" onPress={handleUploadSnapshot} disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="md" style={styles.rowButton} />
+                <Button title="Check" onPress={handleCheckCloudSnapshot} variant="secondary" disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="sm" style={styles.rowButton} />
+                <Button title="Upload" onPress={handleUploadSnapshot} disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="sm" style={styles.rowButton} />
               </View>
               <Button title="Restore Cloud Backup" onPress={handleRestoreSnapshot} variant="danger" disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="md" fullWidth />
             </>
           )}
           {remoteSnapshot ? (
             <Text style={styles.cardText}>
-              Cloud backup: {new Date(remoteSnapshot.createdAt).toLocaleString()} · {Math.round(remoteSnapshot.sizeBytes / 1024)} KB · {remoteSnapshot.sha256.slice(0, 8)}…
+              Cloud backup: {new Date(remoteSnapshot.createdAt).toLocaleString()} · {formatSnapshotSize(remoteSnapshot.sizeBytes)} · {remoteSnapshot.sha256.slice(0, 8)}…
             </Text>
           ) : null}
+          {syncStatusMeta.lastManualUploadAt ? <Text style={styles.cardText}>Last manual upload: {new Date(syncStatusMeta.lastManualUploadAt).toLocaleString()}</Text> : null}
+          {syncStatusMeta.lastAutoUploadAt ? <Text style={styles.cardText}>Last auto upload: {new Date(syncStatusMeta.lastAutoUploadAt).toLocaleString()}</Text> : null}
+          {syncStatusMeta.lastRestoreAt ? <Text style={styles.cardText}>Last restore: {new Date(syncStatusMeta.lastRestoreAt).toLocaleString()}</Text> : null}
           {syncMessage ? <Text style={styles.savedText}>{syncMessage}</Text> : null}
           {syncError ? <Text style={styles.errorText}>Cloud Sync failed: {syncError}</Text> : null}
+        </Card>
+
+        <SectionHeader title="Data Backup" subtitle="Download or import a local database backup file on web." />
+        <Card variant="tonal" style={styles.card}>
+          <Text style={styles.cardText}>Export creates a local training database file. Import creates a local backup first, then replaces this device database.</Text>
+          {Platform.OS === 'web' ? (
+            <>
+              <View style={styles.buttonRow}>
+                <Button title="Export" onPress={handleExportBackup} loading={backupBusy} size="sm" style={styles.rowButton} />
+                <Button title="Import" onPress={() => fileInputRef.current?.click()} variant="secondary" disabled={backupBusy} size="sm" style={styles.rowButton} />
+              </View>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".sqlite,.db,application/octet-stream"
+                style={{ display: 'none' }}
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  event.currentTarget.value = '';
+                  if (file) handleImportBackup(file);
+                }}
+              />
+            </>
+          ) : (
+            <Text style={styles.cardText}>File backup is web-first in this version.</Text>
+          )}
+          {backupMessage ? <Text style={styles.savedText}>{backupMessage}</Text> : null}
+          {backupError ? <Text style={styles.errorText}>Backup failed: {backupError}</Text> : null}
+        </Card>
+
+        <SectionHeader title="App Version" subtitle="PWA update status for the installed web app." />
+        <Card variant="outlined" style={styles.card}>
+          <View style={styles.cardTopRow}>
+            <Text style={styles.cardKicker}>PowerLog v{getAppVersion()}</Text>
+            <Text style={styles.statusPill}>{updateAvailable ? 'Update ready' : 'Current'}</Text>
+          </View>
+          <Text style={styles.cardText}>{updateAvailable ? 'A newer web app version is available. Refresh to load it.' : 'The installed web app checks for new deployments when opened.'}</Text>
+          {updateAvailable ? <Button title="Refresh App" onPress={reloadForPwaUpdate} variant="secondary" size="sm" fullWidth /> : null}
         </Card>
 
         <Button title="Save Settings" onPress={handleSave} loading={isSaving} fullWidth />
