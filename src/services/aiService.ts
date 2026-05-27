@@ -332,6 +332,8 @@ export interface PlanGenerationResponse {
  */
 export const requestPlanGeneration = (data: {
   goal: string;
+  goalType?: 'hypertrophy' | 'strength' | 'maintenance' | 'powerbuilding';
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
   trainingDaysPerWeek: number;
   maxSessionDuration: number;
   durationWeeks: number;
@@ -339,6 +341,12 @@ export const requestPlanGeneration = (data: {
   squatMax: number;
   benchMax: number;
   deadliftMax: number;
+  weakPoints?: string;
+  availableEquipment?: string;
+  limitations?: string;
+  volumeTolerance?: 'low' | 'medium' | 'high';
+  intensityPreference?: 'conservative' | 'moderate' | 'aggressive';
+  progressionStyle?: 'rpe' | 'percentage' | 'double_progression';
   currentBodyweight?: number;
   avoidExercises?: string[];
   includeExercises?: string[];

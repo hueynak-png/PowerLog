@@ -40,10 +40,18 @@ export function ProgramScreen() {
 
   // Form state
   const [goal, setGoal] = useState('General strength');
+  const [goalType, setGoalType] = useState<'hypertrophy' | 'strength' | 'maintenance' | 'powerbuilding'>('strength');
+  const [experienceLevel, setExperienceLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
   const [daysPerWeek, setDaysPerWeek] = useState<number | null>(4);
   const [sessionDuration, setSessionDuration] = useState<number | null>(90);
   const [durationWeeks, setDurationWeeks] = useState<number | null>(6);
   const [includeDeload, setIncludeDeload] = useState(true);
+  const [weakPoints, setWeakPoints] = useState('');
+  const [availableEquipment, setAvailableEquipment] = useState('Full gym: barbell, dumbbells, cables, machines');
+  const [limitations, setLimitations] = useState('');
+  const [volumeTolerance, setVolumeTolerance] = useState<'low' | 'medium' | 'high'>('medium');
+  const [intensityPreference, setIntensityPreference] = useState<'conservative' | 'moderate' | 'aggressive'>('moderate');
+  const [progressionStyle, setProgressionStyle] = useState<'rpe' | 'percentage' | 'double_progression'>('rpe');
   const [squatMax, setSquatMax] = useState<number | null>(null);
   const [benchMax, setBenchMax] = useState<number | null>(null);
   const [deadliftMax, setDeadliftMax] = useState<number | null>(null);
@@ -77,6 +85,8 @@ export function ProgramScreen() {
     try {
       const result = await requestPlanGeneration({
         goal,
+        goalType,
+        experienceLevel,
         trainingDaysPerWeek: daysPerWeek ?? 4,
         maxSessionDuration: sessionDuration ?? 90,
         durationWeeks: durationWeeks ?? 6,
@@ -84,6 +94,12 @@ export function ProgramScreen() {
         squatMax,
         benchMax,
         deadliftMax,
+        weakPoints: weakPoints.trim() || undefined,
+        availableEquipment: availableEquipment.trim() || undefined,
+        limitations: limitations.trim() || undefined,
+        volumeTolerance,
+        intensityPreference,
+        progressionStyle,
       });
 
       // Save program to database
@@ -295,9 +311,17 @@ export function ProgramScreen() {
 
             <Card variant="elevated" style={styles.card}>
               <TextField label="Goal" value={goal} onChangeText={setGoal} placeholder="e.g. Peaking for competition" />
+              <TextField label="Goal type" value={goalType} onChangeText={(value) => setGoalType(value as typeof goalType)} placeholder="hypertrophy | strength | maintenance | powerbuilding" />
+              <TextField label="Experience" value={experienceLevel} onChangeText={(value) => setExperienceLevel(value as typeof experienceLevel)} placeholder="beginner | intermediate | advanced" />
               <NumberField label="Days per week" value={daysPerWeek} onChangeValue={setDaysPerWeek} step={1} min={2} max={6} />
               <NumberField label="Session duration" value={sessionDuration} onChangeValue={setSessionDuration} step={5} min={45} max={150} unit="min" />
               <NumberField label="Program weeks" value={durationWeeks} onChangeValue={setDurationWeeks} step={1} min={3} max={16} />
+              <TextField label="Weak points / priorities" value={weakPoints} onChangeText={setWeakPoints} placeholder="e.g. bench lockout, quads, upper back" />
+              <TextField label="Available equipment" value={availableEquipment} onChangeText={setAvailableEquipment} placeholder="e.g. home gym, barbell only, full gym" />
+              <TextField label="Limitations / avoid" value={limitations} onChangeText={setLimitations} placeholder="e.g. no overhead pressing, knee irritation" />
+              <TextField label="Volume tolerance" value={volumeTolerance} onChangeText={(value) => setVolumeTolerance(value as typeof volumeTolerance)} placeholder="low | medium | high" />
+              <TextField label="Intensity preference" value={intensityPreference} onChangeText={(value) => setIntensityPreference(value as typeof intensityPreference)} placeholder="conservative | moderate | aggressive" />
+              <TextField label="Progression style" value={progressionStyle} onChangeText={(value) => setProgressionStyle(value as typeof progressionStyle)} placeholder="rpe | percentage | double_progression" />
               <View style={styles.switchRow}>
                 <Text style={styles.switchLabel}>Include deload week</Text>
                 <Switch value={includeDeload} onValueChange={setIncludeDeload} trackColor={{ true: colors.primary }} />
