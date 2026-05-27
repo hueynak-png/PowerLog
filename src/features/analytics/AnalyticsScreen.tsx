@@ -210,8 +210,8 @@ const styles = StyleSheet.create({
   eyebrow: { ...typography.overline, color: colors.primary, marginBottom: spacing.xs },
   pageTitle: { ...typography.largeTitle, color: colors.textPrimary },
   subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.xs, lineHeight: 22 },
-  metricsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
-  metricsRowCompact: { flexDirection: 'row', gap: spacing.sm },
-  metricWrap: { flex: 1 },
+  metricsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm, minWidth: 0 },
+  metricsRowCompact: { flexDirection: 'row', gap: spacing.sm, minWidth: 0 },
+  metricWrap: { flex: 1, minWidth: 0 },
   card: { marginBottom: spacing.sm },
 });

@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   eyebrow: { ...typography.footnote, color: colors.success, fontWeight: '700', textTransform: 'uppercase' },
   title: { ...typography.title2, color: colors.textPrimary, marginTop: spacing.sm },
   subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm, lineHeight: 22 },
-  metricsRow: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
+  metricsRow: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', minWidth: 0 },
   card: { gap: spacing.sm },
   setRow: { flexDirection: 'row', alignItems: 'center', borderBottomColor: colors.borderLight, borderBottomWidth: 1, gap: spacing.sm, paddingVertical: spacing.sm },
   warmupRow: { opacity: 0.7 },

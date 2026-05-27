@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   eyebrow: { ...typography.footnote, color: colors.success, fontWeight: '700', textTransform: 'uppercase' },
   title: { ...typography.largeTitle, color: colors.textPrimary, marginTop: spacing.sm },
   subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm, lineHeight: 22 },
-  metricsRow: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
+  metricsRow: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', minWidth: 0 },
   card: { gap: spacing.sm },
   cardTitle: { ...typography.headline, color: colors.textPrimary },
   cardSubtitle: { ...typography.footnote, color: colors.textSecondary },

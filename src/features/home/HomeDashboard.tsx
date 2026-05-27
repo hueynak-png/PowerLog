@@ -313,9 +313,11 @@ const styles = StyleSheet.create({
   summaryGrid: {
     flexDirection: 'row',
     gap: spacing.sm,
+    minWidth: 0,
   },
   summaryItem: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: colors.surfaceMuted,
     borderRadius: radius.lg,
     padding: spacing.md,
@@ -328,13 +330,16 @@ const styles = StyleSheet.create({
   summaryValue: {
     ...typography.headline,
     color: colors.textPrimary,
+    flexShrink: 1,
   },
   metricsRow: {
     flexDirection: 'row',
     gap: spacing.sm,
+    minWidth: 0,
   },
   metricWrap: {
     flex: 1,
+    minWidth: 0,
   },
   quickGrid: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
   quickCard: { flex: 1, gap: spacing.sm },
