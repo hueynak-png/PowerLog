@@ -27,10 +27,10 @@ export function MetricCard({ label, value, unit, color, detail, tone = 'default'
   return (
     <View style={[styles.container, { backgroundColor: toneColor[tone] }, style]}>
       <View style={styles.valueLine}>
-        <Text style={[styles.value, color ? { color } : undefined]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>
+        <Text style={[styles.value, color ? { color } : undefined]}>
           {value}
         </Text>
-        {unit ? <Text style={styles.unit} numberOfLines={1}>{unit}</Text> : null}
+        {unit ? <Text style={styles.unit}>{unit}</Text> : null}
       </View>
       <Text style={styles.label} numberOfLines={2}>{label}</Text>
       {detail ? <Text style={styles.detail} numberOfLines={2}>{detail}</Text> : null}
@@ -59,19 +59,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'center',
-    gap: 3,
+    gap: 2,
+    flexWrap: 'nowrap',
   },
   value: {
-    ...typography.metric,
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.4,
     color: colors.textPrimary,
     flexShrink: 1,
     minWidth: 0,
     textAlign: 'center',
   },
   unit: {
-    ...typography.subhead,
+    ...typography.caption,
     color: colors.textSecondary,
     flexShrink: 0,
+    fontWeight: '800',
   },
   label: {
     ...typography.caption,
