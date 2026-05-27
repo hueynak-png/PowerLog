@@ -45,6 +45,19 @@ body {
 const registerSW = `
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js').catch(function() {});
+    navigator.serviceWorker.register('/sw.js').then(function(registration) {
+      registration.addEventListener('updatefound', function() {
+        var worker = registration.installing;
+        if (!worker) return;
+        worker.addEventListener('statechange', function() {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            window.dispatchEvent(new Event('powerlog:update-available'));
+          }
+        });
+      });
+    }).catch(function() {});
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      window.dispatchEvent(new Event('powerlog:update-available'));
+    });
   });
 }`;
