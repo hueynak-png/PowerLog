@@ -41,7 +41,8 @@ export function MetricCard({ label, value, unit, color, detail, tone = 'default'
 const styles = StyleSheet.create({
   container: {
     borderRadius: radius.lg,
-    padding: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
     alignItems: 'center',
     minWidth: 0,
     flexShrink: 1,
@@ -59,11 +60,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'center',
-    gap: 2,
+    gap: 1,
     flexWrap: 'nowrap',
   },
   value: {
-    fontSize: 24,
+    fontSize: 21,
     fontWeight: '800',
     letterSpacing: -0.4,
     color: colors.textPrimary,
@@ -72,7 +73,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   unit: {
-    ...typography.caption,
+    fontSize: 10,
     color: colors.textSecondary,
     flexShrink: 0,
     fontWeight: '800',
