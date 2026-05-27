@@ -12,6 +12,7 @@ import { getRecentExerciseHistory, updateWorkoutSession } from '@/src/repositori
 import { isAIConfigured, requestDailyStrengthAnalysis, type DailyStrengthAnalysisResponse } from '@/src/services/aiService';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { colors } from '@/src/theme/colors';
+import { radius } from '@/src/theme/radius';
 import { spacing } from '@/src/theme/spacing';
 import { typography } from '@/src/theme/typography';
 
@@ -23,6 +24,8 @@ const formatDuration = (seconds: number): string => {
   }
   return `${minutes}m`;
 };
+
+type ScoreItem = { label: string; value: number; tone: 'success' | 'warning' | 'coach' };
 
 export function WorkoutSummaryScreen() {
   const router = useRouter();
@@ -38,6 +41,20 @@ export function WorkoutSummaryScreen() {
     exercises.map((exercise) => ({ workoutExercise: exercise, exercise: exercise.exercise, sets: exercise.sets })),
     session?.durationSeconds ?? 0,
   );
+
+  const aiScores: ScoreItem[] = aiAnalysis ? [
+    { label: '完成度', value: aiAnalysis.scores.completion, tone: 'success' },
+    { label: '刺激', value: aiAnalysis.scores.stimulusEffectiveness, tone: 'coach' },
+    { label: '强度', value: aiAnalysis.scores.intensityRationality, tone: 'coach' },
+    { label: '疲劳', value: aiAnalysis.scores.fatigueControl, tone: 'warning' },
+    { label: '结构', value: aiAnalysis.scores.exerciseStructure, tone: 'success' },
+  ] : [];
+
+  const scoreToneStyles = {
+    success: styles.successScore,
+    warning: styles.warningScore,
+    coach: styles.coachScore,
+  };
 
   const requestAnalysis = async (force = false) => {
     if (!db || !session || !isAIConfigured()) return;
@@ -191,8 +208,8 @@ export function WorkoutSummaryScreen() {
           )}
         </Card>
 
-        <SectionHeader title="AI Coach" />
-        <Card style={styles.card}>
+        <SectionHeader title="AI Coach" eyebrow="Post-session report" subtitle="Loaded once per workout unless you manually re-analyze." />
+        <Card variant="coach" style={styles.card}>
           {aiLoading && (
             <View style={styles.aiLoading}>
               <ActivityIndicator size="small" color={colors.primary} />
@@ -206,56 +223,77 @@ export function WorkoutSummaryScreen() {
           )}
           {aiAnalysis && (
             <View style={styles.aiContent}>
-              <Button
-                title={aiLoading ? 'Analyzing...' : 'Re-analyze'}
-                onPress={() => void requestAnalysis(true)}
-                variant="secondary"
-                size="sm"
-                disabled={aiLoading || !db || !session || !isAIConfigured()}
-              />
-              <Text style={styles.aiSummaryText}>{aiAnalysis.oneLineConclusion}</Text>
+              <View style={styles.aiHeaderRow}>
+                <View style={styles.aiVerdictBadge}>
+                  <Text style={styles.aiVerdictBadgeText}>Coach verdict</Text>
+                </View>
+                <Button
+                  title={aiLoading ? 'Analyzing...' : 'Re-analyze'}
+                  onPress={() => void requestAnalysis(true)}
+                  variant="secondary"
+                  size="sm"
+                  disabled={aiLoading || !db || !session || !isAIConfigured()}
+                />
+              </View>
+              <Card variant="elevated" padding={spacing.md} style={styles.aiVerdictCard}>
+                <Text style={styles.aiSummaryText}>{aiAnalysis.oneLineConclusion}</Text>
+              </Card>
               <View style={styles.scoreGrid}>
-                <Text style={styles.scoreItem}>完成度 {aiAnalysis.scores.completion}/10</Text>
-                <Text style={styles.scoreItem}>刺激 {aiAnalysis.scores.stimulusEffectiveness}/10</Text>
-                <Text style={styles.scoreItem}>强度 {aiAnalysis.scores.intensityRationality}/10</Text>
-                <Text style={styles.scoreItem}>疲劳 {aiAnalysis.scores.fatigueControl}/10</Text>
-                <Text style={styles.scoreItem}>结构 {aiAnalysis.scores.exerciseStructure}/10</Text>
+                {aiScores.map((score) => (
+                  <View key={score.label} style={[styles.scoreItem, scoreToneStyles[score.tone]]}>
+                    <Text style={styles.scoreValue}>{score.value}</Text>
+                    <Text style={styles.scoreLabel}>{score.label}</Text>
+                  </View>
+                ))}
               </View>
-              <View style={styles.aiSection}>
-                <Text style={styles.aiSectionTitle}>完成度分析</Text>
-                <Text style={styles.aiBullet}>{aiAnalysis.completionAnalysis}</Text>
-              </View>
-              <View style={styles.aiSection}>
-                <Text style={styles.aiSectionTitle}>训练刺激分析</Text>
-                <Text style={styles.aiBullet}>{aiAnalysis.stimulusAnalysis}</Text>
-              </View>
-              <View style={styles.aiSection}>
-                <Text style={styles.aiSectionTitle}>强度分析</Text>
-                <Text style={styles.aiBullet}>{aiAnalysis.intensityAnalysis}</Text>
-              </View>
-              <View style={styles.aiSection}>
-                <Text style={[styles.aiSectionTitle, { color: colors.warning }]}>疲劳与风险</Text>
-                <Text style={styles.aiBullet}>{aiAnalysis.fatigueAndRiskAnalysis}</Text>
-              </View>
-              <View style={styles.aiSection}>
-                <Text style={styles.aiSectionTitle}>与目标匹配度</Text>
-                <Text style={styles.aiBullet}>{aiAnalysis.goalMatchAnalysis}</Text>
+              <View style={styles.aiSectionGrid}>
+                <View style={styles.aiSection}>
+                  <Text style={styles.aiSectionTitle}>完成度分析</Text>
+                  <Text style={styles.aiBullet}>{aiAnalysis.completionAnalysis}</Text>
+                </View>
+                <View style={styles.aiSection}>
+                  <Text style={styles.aiSectionTitle}>训练刺激</Text>
+                  <Text style={styles.aiBullet}>{aiAnalysis.stimulusAnalysis}</Text>
+                </View>
+                <View style={styles.aiSection}>
+                  <Text style={styles.aiSectionTitle}>强度判断</Text>
+                  <Text style={styles.aiBullet}>{aiAnalysis.intensityAnalysis}</Text>
+                </View>
+                <View style={[styles.aiSection, styles.riskSection]}>
+                  <Text style={[styles.aiSectionTitle, { color: colors.warning }]}>疲劳与风险</Text>
+                  <Text style={styles.aiBullet}>{aiAnalysis.fatigueAndRiskAnalysis}</Text>
+                </View>
+                <View style={styles.aiSection}>
+                  <Text style={styles.aiSectionTitle}>目标匹配</Text>
+                  <Text style={styles.aiBullet}>{aiAnalysis.goalMatchAnalysis}</Text>
+                </View>
               </View>
               {aiAnalysis.nextSessionAdjustments.length > 0 && (
                 <View style={styles.aiSection}>
                   <Text style={styles.aiSectionTitle}>下一次同类训练调整</Text>
                   {aiAnalysis.nextSessionAdjustments.map((adjustment, i) => (
-                    <Text key={`${adjustment.exercise}-${i}`} style={styles.aiBullet}>
-                      • {adjustment.exercise}: {adjustment.recommendation}（{adjustment.reason}）
-                    </Text>
+                    <View key={`${adjustment.exercise}-${i}`} style={styles.nextActionCard}>
+                      <Text style={styles.nextActionExercise}>{adjustment.exercise}</Text>
+                      <Text style={styles.nextActionRecommendation}>{adjustment.recommendation}</Text>
+                      <Text style={styles.nextActionReason}>{adjustment.reason}</Text>
+                    </View>
                   ))}
                 </View>
               )}
-              <View style={styles.aiSection}>
+              <View style={[styles.aiSection, styles.structuredPanel]}>
                 <Text style={styles.aiSectionTitle}>结构化总结</Text>
-                <Text style={styles.aiBullet}>目标: {aiAnalysis.structuredSummary.identifiedGoal}</Text>
-                <Text style={styles.aiBullet}>有效组: {aiAnalysis.structuredSummary.effectiveSets}</Text>
-                <Text style={styles.aiBullet}>下次重点: {aiAnalysis.structuredSummary.nextFocus}</Text>
+                <View style={styles.structuredRow}>
+                  <Text style={styles.structuredLabel}>目标</Text>
+                  <Text style={styles.structuredValue}>{aiAnalysis.structuredSummary.identifiedGoal}</Text>
+                </View>
+                <View style={styles.structuredRow}>
+                  <Text style={styles.structuredLabel}>有效组</Text>
+                  <Text style={styles.structuredValue}>{aiAnalysis.structuredSummary.effectiveSets}</Text>
+                </View>
+                <View style={styles.structuredRow}>
+                  <Text style={styles.structuredLabel}>下次重点</Text>
+                  <Text style={styles.structuredValue}>{aiAnalysis.structuredSummary.nextFocus}</Text>
+                </View>
                 <Text style={styles.aiBullet}>{aiAnalysis.structuredSummary.libraryNote}</Text>
               </View>
             </View>
@@ -283,7 +321,7 @@ const styles = StyleSheet.create({
   cardTitle: { ...typography.headline, color: colors.textPrimary },
   cardSubtitle: { ...typography.footnote, color: colors.textSecondary },
   liftStats: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  stat: { ...typography.callout, backgroundColor: colors.surfaceSecondary, color: colors.textPrimary, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
+  stat: { ...typography.callout, backgroundColor: colors.surfaceMuted, color: colors.textPrimary, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.full, overflow: 'hidden' },
   status: { ...typography.footnote, fontWeight: '700', marginTop: spacing.xs },
   suggestion: { borderBottomColor: colors.borderLight, borderBottomWidth: 1, paddingVertical: spacing.sm },
   severity: { ...typography.caption, color: colors.warning, fontWeight: '700', textTransform: 'uppercase' },
@@ -294,10 +332,29 @@ const styles = StyleSheet.create({
   aiLoadingText: { ...typography.callout, color: colors.textSecondary },
   aiError: { ...typography.callout, color: colors.textSecondary, fontStyle: 'italic' },
   aiContent: { gap: spacing.sm },
-  aiSummaryText: { ...typography.body, color: colors.textPrimary, lineHeight: 22 },
-  scoreGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  scoreItem: { ...typography.footnote, backgroundColor: colors.surfaceSecondary, color: colors.textPrimary, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
-  aiSection: { marginTop: spacing.xs },
+  aiHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  aiVerdictBadge: { backgroundColor: colors.coach, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  aiVerdictBadgeText: { ...typography.overline, color: '#fff' },
+  aiVerdictCard: { backgroundColor: colors.surface, marginTop: spacing.xs },
+  aiSummaryText: { ...typography.body, color: colors.textPrimary, lineHeight: 24, fontWeight: '600' },
+  scoreGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  scoreItem: { minWidth: 72, flex: 1, borderRadius: radius.lg, borderWidth: 1, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, alignItems: 'center' },
+  successScore: { backgroundColor: colors.successSoft, borderColor: colors.successBorder },
+  warningScore: { backgroundColor: colors.warningSoft, borderColor: colors.warningBorder },
+  coachScore: { backgroundColor: colors.coachSoft, borderColor: colors.coachBorder },
+  scoreValue: { ...typography.title2, color: colors.textPrimary },
+  scoreLabel: { ...typography.caption, color: colors.textSecondary, marginTop: 2, fontWeight: '700' },
+  aiSectionGrid: { gap: spacing.sm },
+  aiSection: { marginTop: spacing.xs, backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.borderLight, padding: spacing.md },
+  riskSection: { backgroundColor: colors.warningSoft, borderColor: colors.warningBorder },
   aiSectionTitle: { ...typography.footnote, color: colors.primary, fontWeight: '700', marginBottom: spacing.xs },
-  aiBullet: { ...typography.callout, color: colors.textPrimary, lineHeight: 20, paddingLeft: spacing.xs },
+  aiBullet: { ...typography.callout, color: colors.textPrimary, lineHeight: 21 },
+  nextActionCard: { backgroundColor: colors.surfaceMuted, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm, borderWidth: 1, borderColor: colors.borderLight },
+  nextActionExercise: { ...typography.headline, color: colors.textPrimary },
+  nextActionRecommendation: { ...typography.callout, color: colors.primary, fontWeight: '700', marginTop: spacing.xs, lineHeight: 20 },
+  nextActionReason: { ...typography.footnote, color: colors.textSecondary, marginTop: spacing.xs, lineHeight: 18 },
+  structuredPanel: { backgroundColor: colors.surfaceMuted },
+  structuredRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, borderBottomColor: colors.divider, borderBottomWidth: 1, paddingVertical: spacing.xs },
+  structuredLabel: { ...typography.footnote, color: colors.textSecondary, fontWeight: '700' },
+  structuredValue: { ...typography.footnote, color: colors.textPrimary, flex: 1, textAlign: 'right' },
 });
