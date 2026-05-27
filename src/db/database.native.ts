@@ -30,3 +30,15 @@ export const getDatabase = async (): Promise<PowerLogDatabase> => {
   databasePromise ??= createNativeDatabase();
   return databasePromise;
 };
+
+export const exportDatabaseSnapshot = async (): Promise<Uint8Array> => {
+  throw new Error('Cloud Sync V1 snapshot export is currently supported on web only.');
+};
+
+export const createDatabaseSnapshotBackup = async (): Promise<{ backupId: string; createdAt: string }> => {
+  throw new Error('Cloud Sync V1 snapshot backup is currently supported on web only.');
+};
+
+export const replaceDatabaseSnapshot = async (_data: Uint8Array): Promise<void> => {
+  throw new Error('Cloud Sync V1 snapshot restore is currently supported on web only.');
+};

@@ -1,9 +1,10 @@
 import initSqlJs, { type Database } from 'sql.js';
 
+import { runMigrations } from './migrations';
 import type { PowerLogDatabase } from './types';
 
 const DB_STORAGE_KEY = 'powerlog-db';
-const loadFromIndexedDB = (): Promise<Uint8Array | null> =>
+const loadFromIndexedDB = (key = DB_STORAGE_KEY): Promise<Uint8Array | null> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open('PowerLogStorage', 1);
     request.onupgradeneeded = () => {
@@ -12,14 +13,14 @@ const loadFromIndexedDB = (): Promise<Uint8Array | null> =>
     request.onsuccess = () => {
       const tx = request.result.transaction('databases', 'readonly');
       const store = tx.objectStore('databases');
-      const get = store.get(DB_STORAGE_KEY);
+      const get = store.get(key);
       get.onsuccess = () => resolve(get.result ?? null);
       get.onerror = () => reject(get.error);
     };
     request.onerror = () => reject(request.error);
   });
 
-const saveToIndexedDB = (data: Uint8Array): Promise<void> =>
+const saveToIndexedDB = (data: Uint8Array, key = DB_STORAGE_KEY): Promise<void> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open('PowerLogStorage', 1);
     request.onupgradeneeded = () => {
@@ -28,7 +29,7 @@ const saveToIndexedDB = (data: Uint8Array): Promise<void> =>
     request.onsuccess = () => {
       const tx = request.result.transaction('databases', 'readwrite');
       const store = tx.objectStore('databases');
-      const put = store.put(data, DB_STORAGE_KEY);
+      const put = store.put(data, key);
       put.onsuccess = () => resolve();
       put.onerror = () => reject(put.error);
     };
@@ -137,4 +138,32 @@ let databasePromise: Promise<PowerLogDatabase> | null = null;
 export const getDatabase = async (): Promise<PowerLogDatabase> => {
   databasePromise ??= createWebDatabase();
   return databasePromise;
+};
+
+export const exportDatabaseSnapshot = async (): Promise<Uint8Array> => {
+  await getDatabase();
+  const data = await loadFromIndexedDB();
+  if (!data) throw new Error('No local database snapshot found.');
+  return data;
+};
+
+export const createDatabaseSnapshotBackup = async (): Promise<{ backupId: string; createdAt: string }> => {
+  const data = await exportDatabaseSnapshot();
+  const createdAt = new Date().toISOString();
+  const backupId = `powerlog-db-backup-${createdAt}`;
+  await saveToIndexedDB(data, backupId);
+  return { backupId, createdAt };
+};
+
+export const replaceDatabaseSnapshot = async (data: Uint8Array): Promise<void> => {
+  const SQL = await initSqlJs({
+    locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
+  });
+  const validationDb = new SQL.Database(data);
+  validationDb.exec('SELECT 1');
+  validationDb.close();
+
+  await saveToIndexedDB(data);
+  databasePromise = null;
+  await runMigrations(await getDatabase());
 };

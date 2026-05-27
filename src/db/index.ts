@@ -1,4 +1,4 @@
-export { getDatabase } from './database';
+export { createDatabaseSnapshotBackup, exportDatabaseSnapshot, getDatabase, replaceDatabaseSnapshot } from './database';
 export type { PowerLogDatabase } from './types';
 export { initDatabase } from './initDatabase';
 export { runMigrations } from './migrations';

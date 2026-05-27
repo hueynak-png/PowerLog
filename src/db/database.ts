@@ -13,3 +13,15 @@ import type { PowerLogDatabase } from './types';
 export const getDatabase = async (): Promise<PowerLogDatabase> => {
   throw new Error('Platform-specific database implementation not resolved. This should not happen.');
 };
+
+export const exportDatabaseSnapshot = async (): Promise<Uint8Array> => {
+  throw new Error('Platform-specific database implementation not resolved. This should not happen.');
+};
+
+export const createDatabaseSnapshotBackup = async (): Promise<{ backupId: string; createdAt: string }> => {
+  throw new Error('Platform-specific database implementation not resolved. This should not happen.');
+};
+
+export const replaceDatabaseSnapshot = async (_data: Uint8Array): Promise<void> => {
+  throw new Error('Platform-specific database implementation not resolved. This should not happen.');
+};
