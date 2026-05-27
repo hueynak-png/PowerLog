@@ -93,57 +93,68 @@ export function CalendarScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.hero}>
+          <Text style={styles.eyebrow}>Training history</Text>
+          <Text style={styles.title}>Calendar</Text>
+          <Text style={styles.subtitle}>Review completed sessions, jump into workout details, or backfill a training day.</Text>
+        </View>
+
         {/* Month navigation */}
-        <View style={styles.monthNav}>
-          <Pressable onPress={prevMonth} style={styles.navBtn}>
-            <Text style={styles.navBtnText}>‹</Text>
-          </Pressable>
-          <Text style={styles.monthTitle}>{formatMonthYear(year, month)}</Text>
-          <Pressable onPress={nextMonth} style={styles.navBtn}>
-            <Text style={styles.navBtnText}>›</Text>
-          </Pressable>
-        </View>
+        <Card variant="elevated" style={styles.calendarCard}>
+          <View style={styles.monthNav}>
+            <Pressable onPress={prevMonth} style={styles.navBtn}>
+              <Text style={styles.navBtnText}>‹</Text>
+            </Pressable>
+            <View style={styles.monthTitleBlock}>
+              <Text style={styles.monthKicker}>Month view</Text>
+              <Text style={styles.monthTitle}>{formatMonthYear(year, month)}</Text>
+            </View>
+            <Pressable onPress={nextMonth} style={styles.navBtn}>
+              <Text style={styles.navBtnText}>›</Text>
+            </Pressable>
+          </View>
 
-        {/* Weekday headers */}
-        <View style={styles.weekRow}>
-          {WEEKDAYS.map((d) => (
-            <Text key={d} style={styles.weekday}>{d}</Text>
-          ))}
-        </View>
+          {/* Weekday headers */}
+          <View style={styles.weekRow}>
+            {WEEKDAYS.map((d) => (
+              <Text key={d} style={styles.weekday}>{d}</Text>
+            ))}
+          </View>
 
-        {/* Calendar grid */}
-        <View style={styles.grid}>
-          {Array.from({ length: firstDayOffset }).map((_, i) => (
-            <View key={`empty-${i}`} style={styles.dayCell} />
-          ))}
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1;
-            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const hasWorkout = workoutDates.has(dateStr);
-            const isSelected = dateStr === selectedDate;
-            const isToday = dateStr === today;
-            return (
-              <Pressable
-                key={dateStr}
-                style={[styles.dayCell, isSelected && styles.dayCellSelected]}
-                onPress={() => setSelectedDate(dateStr)}
-              >
-                <Text style={[
-                  styles.dayText,
-                  isToday && styles.dayTextToday,
-                  isSelected && styles.dayTextSelected,
-                ]}>{day}</Text>
-                {hasWorkout && <View style={styles.dot} />}
-              </Pressable>
-            );
-          })}
-        </View>
+          {/* Calendar grid */}
+          <View style={styles.grid}>
+            {Array.from({ length: firstDayOffset }).map((_, i) => (
+              <View key={`empty-${i}`} style={styles.dayCell} />
+            ))}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const hasWorkout = workoutDates.has(dateStr);
+              const isSelected = dateStr === selectedDate;
+              const isToday = dateStr === today;
+              return (
+                <Pressable
+                  key={dateStr}
+                  style={[styles.dayCell, isToday && styles.dayCellToday, isSelected && styles.dayCellSelected]}
+                  onPress={() => setSelectedDate(dateStr)}
+                >
+                  <Text style={[
+                    styles.dayText,
+                    isToday && styles.dayTextToday,
+                    isSelected && styles.dayTextSelected,
+                  ]}>{day}</Text>
+                  {hasWorkout && <View style={[styles.dot, isSelected && styles.dotSelected]} />}
+                </Pressable>
+              );
+            })}
+          </View>
+        </Card>
 
         {/* Selected date detail */}
-        <SectionHeader title={selectedDate === today ? 'Today' : selectedDate} />
+        <SectionHeader title={selectedDate === today ? 'Today' : selectedDate} subtitle={`${dayWorkouts.length} session${dayWorkouts.length === 1 ? '' : 's'} logged`} />
         {dayWorkouts.length > 0 ? (
           dayWorkouts.map((workout) => (
-            <Card key={workout.id} style={styles.workoutCard}>
+            <Card key={workout.id} variant="outlined" style={styles.workoutCard}>
               <View style={styles.workoutRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.workoutTime}>
@@ -165,7 +176,7 @@ export function CalendarScreen() {
             </Card>
           ))
         ) : (
-          <Card style={styles.workoutCard}>
+          <Card variant="tonal" style={styles.workoutCard}>
             <Text style={styles.emptyText}>No workout on this day</Text>
           </Card>
         )}
@@ -174,6 +185,7 @@ export function CalendarScreen() {
           title={`Start Workout for ${selectedDate === today ? 'Today' : selectedDate}`}
           onPress={() => void handleStartWorkout(selectedDate)}
           disabled={!db}
+          fullWidth
         />
       </ScrollView>
     </SafeAreaView>
@@ -182,24 +194,33 @@ export function CalendarScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxxl },
-  monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
-  navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.md },
+  hero: { paddingTop: spacing.xxl, paddingBottom: spacing.sm },
+  eyebrow: { ...typography.overline, color: colors.primary, marginBottom: spacing.xs },
+  title: { ...typography.largeTitle, color: colors.textPrimary },
+  subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.xs, lineHeight: 22 },
+  calendarCard: { gap: spacing.md },
+  monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  monthTitleBlock: { alignItems: 'center', flex: 1 },
+  monthKicker: { ...typography.overline, color: colors.primary, marginBottom: 2 },
+  navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.full, backgroundColor: colors.primarySoft },
   navBtnText: { fontSize: 28, color: colors.primary, fontWeight: '600' },
   monthTitle: { ...typography.title3, color: colors.textPrimary },
-  weekRow: { flexDirection: 'row', marginBottom: spacing.xs },
-  weekday: { flex: 1, textAlign: 'center', ...typography.caption, color: colors.textSecondary, fontWeight: '600' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.lg },
-  dayCell: { width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
-  dayCellSelected: { backgroundColor: colors.primary, borderRadius: radius.full },
+  weekRow: { flexDirection: 'row' },
+  weekday: { flex: 1, textAlign: 'center', ...typography.caption, color: colors.textSecondary, fontWeight: '800' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  dayCell: { width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.full },
+  dayCellToday: { backgroundColor: colors.primarySoft },
+  dayCellSelected: { backgroundColor: colors.primary },
   dayText: { ...typography.callout, color: colors.textPrimary },
   dayTextToday: { color: colors.primary, fontWeight: '700' },
   dayTextSelected: { color: '#fff', fontWeight: '700' },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success, marginTop: 2 },
-  workoutCard: { marginBottom: spacing.sm },
+  dotSelected: { backgroundColor: '#fff' },
+  workoutCard: { marginBottom: spacing.sm, gap: spacing.sm },
   workoutRow: { flexDirection: 'row', alignItems: 'center' },
   workoutTime: { ...typography.headline, color: colors.textPrimary },
   workoutMeta: { ...typography.footnote, color: colors.textSecondary, marginTop: spacing.xs },
   workoutActions: { flexDirection: 'row', gap: spacing.xs },
-  emptyText: { ...typography.callout, color: colors.textSecondary },
+  emptyText: { ...typography.callout, color: colors.textSecondary, lineHeight: 20 },
 });
