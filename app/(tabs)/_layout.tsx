@@ -43,8 +43,8 @@ export default function TabLayout() {
           borderWidth: 1,
           borderRadius: radius.xxl,
           height: 88,
-          paddingBottom: 14,
-          paddingTop: 8,
+          paddingBottom: 12,
+          paddingTop: 12,
           paddingHorizontal: spacing.sm,
           shadowColor: colors.shadowMedium,
           shadowOffset: { width: 0, height: 14 },
@@ -54,13 +54,15 @@ export default function TabLayout() {
         },
         tabBarItemStyle: {
           borderRadius: radius.xl,
+          justifyContent: 'center',
+          alignItems: 'center',
           paddingVertical: 0,
         },
         tabBarLabelStyle: {
           fontSize: 9,
           fontWeight: '800',
-          marginTop: 0,
-          marginBottom: 2,
+          marginTop: 2,
+          marginBottom: 0,
         },
         headerStyle: {
           backgroundColor: colors.background,

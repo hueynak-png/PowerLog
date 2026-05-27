@@ -4,6 +4,11 @@ export const getAppVersion = (): string => Constants.expoConfig?.version ?? '1.0
 
 export const releaseNotes = [
   {
+    version: '1.1.3',
+    date: '2026-05-27',
+    highlights: ['修复 dock 图标和文字未居中'],
+  },
+  {
     version: '1.1.2',
     date: '2026-05-27',
     highlights: ['修复悬浮 dock 遮挡页面底部内容'],
