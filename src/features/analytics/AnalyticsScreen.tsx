@@ -75,27 +75,48 @@ export function AnalyticsScreen() {
   }
 
   const rpeTotal = rpe.low + rpe.medium + rpe.high;
+  const latestVolume = weeklyVolume.at(-1)?.totalVolume ?? 0;
+  const latestCompletion = completionRate.at(-1)?.rate ?? 0;
+  const latestBodyweight = bodyweight.at(-1)?.bodyweight;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>Analytics</Text>
-
-        {/* Current 1RM */}
-        <SectionHeader title="Current 1RM" />
-        <View style={styles.metricsRow}>
-          {MAIN_LIFTS.map((lift) => {
-            const max = getMaxForLift(lift.liftFamily as LiftType);
-            return (
-              <View key={lift.liftFamily} style={styles.metricWrap}>
-                <MetricCard label={lift.label} value={max ? String(max.oneRm) : '—'} unit={max ? 'kg' : undefined} color={lift.color} />
-              </View>
-            );
-          })}
+        <View style={styles.hero}>
+          <Text style={styles.eyebrow}>Training intelligence</Text>
+          <Text style={styles.pageTitle}>Analytics</Text>
+          <Text style={styles.subtitle}>Strength trends, workload, fatigue signals, and recovery context in one dashboard.</Text>
         </View>
 
+        <View style={styles.metricsRow}>
+          <View style={styles.metricWrap}>
+            <MetricCard label="This week" value={latestVolume ? Math.round(latestVolume).toLocaleString() : '—'} unit={latestVolume ? 'kg' : undefined} color={colors.volume} tone="default" />
+          </View>
+          <View style={styles.metricWrap}>
+            <MetricCard label="Complete" value={`${Math.round(latestCompletion * 100)}`} unit="%" color={colors.success} tone="success" />
+          </View>
+          <View style={styles.metricWrap}>
+            <MetricCard label="Bodyweight" value={latestBodyweight ? String(latestBodyweight) : '—'} unit={latestBodyweight ? 'kg' : undefined} color={colors.textPrimary} tone="coach" />
+          </View>
+        </View>
+
+        {/* Current 1RM */}
+        <SectionHeader title="Strength board" subtitle="Current estimated 1RM settings for the big three." />
+        <Card variant="elevated" style={styles.card}>
+          <View style={styles.metricsRowCompact}>
+            {MAIN_LIFTS.map((lift) => {
+              const max = getMaxForLift(lift.liftFamily as LiftType);
+              return (
+                <View key={lift.liftFamily} style={styles.metricWrap}>
+                  <MetricCard label={lift.label} value={max ? String(max.oneRm) : '—'} unit={max ? 'kg' : undefined} color={lift.color} />
+                </View>
+              );
+            })}
+          </View>
+        </Card>
+
         {/* e1RM Curves */}
-        <SectionHeader title="Estimated 1RM Trend" />
+        <SectionHeader title="Estimated 1RM Trend" subtitle="Follow the direction of your main lift strength." />
         <Card style={styles.card}>
           {MAIN_LIFTS.map((lift) => (
             <LineChart
@@ -109,7 +130,7 @@ export function AnalyticsScreen() {
         </Card>
 
         {/* Weekly Volume */}
-        <SectionHeader title="Weekly Volume" />
+        <SectionHeader title="Weekly Volume" subtitle="Tonnage by week across all logged exercises." />
         <Card style={styles.card}>
           <LineChart
             title="Total Volume (kg)"
@@ -120,7 +141,7 @@ export function AnalyticsScreen() {
         </Card>
 
         {/* Completion Rate */}
-        <SectionHeader title="Weekly Completion Rate" />
+        <SectionHeader title="Weekly Completion Rate" subtitle="How much of the planned work was completed." />
         <Card style={styles.card}>
           <LineChart
             title="Avg Completion %"
@@ -131,16 +152,16 @@ export function AnalyticsScreen() {
         </Card>
 
         {/* RPE Distribution */}
-        <SectionHeader title="RPE Distribution (30 days)" />
+        <SectionHeader title="RPE Distribution (30 days)" subtitle="Intensity balance from easier work to high-effort sets." />
         <View style={styles.metricsRow}>
           <View style={styles.metricWrap}>
-            <MetricCard label="Low (6-7)" value={`${rpe.low}`} color={colors.rpeLow} />
+              <MetricCard label="Low (6-7)" value={`${rpe.low}`} color={colors.rpeLow} tone="success" />
           </View>
           <View style={styles.metricWrap}>
-            <MetricCard label="Med (7.5-8.5)" value={`${rpe.medium}`} color={colors.rpeMedium} />
+              <MetricCard label="Med (7.5-8.5)" value={`${rpe.medium}`} color={colors.rpeMedium} tone="warning" />
           </View>
           <View style={styles.metricWrap}>
-            <MetricCard label="High (9+)" value={`${rpe.high}`} color={colors.rpeHigh} />
+              <MetricCard label="High (9+)" value={`${rpe.high}`} color={colors.rpeHigh} tone="danger" />
           </View>
         </View>
         {rpeTotal > 0 && (
@@ -157,7 +178,7 @@ export function AnalyticsScreen() {
         )}
 
         {/* Muscle Group Volume */}
-        <SectionHeader title="Muscle Group Volume (30 days)" />
+        <SectionHeader title="Muscle Group Volume (30 days)" subtitle="Which areas received the most total work recently." />
         <Card style={styles.card}>
           <BarChart
             title="Volume by Muscle Group"
@@ -166,7 +187,7 @@ export function AnalyticsScreen() {
         </Card>
 
         {/* Bodyweight */}
-        <SectionHeader title="Bodyweight" />
+        <SectionHeader title="Bodyweight" subtitle="Bodyweight context for performance changes." />
         <Card style={styles.card}>
           <LineChart
             title="Bodyweight (90 days)"
@@ -182,12 +203,15 @@ export function AnalyticsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxxl },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.md },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   loadingText: { ...typography.subhead, color: colors.textSecondary },
-  pageTitle: { ...typography.largeTitle, color: colors.textPrimary, marginBottom: spacing.lg },
-  metricsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
+  hero: { paddingTop: spacing.xxl, paddingBottom: spacing.sm },
+  eyebrow: { ...typography.overline, color: colors.primary, marginBottom: spacing.xs },
+  pageTitle: { ...typography.largeTitle, color: colors.textPrimary },
+  subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.xs, lineHeight: 22 },
+  metricsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
+  metricsRowCompact: { flexDirection: 'row', gap: spacing.sm },
   metricWrap: { flex: 1 },
-  card: { marginBottom: spacing.lg },
+  card: { marginBottom: spacing.sm },
 });
-
