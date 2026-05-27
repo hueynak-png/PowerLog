@@ -8,12 +8,12 @@ interface CardProps {
   children: React.ReactNode;
   style?: ViewStyle;
   padding?: number;
-  variant?: 'default' | 'outlined';
+  variant?: 'default' | 'outlined' | 'elevated' | 'coach' | 'tonal';
 }
 
 export function Card({ children, style, padding = spacing.lg, variant = 'default' }: CardProps) {
   return (
-    <View style={[styles.card, variant === 'outlined' && styles.outlined, { padding }, style]}>
+    <View style={[styles.card, styles[variant], { padding }, style]}>
       {children}
     </View>
   );
@@ -22,17 +22,36 @@ export function Card({ children, style, padding = spacing.lg, variant = 'default
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 20,
     elevation: 1,
   },
+  default: {},
   outlined: {
     shadowOpacity: 0,
     elevation: 0,
     borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  elevated: {
+    borderColor: colors.surface,
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 28,
+    elevation: 3,
+  },
+  coach: {
+    backgroundColor: colors.coachSoft,
+    borderColor: colors.coachBorder,
+  },
+  tonal: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.borderLight,
   },
 });
