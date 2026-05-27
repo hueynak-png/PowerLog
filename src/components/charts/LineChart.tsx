@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Polyline, Circle, Line, Text as SvgText } from 'react-native-svg';
 
 import { colors } from '@/src/theme/colors';
+import { radius } from '@/src/theme/radius';
 import { spacing } from '@/src/theme/spacing';
 import { typography } from '@/src/theme/typography';
 
@@ -23,8 +24,13 @@ export function LineChart({ data, title, color = colors.primary, height = 160, u
   if (data.length === 0) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.empty}>No data yet</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.badge}>No data</Text>
+        </View>
+        <View style={styles.emptyPanel}>
+          <Text style={styles.empty}>Log a few sessions to unlock this trend.</Text>
+        </View>
       </View>
     );
   }
@@ -50,8 +56,13 @@ export function LineChart({ data, title, color = colors.primary, height = 160, u
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.badge, { color }]}>{Math.round(lastPoint.value)}{unit}</Text>
+      </View>
       <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
+        <Line x1={padding.left} y1={padding.top} x2={padding.left + chartW} y2={padding.top} stroke={colors.divider} strokeWidth={1} strokeDasharray="4 6" />
+        <Line x1={padding.left} y1={padding.top + chartH / 2} x2={padding.left + chartW} y2={padding.top + chartH / 2} stroke={colors.divider} strokeWidth={1} strokeDasharray="4 6" />
         {/* Y axis labels */}
         <SvgText x={padding.left - 4} y={padding.top + 4} fontSize={10} fill={colors.textTertiary} textAnchor="end">
           {Math.round(maxVal)}{unit}
@@ -62,9 +73,9 @@ export function LineChart({ data, title, color = colors.primary, height = 160, u
         {/* Baseline */}
         <Line x1={padding.left} y1={padding.top + chartH} x2={padding.left + chartW} y2={padding.top + chartH} stroke={colors.borderLight} strokeWidth={1} />
         {/* Line */}
-        <Polyline points={polylinePoints} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />
+        <Polyline points={polylinePoints} fill="none" stroke={color} strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />
         {/* End dot */}
-        <Circle cx={lastPoint.x} cy={lastPoint.y} r={4} fill={color} />
+        <Circle cx={lastPoint.x} cy={lastPoint.y} r={7} fill={colors.surface} stroke={color} strokeWidth={3} />
         {/* X labels: first and last */}
         <SvgText x={points[0].x} y={height - 4} fontSize={9} fill={colors.textTertiary} textAnchor="start">
           {data[0].label}
@@ -73,14 +84,17 @@ export function LineChart({ data, title, color = colors.primary, height = 160, u
           {data[data.length - 1].label}
         </SvgText>
       </Svg>
-      <Text style={styles.latest}>Latest: {Math.round(lastPoint.value)}{unit}</Text>
+      <Text style={styles.latest}>Latest sample: {data[data.length - 1].label}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { marginBottom: spacing.md },
-  title: { ...typography.headline, color: colors.textPrimary, marginBottom: spacing.sm },
-  empty: { ...typography.callout, color: colors.textSecondary },
-  latest: { ...typography.footnote, color: colors.textSecondary, marginTop: spacing.xs },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.sm },
+  title: { ...typography.headline, color: colors.textPrimary, flex: 1 },
+  badge: { ...typography.footnote, color: colors.textSecondary, fontWeight: '800', backgroundColor: colors.surfaceMuted, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, overflow: 'hidden' },
+  emptyPanel: { backgroundColor: colors.surfaceMuted, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.borderLight, padding: spacing.lg },
+  empty: { ...typography.callout, color: colors.textSecondary, lineHeight: 20 },
+  latest: { ...typography.footnote, color: colors.textSecondary, marginTop: spacing.xs, fontWeight: '600' },
 });
