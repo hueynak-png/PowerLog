@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
 const STORAGE_KEY = 'powerlog-sync-config';
+const SYNC_STATUS_KEY = 'powerlog-sync-status';
 
 export interface SyncConfig {
   baseUrl: string;
@@ -23,6 +24,14 @@ interface SyncStatusResponse {
   syncId: string;
   createdAt: string;
   latestSnapshot: RemoteSnapshotMeta | null;
+}
+
+export interface SyncStatusMeta {
+  lastManualUploadAt?: string;
+  lastAutoUploadAt?: string;
+  lastRestoreAt?: string;
+  lastCheckAt?: string;
+  latestSnapshot?: RemoteSnapshotMeta | null;
 }
 
 const normalizeSyncBaseUrl = (baseUrl: string): string =>
@@ -55,6 +64,31 @@ const loadConfig = (): SyncConfig => {
 
 let config: SyncConfig = loadConfig();
 
+const loadSyncStatus = (): SyncStatusMeta => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const stored = window.localStorage.getItem(SYNC_STATUS_KEY);
+      return stored ? JSON.parse(stored) as SyncStatusMeta : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+};
+
+let syncStatus: SyncStatusMeta = loadSyncStatus();
+
+const saveSyncStatus = () => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.setItem(SYNC_STATUS_KEY, JSON.stringify(syncStatus));
+    } catch {
+      return false;
+    }
+  }
+  return false;
+};
+
 const saveConfig = () => {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
     try {
@@ -79,6 +113,13 @@ export const getSyncConfig = (): SyncConfig => config;
 
 export const isSyncConfigured = (): boolean =>
   config.baseUrl.length > 0 && config.recoveryKey.length > 0;
+
+export const getLocalSyncStatus = (): SyncStatusMeta => syncStatus;
+
+export const markSnapshotRestored = (meta: RemoteSnapshotMeta) => {
+  syncStatus = { ...syncStatus, lastRestoreAt: new Date().toISOString(), latestSnapshot: meta };
+  saveSyncStatus();
+};
 
 const readJsonResponse = async <T>(response: Response): Promise<T> => {
   const payload = await response.json() as { success?: boolean; data?: T; error?: string; message?: string };
@@ -113,14 +154,23 @@ export const createRecoveryKey = async (baseUrl: string): Promise<{ recoveryKey:
 };
 
 export const getSyncStatus = async (): Promise<SyncStatusResponse> =>
-  syncRequest<SyncStatusResponse>('/status');
+  syncRequest<SyncStatusResponse>('/status').then((status) => {
+    syncStatus = { ...syncStatus, lastCheckAt: new Date().toISOString(), latestSnapshot: status.latestSnapshot };
+    saveSyncStatus();
+    return status;
+  });
 
 export const getLatestSnapshotMeta = async (): Promise<RemoteSnapshotMeta | null> =>
-  syncRequest<RemoteSnapshotMeta | null>('/snapshot/latest/meta');
+  syncRequest<RemoteSnapshotMeta | null>('/snapshot/latest/meta').then((meta) => {
+    syncStatus = { ...syncStatus, lastCheckAt: new Date().toISOString(), latestSnapshot: meta };
+    saveSyncStatus();
+    return meta;
+  });
 
 export const uploadSnapshot = async (
   bytes: Uint8Array,
   meta: { sha256: string; schemaVersion: number; appVersion?: string; platform?: string },
+  mode: 'manual' | 'auto' = 'manual',
 ): Promise<RemoteSnapshotMeta> => {
   if (!isSyncConfigured()) throw new Error('Cloud Sync is not configured.');
 
@@ -138,7 +188,14 @@ export const uploadSnapshot = async (
     body: bytes,
   });
 
-  return readJsonResponse<RemoteSnapshotMeta>(response);
+  const uploaded = await readJsonResponse<RemoteSnapshotMeta>(response);
+  syncStatus = {
+    ...syncStatus,
+    latestSnapshot: uploaded,
+    ...(mode === 'auto' ? { lastAutoUploadAt: new Date().toISOString() } : { lastManualUploadAt: new Date().toISOString() }),
+  };
+  saveSyncStatus();
+  return uploaded;
 };
 
 export const downloadLatestSnapshot = async (): Promise<{ bytes: Uint8Array; meta: RemoteSnapshotMeta }> => {
