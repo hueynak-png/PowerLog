@@ -16,7 +16,7 @@ function DockIcon({ name, color, focused }: { name: keyof typeof iconMap; color:
   return (
     <View style={{
       width: 34,
-      height: 30,
+      height: 28,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: radius.full,
@@ -42,9 +42,9 @@ export default function TabLayout() {
           borderColor: colors.tabBarBorder,
           borderWidth: 1,
           borderRadius: radius.xxl,
-          height: 78,
-          paddingBottom: 10,
-          paddingTop: 10,
+          height: 88,
+          paddingBottom: 14,
+          paddingTop: 8,
           paddingHorizontal: spacing.sm,
           shadowColor: colors.shadowMedium,
           shadowOffset: { width: 0, height: 14 },
@@ -54,12 +54,13 @@ export default function TabLayout() {
         },
         tabBarItemStyle: {
           borderRadius: radius.xl,
-          paddingVertical: spacing.xs,
+          paddingVertical: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 9,
           fontWeight: '800',
-          marginTop: 2,
+          marginTop: 0,
+          marginBottom: 2,
         },
         headerStyle: {
           backgroundColor: colors.background,
