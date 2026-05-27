@@ -3,10 +3,10 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Card, MetricCard, NumberField, SectionHeader, TextField } from '@/src/components/ui';
+import { Button, Card, MetricCard, SectionHeader, TextField } from '@/src/components/ui';
 import type { BodyweightEntry, LiftType, NutritionEntry, WorkoutSession } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
-import { addBodyweightEntry, addNutritionEntry, getLatestBodyweight, getNutritionByDate, getRecentWorkouts, updateBodyweightEntry, updateNutritionEntry } from '@/src/repositories';
+import { addNutritionEntry, getLatestBodyweight, getNutritionByDate, getRecentWorkouts, updateNutritionEntry } from '@/src/repositories';
 import { isAIConfigured, requestNutritionTags } from '@/src/services/aiService';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { colors, radius, spacing, typography } from '@/src/theme';
@@ -42,9 +42,7 @@ export function HomeDashboard() {
 
   const [recentWorkouts, setRecentWorkouts] = useState<WorkoutSession[]>([]);
   const [latestBodyweight, setLatestBodyweight] = useState<BodyweightEntry | null>(null);
-  const [bodyweightValue, setBodyweightValue] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSavingBodyweight, setIsSavingBodyweight] = useState(false);
 
   // Nutrition state
   const [todayNutrition, setTodayNutrition] = useState<NutritionEntry | null>(null);
@@ -70,7 +68,6 @@ export function HomeDashboard() {
     ]);
     setRecentWorkouts(workouts);
     setLatestBodyweight(bodyweight);
-    setBodyweightValue(bodyweight?.bodyweight ?? null);
     setTodayNutrition(nutrition);
     if (nutrition) {
       setNutritionNotes(nutrition.notes ?? '');
@@ -83,20 +80,6 @@ export function HomeDashboard() {
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
-
-  const handleSaveBodyweight = async () => {
-    if (!db || bodyweightValue === null) return;
-
-    setIsSavingBodyweight(true);
-    const today = new Date().toISOString();
-    if (latestBodyweight) {
-      await updateBodyweightEntry(db, latestBodyweight.id, { bodyweight: bodyweightValue, date: today });
-    } else {
-      await addBodyweightEntry(db, { bodyweight: bodyweightValue, date: today });
-    }
-    await loadDashboard();
-    setIsSavingBodyweight(false);
-  };
 
   const NUTRITION_STATUS_OPTIONS = ['偏少', '正常', '偏多', '高蛋白', '外食多', '饮酒', '不规律'];
 
@@ -119,7 +102,7 @@ export function HomeDashboard() {
     // Request AI tags if configured and notes exist
     if (isAIConfigured() && nutritionNotes.length > 0) {
       try {
-        const res = await requestNutritionTags({ notes: nutritionNotes, statusTags: selectedTags, bodyweight: bodyweightValue ?? undefined });
+        const res = await requestNutritionTags({ notes: nutritionNotes, statusTags: selectedTags, bodyweight: latestBodyweight?.bodyweight });
         setAiTags(res.data.tags);
         // Save AI tags back
         const updated = await getNutritionByDate(db, todayStr);
@@ -195,21 +178,6 @@ export function HomeDashboard() {
           ) : (
             <Text style={styles.emptyText}>No workouts yet</Text>
           )}
-        </Card>
-
-        <SectionHeader title="Bodyweight" subtitle="Keep weight context close to training performance." />
-        <Card style={styles.card}>
-          <Text style={styles.cardText}>
-            Latest: {latestBodyweight ? `${latestBodyweight.bodyweight} kg · ${formatDate(latestBodyweight.date)}` : 'No data'}
-          </Text>
-          <NumberField label="Bodyweight" value={bodyweightValue} onChangeValue={setBodyweightValue} step={0.5} min={20} unit="kg" />
-          <Button
-            title="Save Bodyweight"
-            onPress={handleSaveBodyweight}
-            disabled={bodyweightValue === null}
-            loading={isSavingBodyweight}
-            size="md"
-          />
         </Card>
 
         <SectionHeader title="Today's Nutrition" subtitle="Lightweight tags for recovery and context." />
