@@ -13,6 +13,7 @@ import type { WorkoutSet } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { showAlert } from '@/src/lib/alert';
 import { isAIConfigured, requestWorkoutSuggestion, type WorkoutSuggestionResponse } from '@/src/services/aiService';
+import { uploadCompletedWorkoutSnapshot } from '@/src/services/autoSyncService';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { useTimerStore } from '@/src/stores/useTimerStore';
 import { colors } from '@/src/theme/colors';
@@ -170,6 +171,7 @@ export function WorkoutRecordingScreen() {
     setIsCompleting(true);
     try {
       await completeWorkout(db);
+      void uploadCompletedWorkoutSnapshot().catch(() => undefined);
       resetTimer();
       router.push(`/workout/${session.id}/summary` as Href);
     } finally {
