@@ -53,6 +53,7 @@ function RootLayoutNav() {
     <Stack
       screenOptions={{
         contentStyle: { backgroundColor: colors.background },
+        headerShadowVisible: false,
       }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
