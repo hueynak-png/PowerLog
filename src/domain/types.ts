@@ -90,6 +90,15 @@ export interface NutritionEntry {
   aiTags?: string[];
 }
 
+export interface WeeklyReview {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  generatedAt: string;
+  status: AiSummaryStatus;
+  reviewJson: string;
+}
+
 export type RpeValue = 6 | 6.5 | 7 | 7.5 | 8 | 8.5 | 9 | 9.5 | 10;
 
 export interface RuleSuggestion {

@@ -90,6 +90,15 @@ CREATE TABLE IF NOT EXISTS nutrition_entries (
   ai_tags TEXT
 );
 
+CREATE TABLE IF NOT EXISTS weekly_reviews (
+  id TEXT PRIMARY KEY,
+  period_start TEXT NOT NULL,
+  period_end TEXT NOT NULL,
+  generated_at TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'generated',
+  review_json TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS programs (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT NOT NULL,

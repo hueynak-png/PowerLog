@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, SectionHeader } from '@/src/components/ui';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { showAlert } from '@/src/lib/alert';
-import { getRecentWorkouts, getWorkoutExercises, getWorkoutSets } from '@/src/repositories';
+import { getLatestWeeklyReview, getRecentWorkouts, getWorkoutExercises, getWorkoutSets, saveWeeklyReview } from '@/src/repositories';
 import { getBodyweightTrend } from '@/src/repositories/analyticsRepository';
 import { isAIConfigured, requestWeeklyReview, type WeeklyReviewResponse } from '@/src/services/aiService';
 import { colors, spacing, typography } from '@/src/theme';
@@ -14,6 +14,24 @@ export function WeeklyReviewScreen() {
   const db = useDatabase();
   const [isLoading, setIsLoading] = useState(false);
   const [review, setReview] = useState<WeeklyReviewResponse['data'] | null>(null);
+  const [period, setPeriod] = useState<{ start: string; end: string } | null>(null);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!db) return;
+    let mounted = true;
+    getLatestWeeklyReview(db).then((saved) => {
+      if (!mounted || !saved) return;
+      try {
+        setReview(JSON.parse(saved.reviewJson) as WeeklyReviewResponse['data']);
+        setPeriod({ start: saved.periodStart, end: saved.periodEnd });
+        setGeneratedAt(saved.generatedAt);
+      } catch {
+        return;
+      }
+    });
+    return () => { mounted = false; };
+  }, [db]);
 
   const handleGenerateReview = useCallback(async () => {
     if (!db) return;
@@ -25,9 +43,13 @@ export function WeeklyReviewScreen() {
     setIsLoading(true);
     try {
       const workouts = await getRecentWorkouts(db, 7);
+      const now = new Date();
+      const periodEnd = now.toISOString().slice(0, 10);
+      const periodStartDate = new Date(now);
+      periodStartDate.setDate(now.getDate() - 6);
+      const periodStart = periodStartDate.toISOString().slice(0, 10);
       const thisWeek = workouts.filter((w) => {
         const d = new Date(w.date);
-        const now = new Date();
         const diff = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
         return diff <= 7;
       });
@@ -69,6 +91,14 @@ export function WeeklyReviewScreen() {
 
       const res = await requestWeeklyReview({ sessions, bodyweightEntries });
       setReview(res.data);
+      setPeriod({ start: periodStart, end: periodEnd });
+      const saved = await saveWeeklyReview(db, {
+        periodStart,
+        periodEnd,
+        status: 'generated',
+        reviewJson: JSON.stringify(res.data),
+      });
+      setGeneratedAt(saved.generatedAt);
     } catch (err) {
       showAlert('Error', err instanceof Error ? err.message : 'Failed to generate review');
     } finally {
@@ -80,7 +110,10 @@ export function WeeklyReviewScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Weekly Review</Text>
-        <Text style={styles.subtitle}>AI-powered analysis of your training week</Text>
+        <Text style={styles.subtitle}>
+          {period ? `AI analysis for ${period.start} → ${period.end}` : 'AI-powered analysis of your training week'}
+        </Text>
+        {generatedAt ? <Text style={styles.generatedText}>Saved review: {new Date(generatedAt).toLocaleString()}</Text> : null}
 
         {!review && !isLoading && (
           <Button title="Generate Weekly Review" onPress={handleGenerateReview} disabled={!db} />
@@ -158,6 +191,7 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingBottom: spacing.xxxl },
   title: { ...typography.largeTitle, color: colors.textPrimary },
   subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.xs, marginBottom: spacing.lg },
+  generatedText: { ...typography.footnote, color: colors.textTertiary, marginBottom: spacing.md },
   card: { marginBottom: spacing.md },
   loadingText: { ...typography.callout, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
   bodyText: { ...typography.callout, color: colors.textPrimary, lineHeight: 20 },
@@ -172,4 +206,3 @@ const styles = StyleSheet.create({
   deloadStatus: { ...typography.headline, color: colors.success, marginBottom: spacing.xs },
   deloadNeeded: { color: colors.warning },
 });
-

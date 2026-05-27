@@ -6,3 +6,4 @@ export * from './nutritionRepository';
 export * from './profileRepository';
 export * from './programRepository';
 export * from './workoutRepository';
+export * from './weeklyReviewRepository';
