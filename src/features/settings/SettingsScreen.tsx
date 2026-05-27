@@ -22,7 +22,7 @@ import {
 import { createPreRestoreBackup, replaceLocalSnapshot, sha256Hex } from '@/src/db/snapshot';
 import { exportBackupFile, importBackupFile } from '@/src/services/localBackupFileService';
 import { createSnapshotUploadPayload, formatSnapshotSize } from '@/src/services/snapshotBackupService';
-import { getAppVersion } from '@/src/services/versionService';
+import { getAppVersion, releaseNotes } from '@/src/services/versionService';
 import { hasPwaUpdateAvailable, reloadForPwaUpdate, subscribeToPwaUpdates } from '@/src/services/pwaUpdateService';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { colors, radius, spacing, typography } from '@/src/theme';
@@ -66,6 +66,7 @@ export function SettingsScreen() {
   const [backupMessage, setBackupMessage] = useState<string | null>(null);
   const [backupError, setBackupError] = useState<string | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState(hasPwaUpdateAvailable());
+  const [releaseNotesExpanded, setReleaseNotesExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -410,11 +411,24 @@ export function SettingsScreen() {
 
         <SectionHeader title="App Version" subtitle="PWA update status for the installed web app." />
         <Card variant="outlined" style={styles.card}>
-          <View style={styles.cardTopRow}>
+          <Pressable style={styles.cardTopRow} onPress={() => setReleaseNotesExpanded((value) => !value)}>
             <Text style={styles.cardKicker}>PowerLog v{getAppVersion()}</Text>
             <Text style={styles.statusPill}>{updateAvailable ? 'Update ready' : 'Current'}</Text>
-          </View>
+          </Pressable>
           <Text style={styles.cardText}>{updateAvailable ? 'A newer web app version is available. Refresh to load it.' : 'The installed web app checks for new deployments when opened.'}</Text>
+          <Button title={releaseNotesExpanded ? 'Hide Update Notes' : 'View Update Notes'} onPress={() => setReleaseNotesExpanded((value) => !value)} variant="secondary" size="sm" fullWidth />
+          {releaseNotesExpanded ? (
+            <View style={styles.releaseList}>
+              {releaseNotes.map((release) => (
+                <View key={release.version} style={styles.releaseItem}>
+                  <Text style={styles.releaseTitle}>v{release.version} · {release.date}</Text>
+                  {release.highlights.map((highlight) => (
+                    <Text key={highlight} style={styles.releaseText}>• {highlight}</Text>
+                  ))}
+                </View>
+              ))}
+            </View>
+          ) : null}
           {updateAvailable ? <Button title="Refresh App" onPress={reloadForPwaUpdate} variant="secondary" size="sm" fullWidth /> : null}
         </Card>
 
@@ -513,5 +527,24 @@ const styles = StyleSheet.create({
     color: colors.danger,
     marginTop: spacing.sm,
     textAlign: 'center',
+  },
+  releaseList: {
+    gap: spacing.sm,
+  },
+  releaseItem: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+    paddingTop: spacing.sm,
+  },
+  releaseTitle: {
+    ...typography.subhead,
+    color: colors.textPrimary,
+    fontWeight: '800',
+    marginBottom: spacing.xs,
+  },
+  releaseText: {
+    ...typography.footnote,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
 });
