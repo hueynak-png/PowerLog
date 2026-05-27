@@ -167,7 +167,7 @@ export function WorkoutStartScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, gap: spacing.lg },
+  content: { padding: spacing.lg, paddingBottom: spacing.dockBottomInset, gap: spacing.lg },
   hero: { paddingTop: spacing.xxl, paddingBottom: spacing.sm },
   eyebrow: { ...typography.overline, color: colors.primary },
   title: { ...typography.largeTitle, color: colors.textPrimary, marginTop: spacing.sm, maxWidth: 320 },

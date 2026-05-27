@@ -203,7 +203,7 @@ export function AnalyticsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.md },
+  content: { padding: spacing.lg, paddingBottom: spacing.dockBottomInset, gap: spacing.md },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   loadingText: { ...typography.subhead, color: colors.textSecondary },
   hero: { paddingTop: spacing.xxl, paddingBottom: spacing.sm },

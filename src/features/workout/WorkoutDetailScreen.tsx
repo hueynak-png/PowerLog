@@ -137,7 +137,7 @@ export function WorkoutDetailScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.md },
+  content: { padding: spacing.lg, paddingBottom: spacing.dockBottomInset, gap: spacing.md },
   backBtn: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
   backBtnText: { ...typography.callout, color: colors.primary, fontWeight: '600' },
   hero: { paddingTop: spacing.sm, paddingBottom: spacing.sm },

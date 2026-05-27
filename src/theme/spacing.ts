@@ -8,4 +8,5 @@ export const spacing = {
   xxxl: 32,
   xxxxl: 40,
   screenHorizontal: 20,
+  dockBottomInset: 120,
 } as const;

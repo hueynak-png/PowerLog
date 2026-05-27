@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
+    paddingBottom: spacing.dockBottomInset,
     gap: spacing.md,
   },
   loadingContainer: {

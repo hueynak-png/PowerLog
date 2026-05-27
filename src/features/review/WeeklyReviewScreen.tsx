@@ -188,7 +188,7 @@ export function WeeklyReviewScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxxl },
+  content: { padding: spacing.lg, paddingBottom: spacing.dockBottomInset },
   title: { ...typography.largeTitle, color: colors.textPrimary },
   subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.xs, marginBottom: spacing.lg },
   generatedText: { ...typography.footnote, color: colors.textTertiary, marginBottom: spacing.md },
