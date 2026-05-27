@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { colors } from '@/src/theme/colors';
 import { spacing } from '@/src/theme/spacing';
 import { typography } from '@/src/theme/typography';
@@ -12,6 +12,7 @@ interface MetricCardProps {
   color?: string;
   detail?: string;
   tone?: 'default' | 'success' | 'warning' | 'danger' | 'coach';
+  style?: ViewStyle;
 }
 
 const toneColor = {
@@ -22,15 +23,17 @@ const toneColor = {
   coach: colors.coachSoft,
 };
 
-export function MetricCard({ label, value, unit, color, detail, tone = 'default' }: MetricCardProps) {
+export function MetricCard({ label, value, unit, color, detail, tone = 'default', style }: MetricCardProps) {
   return (
-    <View style={[styles.container, { backgroundColor: toneColor[tone] }]}>
-      <Text style={[styles.value, color ? { color } : undefined]}>
-        {value}
-        {unit ? <Text style={styles.unit}> {unit}</Text> : null}
-      </Text>
-      <Text style={styles.label}>{label}</Text>
-      {detail ? <Text style={styles.detail}>{detail}</Text> : null}
+    <View style={[styles.container, { backgroundColor: toneColor[tone] }, style]}>
+      <View style={styles.valueLine}>
+        <Text style={[styles.value, color ? { color } : undefined]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>
+          {value}
+        </Text>
+        {unit ? <Text style={styles.unit} numberOfLines={1}>{unit}</Text> : null}
+      </View>
+      <Text style={styles.label} numberOfLines={2}>{label}</Text>
+      {detail ? <Text style={styles.detail} numberOfLines={2}>{detail}</Text> : null}
     </View>
   );
 }
@@ -40,7 +43,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.md,
     alignItems: 'center',
-    minWidth: 90,
+    minWidth: 0,
+    flexShrink: 1,
     borderWidth: 1,
     borderColor: colors.borderLight,
     shadowColor: colors.shadow,
@@ -49,19 +53,32 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 1,
   },
+  valueLine: {
+    width: '100%',
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: 3,
+  },
   value: {
     ...typography.metric,
     color: colors.textPrimary,
+    flexShrink: 1,
+    minWidth: 0,
+    textAlign: 'center',
   },
   unit: {
     ...typography.subhead,
     color: colors.textSecondary,
+    flexShrink: 0,
   },
   label: {
     ...typography.caption,
     color: colors.textSecondary,
     marginTop: spacing.xs,
     fontWeight: '700',
+    textAlign: 'center',
   },
   detail: {
     ...typography.caption,
