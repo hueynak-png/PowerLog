@@ -12,7 +12,7 @@ import { TimerPill } from '@/src/components/workout/TimerPill';
 import type { WorkoutSet } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { showAlert } from '@/src/lib/alert';
-import { isAIConfigured, requestWorkoutSuggestion, type WorkoutSuggestionResponse } from '@/src/services/aiService';
+import { getSetLoadGuidance } from '@/src/lib/setGuidance';
 import { uploadCompletedWorkoutSnapshot } from '@/src/services/autoSyncService';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { useTimerStore } from '@/src/stores/useTimerStore';
@@ -45,45 +45,6 @@ export function WorkoutRecordingScreen() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [showPicker, setShowPicker] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<Record<string, WorkoutSuggestionResponse['data']>>({});
-  const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
-
-  const handleAISuggestion = async (workoutExerciseId: string) => {
-    const exercise = exercises.find((e) => e.id === workoutExerciseId);
-    if (!exercise) return;
-
-    const completedSets = exercise.sets
-      .filter((s) => s.completed && s.actualWeight != null && s.actualReps != null && s.actualRpe != null)
-      .map((s) => ({
-        setNumber: s.setNumber,
-        weight: s.actualWeight!,
-        reps: s.actualReps!,
-        rpe: s.actualRpe!,
-      }));
-
-    if (completedSets.length === 0) {
-      showAlert('No data', 'Complete at least one set with weight, reps, and RPE before requesting AI suggestion.');
-      return;
-    }
-
-    setAiLoading((prev) => ({ ...prev, [workoutExerciseId]: true }));
-    try {
-      const response = await requestWorkoutSuggestion({
-        exerciseNameEn: exercise.exercise.nameEn,
-        exerciseNameZh: exercise.exercise.nameZh,
-        exerciseRole: exercise.exercise.role,
-        completedSets,
-        plannedWeight: exercise.sets[0]?.plannedWeight,
-        plannedReps: exercise.sets[0]?.plannedReps,
-        plannedRpe: exercise.sets[0]?.plannedRpe,
-      });
-      setAiSuggestions((prev) => ({ ...prev, [workoutExerciseId]: response.data }));
-    } catch {
-      showAlert('AI unavailable', 'Could not get suggestion. Check AI settings.');
-    } finally {
-      setAiLoading((prev) => ({ ...prev, [workoutExerciseId]: false }));
-    }
-  };
 
   const progressLabel = useMemo(() => `${setsCompleted} / ${setsTotal} sets`, [setsCompleted, setsTotal]);
   const completionPct = setsTotal > 0 ? Math.round((setsCompleted / setsTotal) * 100) : 0;
@@ -215,6 +176,7 @@ export function WorkoutRecordingScreen() {
           exercises.map((workoutExercise) => {
             const completed = workoutExercise.sets.filter((set) => set.completed).length;
             const rpeRequired = isMainLiftRole(workoutExercise.exercise.role);
+            const guidance = getSetLoadGuidance(workoutExercise.sets);
             return (
               <ExerciseCard
                 key={workoutExercise.id}
@@ -226,14 +188,20 @@ export function WorkoutRecordingScreen() {
                 progress={`${completed}/${workoutExercise.sets.length}`}
                 isExpanded={expandedIds.has(workoutExercise.id) || workoutExercise.sets.length <= 1}
                 onToggle={() => toggleExpanded(workoutExercise.id)}
-              >
-                  <Pressable
-                    onPress={() => void handleRemoveExercise(workoutExercise.id)}
+                >
+                <Pressable
+                  onPress={() => void handleRemoveExercise(workoutExercise.id)}
                   style={styles.deleteExerciseBtn}
                   accessibilityLabel={`Delete ${workoutExercise.exercise.nameEn}`}
                 >
                   <Text style={styles.deleteExerciseText}>Remove exercise</Text>
                 </Pressable>
+                {guidance ? (
+                  <View style={styles.guidanceBox}>
+                    <Text style={[styles.guidanceTitle, guidance.severity === 'alert' && styles.guidanceAlert]}>{guidance.title}</Text>
+                    <Text style={styles.guidanceText}>{guidance.message}</Text>
+                  </View>
+                ) : null}
                 {workoutExercise.sets.map((set) => (
                   <View key={set.id} style={styles.setBlock}>
                     <View style={styles.setRow}>
@@ -264,28 +232,6 @@ export function WorkoutRecordingScreen() {
                   </View>
                 ))}
                 <Button title="Add Set" onPress={() => void handleAddSet(workoutExercise.id)} variant="secondary" size="md" disabled={!db} fullWidth />
-                {isAIConfigured() && (
-                  <View style={styles.aiBlock}>
-                    <Button
-                      title={aiLoading[workoutExercise.id] ? 'Thinking...' : 'AI Suggestion'}
-                      onPress={() => void handleAISuggestion(workoutExercise.id)}
-                      variant="secondary"
-                      size="md"
-                      disabled={aiLoading[workoutExercise.id]}
-                    />
-                    {aiSuggestions[workoutExercise.id] && (
-                      <Card variant="tonal" style={styles.aiCard}>
-                        <Text style={[styles.aiSeverity, aiSuggestions[workoutExercise.id].severity === 'alert' && styles.aiAlert]}>
-                          {aiSuggestions[workoutExercise.id].severity}
-                        </Text>
-                        <Text style={styles.aiText}>{aiSuggestions[workoutExercise.id].suggestion}</Text>
-                        {aiSuggestions[workoutExercise.id].adjustedWeight && (
-                          <Text style={styles.aiAdjust}>Suggested: {aiSuggestions[workoutExercise.id].adjustedWeight}kg</Text>
-                        )}
-                      </Card>
-                    )}
-                  </View>
-                )}
               </ExerciseCard>
             );
           })
@@ -323,11 +269,9 @@ const styles = StyleSheet.create({
   deleteExerciseText: { ...typography.footnote, color: colors.danger, fontWeight: '700' },
   deleteSetBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.xs },
   deleteSetText: { fontSize: 20, color: colors.danger, fontWeight: '700' },
-  aiBlock: { marginTop: spacing.sm, gap: spacing.sm },
-  aiCard: { padding: spacing.sm },
-  aiSeverity: { ...typography.caption, color: colors.warning, fontWeight: '700', textTransform: 'uppercase' },
-  aiAlert: { color: colors.danger },
-  aiText: { ...typography.callout, color: colors.textPrimary, marginTop: spacing.xs, lineHeight: 20 },
-  aiAdjust: { ...typography.footnote, color: colors.primary, fontWeight: '600', marginTop: spacing.xs },
+  guidanceBox: { borderRadius: radius.lg, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primaryBorder, padding: spacing.md, marginBottom: spacing.sm },
+  guidanceTitle: { ...typography.subhead, color: colors.primary, fontWeight: '800', marginBottom: spacing.xs },
+  guidanceAlert: { color: colors.danger },
+  guidanceText: { ...typography.footnote, color: colors.textSecondary, lineHeight: 18 },
   footerActions: { gap: spacing.sm, marginTop: spacing.sm },
 });
