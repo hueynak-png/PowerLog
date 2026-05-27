@@ -30,6 +30,84 @@ import {
 import { requestPlanGeneration, isAIConfigured } from '@/src/services/aiService';
 import { colors, radius, spacing, typography } from '@/src/theme';
 
+type GoalType = 'hypertrophy' | 'strength' | 'maintenance' | 'powerbuilding';
+type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
+type VolumeTolerance = 'low' | 'medium' | 'high';
+type IntensityPreference = 'conservative' | 'moderate' | 'aggressive';
+type ProgressionStyle = 'rpe' | 'percentage' | 'double_progression';
+
+const goalTypeOptions: Array<{ label: string; value: GoalType }> = [
+  { label: 'Hypertrophy', value: 'hypertrophy' },
+  { label: 'Strength', value: 'strength' },
+  { label: 'Maintenance', value: 'maintenance' },
+  { label: 'Powerbuilding', value: 'powerbuilding' },
+];
+
+const experienceOptions: Array<{ label: string; value: ExperienceLevel }> = [
+  { label: 'Beginner', value: 'beginner' },
+  { label: 'Intermediate', value: 'intermediate' },
+  { label: 'Advanced', value: 'advanced' },
+];
+
+const volumeOptions: Array<{ label: string; value: VolumeTolerance }> = [
+  { label: 'Low', value: 'low' },
+  { label: 'Medium', value: 'medium' },
+  { label: 'High', value: 'high' },
+];
+
+const intensityOptions: Array<{ label: string; value: IntensityPreference }> = [
+  { label: 'Conservative', value: 'conservative' },
+  { label: 'Moderate', value: 'moderate' },
+  { label: 'Aggressive', value: 'aggressive' },
+];
+
+const progressionOptions: Array<{ label: string; value: ProgressionStyle }> = [
+  { label: 'RPE-based', value: 'rpe' },
+  { label: 'Percentage', value: 'percentage' },
+  { label: 'Double progression', value: 'double_progression' },
+];
+
+const weakPointOptions = ['Bench lockout', 'Bench off chest', 'Squat depth', 'Squat strength', 'Deadlift lockout', 'Deadlift off floor', 'Quads', 'Glutes', 'Upper back', 'Shoulders', 'Arms'];
+const equipmentOptions = ['Barbell', 'Dumbbells', 'Cable', 'Machines', 'Bodyweight', 'Bands', 'Full gym', 'Home gym'];
+const limitationOptions = ['No overhead press', 'No low-bar squat', 'No sumo deadlift', 'Knee irritation', 'Shoulder irritation', 'Lower back fatigue', 'Limited time', 'Avoid high-impact work'];
+
+function SelectChips<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: Array<{ label: string; value: T }>; onChange: (value: T) => void }) {
+  return (
+    <View style={styles.selectorBlock}>
+      <Text style={styles.selectorLabel}>{label}</Text>
+      <View style={styles.chipGrid}>
+        {options.map((option) => (
+          <Pressable key={option.value} onPress={() => onChange(option.value)} style={[styles.chip, value === option.value && styles.chipSelected]}>
+            <Text style={[styles.chipText, value === option.value && styles.chipTextSelected]}>{option.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function MultiSelectChips({ label, values, options, onChange }: { label: string; values: string[]; options: string[]; onChange: (values: string[]) => void }) {
+  const toggle = (option: string) => {
+    onChange(values.includes(option) ? values.filter((value) => value !== option) : [...values, option]);
+  };
+
+  return (
+    <View style={styles.selectorBlock}>
+      <Text style={styles.selectorLabel}>{label}</Text>
+      <View style={styles.chipGrid}>
+        {options.map((option) => {
+          const selected = values.includes(option);
+          return (
+            <Pressable key={option} onPress={() => toggle(option)} style={[styles.chip, selected && styles.chipSelected]}>
+              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{option}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export function ProgramScreen() {
   const db = useDatabase();
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -39,19 +117,18 @@ export function ProgramScreen() {
   const [showForm, setShowForm] = useState(false);
 
   // Form state
-  const [goal, setGoal] = useState('General strength');
-  const [goalType, setGoalType] = useState<'hypertrophy' | 'strength' | 'maintenance' | 'powerbuilding'>('strength');
-  const [experienceLevel, setExperienceLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
+  const [goalType, setGoalType] = useState<GoalType>('strength');
+  const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('intermediate');
   const [daysPerWeek, setDaysPerWeek] = useState<number | null>(4);
   const [sessionDuration, setSessionDuration] = useState<number | null>(90);
   const [durationWeeks, setDurationWeeks] = useState<number | null>(6);
   const [includeDeload, setIncludeDeload] = useState(true);
-  const [weakPoints, setWeakPoints] = useState('');
-  const [availableEquipment, setAvailableEquipment] = useState('Full gym: barbell, dumbbells, cables, machines');
-  const [limitations, setLimitations] = useState('');
-  const [volumeTolerance, setVolumeTolerance] = useState<'low' | 'medium' | 'high'>('medium');
-  const [intensityPreference, setIntensityPreference] = useState<'conservative' | 'moderate' | 'aggressive'>('moderate');
-  const [progressionStyle, setProgressionStyle] = useState<'rpe' | 'percentage' | 'double_progression'>('rpe');
+  const [weakPoints, setWeakPoints] = useState<string[]>([]);
+  const [availableEquipment, setAvailableEquipment] = useState<string[]>(['Full gym']);
+  const [limitations, setLimitations] = useState<string[]>([]);
+  const [volumeTolerance, setVolumeTolerance] = useState<VolumeTolerance>('medium');
+  const [intensityPreference, setIntensityPreference] = useState<IntensityPreference>('moderate');
+  const [progressionStyle, setProgressionStyle] = useState<ProgressionStyle>('rpe');
   const [squatMax, setSquatMax] = useState<number | null>(null);
   const [benchMax, setBenchMax] = useState<number | null>(null);
   const [deadliftMax, setDeadliftMax] = useState<number | null>(null);
@@ -84,7 +161,6 @@ export function ProgramScreen() {
     setGenerating(true);
     try {
       const result = await requestPlanGeneration({
-        goal,
         goalType,
         experienceLevel,
         trainingDaysPerWeek: daysPerWeek ?? 4,
@@ -94,9 +170,9 @@ export function ProgramScreen() {
         squatMax,
         benchMax,
         deadliftMax,
-        weakPoints: weakPoints.trim() || undefined,
-        availableEquipment: availableEquipment.trim() || undefined,
-        limitations: limitations.trim() || undefined,
+        weakPoints: weakPoints.length ? weakPoints : undefined,
+        availableEquipment: availableEquipment.length ? availableEquipment : undefined,
+        limitations: limitations.length ? limitations : undefined,
         volumeTolerance,
         intensityPreference,
         progressionStyle,
@@ -106,7 +182,7 @@ export function ProgramScreen() {
       const program = await createProgram(db, {
         name: result.data.name,
         type: result.data.type,
-        goal,
+        goal: goalType,
         source: 'ai_generated',
         durationWeeks: durationWeeks ?? 6,
         includesDeload: includeDeload,
@@ -233,7 +309,7 @@ export function ProgramScreen() {
               Week {cycle.currentWeek} • Phase: {cycle.currentPhase}
             </Text>
             <View style={styles.cycleActions}>
-              <Button title="End Cycle" onPress={handleDeactivate} variant="danger" size="sm" />
+              <Button title="Stop Active Plan" onPress={handleDeactivate} variant="danger" size="md" fullWidth />
             </View>
           </Card>
         ) : (
@@ -310,18 +386,17 @@ export function ProgramScreen() {
             </View>
 
             <Card variant="elevated" style={styles.card}>
-              <TextField label="Goal" value={goal} onChangeText={setGoal} placeholder="e.g. Peaking for competition" />
-              <TextField label="Goal type" value={goalType} onChangeText={(value) => setGoalType(value as typeof goalType)} placeholder="hypertrophy | strength | maintenance | powerbuilding" />
-              <TextField label="Experience" value={experienceLevel} onChangeText={(value) => setExperienceLevel(value as typeof experienceLevel)} placeholder="beginner | intermediate | advanced" />
+              <SelectChips label="Goal" value={goalType} options={goalTypeOptions} onChange={setGoalType} />
+              <SelectChips label="Experience" value={experienceLevel} options={experienceOptions} onChange={setExperienceLevel} />
               <NumberField label="Days per week" value={daysPerWeek} onChangeValue={setDaysPerWeek} step={1} min={2} max={6} />
               <NumberField label="Session duration" value={sessionDuration} onChangeValue={setSessionDuration} step={5} min={45} max={150} unit="min" />
               <NumberField label="Program weeks" value={durationWeeks} onChangeValue={setDurationWeeks} step={1} min={3} max={16} />
-              <TextField label="Weak points / priorities" value={weakPoints} onChangeText={setWeakPoints} placeholder="e.g. bench lockout, quads, upper back" />
-              <TextField label="Available equipment" value={availableEquipment} onChangeText={setAvailableEquipment} placeholder="e.g. home gym, barbell only, full gym" />
-              <TextField label="Limitations / avoid" value={limitations} onChangeText={setLimitations} placeholder="e.g. no overhead pressing, knee irritation" />
-              <TextField label="Volume tolerance" value={volumeTolerance} onChangeText={(value) => setVolumeTolerance(value as typeof volumeTolerance)} placeholder="low | medium | high" />
-              <TextField label="Intensity preference" value={intensityPreference} onChangeText={(value) => setIntensityPreference(value as typeof intensityPreference)} placeholder="conservative | moderate | aggressive" />
-              <TextField label="Progression style" value={progressionStyle} onChangeText={(value) => setProgressionStyle(value as typeof progressionStyle)} placeholder="rpe | percentage | double_progression" />
+              <MultiSelectChips label="Weak points / priorities" values={weakPoints} options={weakPointOptions} onChange={setWeakPoints} />
+              <MultiSelectChips label="Available equipment" values={availableEquipment} options={equipmentOptions} onChange={setAvailableEquipment} />
+              <MultiSelectChips label="Limitations / avoid" values={limitations} options={limitationOptions} onChange={setLimitations} />
+              <SelectChips label="Volume tolerance" value={volumeTolerance} options={volumeOptions} onChange={setVolumeTolerance} />
+              <SelectChips label="Intensity preference" value={intensityPreference} options={intensityOptions} onChange={setIntensityPreference} />
+              <SelectChips label="Progression style" value={progressionStyle} options={progressionOptions} onChange={setProgressionStyle} />
               <View style={styles.switchRow}>
                 <Text style={styles.switchLabel}>Include deload week</Text>
                 <Switch value={includeDeload} onValueChange={setIncludeDeload} trackColor={{ true: colors.primary }} />
@@ -449,6 +524,13 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textPrimary,
   },
+  selectorBlock: { gap: spacing.sm },
+  selectorLabel: { ...typography.subhead, color: colors.textSecondary, fontWeight: '700' },
+  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chip: { borderWidth: 1, borderColor: colors.borderLight, backgroundColor: colors.surfaceMuted, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  chipSelected: { borderColor: colors.primaryBorder, backgroundColor: colors.primarySoft },
+  chipText: { ...typography.footnote, color: colors.textSecondary, fontWeight: '700' },
+  chipTextSelected: { color: colors.primary },
   generatingHint: {
     ...typography.footnote,
     color: colors.textSecondary,
