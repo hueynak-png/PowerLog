@@ -2,6 +2,8 @@ import type { ChatMessage } from '../services/deepseek';
 
 export const buildPlanGenerationPrompt = (data: {
   goal: string;
+  goalType?: 'hypertrophy' | 'strength' | 'maintenance' | 'powerbuilding';
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
   trainingDaysPerWeek: number;
   maxSessionDuration: number;
   durationWeeks: number;
@@ -9,6 +11,12 @@ export const buildPlanGenerationPrompt = (data: {
   squatMax: number;
   benchMax: number;
   deadliftMax: number;
+  weakPoints?: string;
+  availableEquipment?: string;
+  limitations?: string;
+  volumeTolerance?: 'low' | 'medium' | 'high';
+  intensityPreference?: 'conservative' | 'moderate' | 'aggressive';
+  progressionStyle?: 'rpe' | 'percentage' | 'double_progression';
   currentBodyweight?: number;
   avoidExercises?: string[];
   includeExercises?: string[];
@@ -51,22 +59,33 @@ Return a JSON object with this exact structure:
 }
 
 Rules:
-- Main lifts (competition squat/bench/deadlift) should use RPE-based programming
-- Accessories use sets x reps without specific RPE
-- Include warm-up sets guidance in notes
-- Respect the user's max session duration
-- If deload is included, make the last week a deload week
-- Use progressive overload across weeks
-- Balance volume across muscle groups`
+- Match the primary goal type. Hypertrophy needs more accessory volume, strength needs heavier main lift practice, maintenance needs lower fatigue, powerbuilding balances both.
+- Scale complexity and weekly stress to the user's experience level.
+- Respect equipment, limitations, weak points, volume tolerance, and intensity preference.
+- Main lifts should use RPE-based or percentage-based loading according to progression preference.
+- Accessories use sets x reps, with RPE only when useful.
+- Include warm-up and substitution guidance in notes.
+- Respect the user's max session duration as a hard cap.
+- If deload is included, make the last week or an appropriate later week a deload week.
+- Use progressive overload across weeks without forcing max-effort sets every session.
+- Balance volume across muscle groups and prioritize stated weak points.`
   },
   {
     role: 'user',
     content: `Generate a ${data.durationWeeks}-week training program.
 
 Goal: ${data.goal}
+Goal type: ${data.goalType ?? 'strength'}
+Experience level: ${data.experienceLevel ?? 'intermediate'}
 Training days per week: ${data.trainingDaysPerWeek}
 Max session duration: ${data.maxSessionDuration} minutes
 Include deload: ${data.includesDeload ? 'Yes' : 'No'}
+Volume tolerance: ${data.volumeTolerance ?? 'medium'}
+Intensity preference: ${data.intensityPreference ?? 'moderate'}
+Progression style: ${data.progressionStyle ?? 'rpe'}
+Weak points / priorities: ${data.weakPoints || 'Not specified'}
+Available equipment: ${data.availableEquipment || 'Full gym assumed'}
+Limitations / injuries / avoid patterns: ${data.limitations || 'None specified'}
 
 Current maxes:
 - Squat: ${data.squatMax}kg
