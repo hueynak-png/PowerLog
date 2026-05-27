@@ -5,6 +5,15 @@ compatibility_date = "2024-12-01"
 [vars]
 ENVIRONMENT = "production"
 
+[[d1_databases]]
+binding = "SYNC_DB"
+database_name = "powerlog-sync"
+database_id = "6588916a-e6eb-43ec-812e-4036df7e9d83"
+
+[[r2_buckets]]
+binding = "SYNC_SNAPSHOTS"
+bucket_name = "powerlog-sync-snapshots"
+
 # Secrets (set via `wrangler secret put`):
 # DEEPSEEK_API_KEY
 # GPT_API_KEY
