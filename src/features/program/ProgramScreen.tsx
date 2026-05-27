@@ -28,7 +28,7 @@ import {
   getAllExercises,
 } from '@/src/repositories';
 import { requestPlanGeneration, isAIConfigured } from '@/src/services/aiService';
-import { colors, spacing, typography } from '@/src/theme';
+import { colors, radius, spacing, typography } from '@/src/theme';
 
 export function ProgramScreen() {
   const db = useDatabase();
@@ -196,12 +196,20 @@ export function ProgramScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Program</Text>
+        <View style={styles.hero}>
+          <Text style={styles.eyebrow}>Program builder</Text>
+          <Text style={styles.title}>Program</Text>
+          <Text style={styles.subtitle}>Generate, store, and activate structured training cycles from one place.</Text>
+        </View>
 
         {/* Current Cycle */}
-        <SectionHeader title="Current Cycle" />
+        <SectionHeader title="Current Cycle" subtitle="What PowerLog should treat as your active training block." />
         {cycle ? (
-          <Card style={styles.card}>
+          <Card variant="elevated" style={styles.card}>
+            <View style={styles.cardTopRow}>
+              <Text style={styles.cardKicker}>Active block</Text>
+              <Text style={styles.statusPill}>Week {cycle.currentWeek}</Text>
+            </View>
             <Text style={styles.cycleName}>
               {programs.find((p) => p.id === cycle.programId)?.name ?? 'Unknown'}
             </Text>
@@ -213,30 +221,36 @@ export function ProgramScreen() {
             </View>
           </Card>
         ) : (
-          <Card style={styles.card}>
+          <Card variant="tonal" style={styles.card}>
             <Text style={styles.emptyText}>No active program</Text>
           </Card>
         )}
 
         {/* Generate Button */}
-        <SectionHeader title="AI Program Generator" />
-        <Card style={styles.card}>
+        <SectionHeader title="AI Program Generator" subtitle="Create a new cycle from your goal, maxes, and schedule." />
+        <Card variant="coach" style={styles.card}>
+          <Text style={styles.programDesc}>AI can draft a structured block with weeks, training days, main lifts, and accessory work.</Text>
           <Button
             title="Generate AI Program"
             onPress={() => setShowForm(true)}
             variant="primary"
+            fullWidth
           />
         </Card>
 
         {/* Program Library */}
-        <SectionHeader title="Program Library" />
+        <SectionHeader title="Program Library" subtitle={`${programs.length} saved program${programs.length === 1 ? '' : 's'}`} />
         {programs.length === 0 ? (
-          <Card style={styles.card}>
+          <Card variant="outlined" style={styles.card}>
             <Text style={styles.emptyText}>No saved programs</Text>
           </Card>
         ) : (
           programs.map((program) => (
-            <Card key={program.id} style={styles.card}>
+            <Card key={program.id} style={styles.card} variant="outlined">
+              <View style={styles.cardTopRow}>
+                <Text style={styles.cardKicker}>{program.source.replace('_', ' ')}</Text>
+                <Text style={styles.statusPill}>{program.durationWeeks} weeks</Text>
+              </View>
               <Text style={styles.programName}>{program.name}</Text>
               <Text style={styles.programMeta}>
                 {program.type} • {program.durationWeeks} weeks • {program.source.replace('_', ' ')}
@@ -270,13 +284,16 @@ export function ProgramScreen() {
         <SafeAreaView style={styles.safeArea}>
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Generate Program</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalKicker}>AI Program Generator</Text>
+                <Text style={styles.modalTitle}>Generate Program</Text>
+              </View>
               <Pressable onPress={() => setShowForm(false)} accessibilityRole="button">
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
             </View>
 
-            <Card style={styles.card}>
+            <Card variant="elevated" style={styles.card}>
               <TextField label="Goal" value={goal} onChangeText={setGoal} placeholder="e.g. Peaking for competition" />
               <NumberField label="Days per week" value={daysPerWeek} onChangeValue={setDaysPerWeek} step={1} min={2} max={6} />
               <NumberField label="Session duration" value={sessionDuration} onChangeValue={setSessionDuration} step={5} min={45} max={150} unit="min" />
@@ -287,7 +304,7 @@ export function ProgramScreen() {
               </View>
             </Card>
 
-            <SectionHeader title="Current 1RM" />
+            <SectionHeader title="Current 1RM" subtitle="Used to anchor percentages and loading targets." />
             <Card style={styles.card}>
               <NumberField label="Squat" value={squatMax} onChangeValue={setSquatMax} step={2.5} min={0} unit="kg" />
               <NumberField label="Bench" value={benchMax} onChangeValue={setBenchMax} step={2.5} min={0} unit="kg" />
@@ -299,6 +316,7 @@ export function ProgramScreen() {
               onPress={() => void handleGenerate()}
               loading={generating}
               disabled={generating}
+              fullWidth
             />
             {generating && (
               <Text style={styles.generatingHint}>This may take up to 2 minutes…</Text>
@@ -318,6 +336,7 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.lg,
     paddingBottom: spacing.xxxl,
+    gap: spacing.md,
   },
   loadingContainer: {
     flex: 1,
@@ -329,23 +348,28 @@ const styles = StyleSheet.create({
     ...typography.subhead,
     color: colors.textSecondary,
   },
+  hero: { paddingTop: spacing.xxl, paddingBottom: spacing.sm },
+  eyebrow: { ...typography.overline, color: colors.primary, marginBottom: spacing.xs },
   title: {
     ...typography.largeTitle,
     color: colors.textPrimary,
-    marginBottom: spacing.lg,
   },
+  subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.xs, lineHeight: 22 },
   card: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
+    gap: spacing.md,
   },
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  cardKicker: { ...typography.overline, color: colors.primary },
+  statusPill: { ...typography.caption, color: colors.recovery, fontWeight: '800', backgroundColor: colors.successSoft, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, overflow: 'hidden' },
   cycleName: {
     ...typography.title3,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
   },
   cycleDetail: {
     ...typography.subhead,
     color: colors.textSecondary,
-    marginBottom: spacing.md,
+    lineHeight: 20,
   },
   cycleActions: {
     flexDirection: 'row',
@@ -359,7 +383,7 @@ const styles = StyleSheet.create({
   programName: {
     ...typography.headline,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
+    marginTop: -spacing.xs,
   },
   programMeta: {
     ...typography.footnote,
@@ -369,7 +393,7 @@ const styles = StyleSheet.create({
   programDesc: {
     ...typography.subhead,
     color: colors.textSecondary,
-    marginBottom: spacing.md,
+    lineHeight: 20,
   },
   programActions: {
     flexDirection: 'row',
@@ -386,6 +410,7 @@ const styles = StyleSheet.create({
     ...typography.title2,
     color: colors.textPrimary,
   },
+  modalKicker: { ...typography.overline, color: colors.primary, marginBottom: 2 },
   cancelText: {
     ...typography.body,
     color: colors.primary,
