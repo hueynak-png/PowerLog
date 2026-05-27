@@ -63,11 +63,11 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
   stepper: {
     width: 44, height: 44, borderRadius: radius.full,
-    backgroundColor: colors.surfaceSecondary, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: colors.borderLight,
   },
   stepperText: { fontSize: 22, color: colors.primary, fontWeight: '600' },
   inputWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginHorizontal: spacing.sm },
-  input: { ...typography.title2, color: colors.textPrimary, textAlign: 'center', minWidth: 60, width: 80, minHeight: 40, borderWidth: 1, borderColor: colors.borderLight, borderRadius: radius.sm, paddingHorizontal: spacing.sm },
+  input: { ...typography.title2, color: colors.textPrimary, textAlign: 'center', minWidth: 60, width: 80, minHeight: 42, borderWidth: 1, borderColor: colors.borderLight, borderRadius: radius.md, paddingHorizontal: spacing.sm, backgroundColor: colors.surfaceMuted },
   unit: { ...typography.subhead, color: colors.textSecondary, marginLeft: spacing.xs },
 });

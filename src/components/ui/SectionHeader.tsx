@@ -6,13 +6,19 @@ import { typography } from '@/src/theme/typography';
 
 interface SectionHeaderProps {
   title: string;
+  eyebrow?: string;
+  subtitle?: string;
   action?: { text: string; onPress: () => void };
 }
 
-export function SectionHeader({ title, action }: SectionHeaderProps) {
+export function SectionHeader({ title, eyebrow, subtitle, action }: SectionHeaderProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <View style={styles.copy}>
+        {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+        <Text style={styles.title}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      </View>
       {action && (
         <Pressable onPress={action.onPress} accessibilityRole="button">
           <Text style={styles.action}>{action.text}</Text>
@@ -30,10 +36,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
+  copy: { flex: 1, paddingRight: spacing.md },
+  eyebrow: { ...typography.overline, color: colors.primary, marginBottom: 2 },
   title: {
     ...typography.headline,
     color: colors.textPrimary,
   },
+  subtitle: { ...typography.footnote, color: colors.textSecondary, marginTop: 2, lineHeight: 18 },
   action: {
     ...typography.subhead,
     color: colors.primary,

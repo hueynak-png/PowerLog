@@ -41,12 +41,13 @@ const styles = StyleSheet.create({
   },
   input: {
     ...typography.body,
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.md,
     padding: spacing.md,
     color: colors.textPrimary,
     borderWidth: 1,
     borderColor: colors.borderLight,
+    minHeight: 46,
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
 });
