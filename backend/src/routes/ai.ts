@@ -256,8 +256,7 @@ aiRoutes.post('/weekly-review', async (c) => {
 // --- Plan Generation ---
 
 const planGenerationSchema = z.object({
-  goal: z.string(),
-  goalType: z.enum(['hypertrophy', 'strength', 'maintenance', 'powerbuilding']).optional(),
+  goalType: z.enum(['hypertrophy', 'strength', 'maintenance', 'powerbuilding']),
   experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
   trainingDaysPerWeek: z.number(),
   maxSessionDuration: z.number(),
@@ -266,9 +265,9 @@ const planGenerationSchema = z.object({
   squatMax: z.number(),
   benchMax: z.number(),
   deadliftMax: z.number(),
-  weakPoints: z.string().optional(),
-  availableEquipment: z.string().optional(),
-  limitations: z.string().optional(),
+  weakPoints: z.array(z.string()).optional(),
+  availableEquipment: z.array(z.string()).optional(),
+  limitations: z.array(z.string()).optional(),
   volumeTolerance: z.enum(['low', 'medium', 'high']).optional(),
   intensityPreference: z.enum(['conservative', 'moderate', 'aggressive']).optional(),
   progressionStyle: z.enum(['rpe', 'percentage', 'double_progression']).optional(),

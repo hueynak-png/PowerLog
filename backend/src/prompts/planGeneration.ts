@@ -1,8 +1,7 @@
 import type { ChatMessage } from '../services/deepseek';
 
 export const buildPlanGenerationPrompt = (data: {
-  goal: string;
-  goalType?: 'hypertrophy' | 'strength' | 'maintenance' | 'powerbuilding';
+  goalType: 'hypertrophy' | 'strength' | 'maintenance' | 'powerbuilding';
   experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
   trainingDaysPerWeek: number;
   maxSessionDuration: number;
@@ -11,9 +10,9 @@ export const buildPlanGenerationPrompt = (data: {
   squatMax: number;
   benchMax: number;
   deadliftMax: number;
-  weakPoints?: string;
-  availableEquipment?: string;
-  limitations?: string;
+  weakPoints?: string[];
+  availableEquipment?: string[];
+  limitations?: string[];
   volumeTolerance?: 'low' | 'medium' | 'high';
   intensityPreference?: 'conservative' | 'moderate' | 'aggressive';
   progressionStyle?: 'rpe' | 'percentage' | 'double_progression';
@@ -74,8 +73,7 @@ Rules:
     role: 'user',
     content: `Generate a ${data.durationWeeks}-week training program.
 
-Goal: ${data.goal}
-Goal type: ${data.goalType ?? 'strength'}
+Goal type: ${data.goalType}
 Experience level: ${data.experienceLevel ?? 'intermediate'}
 Training days per week: ${data.trainingDaysPerWeek}
 Max session duration: ${data.maxSessionDuration} minutes
@@ -83,9 +81,9 @@ Include deload: ${data.includesDeload ? 'Yes' : 'No'}
 Volume tolerance: ${data.volumeTolerance ?? 'medium'}
 Intensity preference: ${data.intensityPreference ?? 'moderate'}
 Progression style: ${data.progressionStyle ?? 'rpe'}
-Weak points / priorities: ${data.weakPoints || 'Not specified'}
-Available equipment: ${data.availableEquipment || 'Full gym assumed'}
-Limitations / injuries / avoid patterns: ${data.limitations || 'None specified'}
+Weak points / priorities: ${data.weakPoints?.length ? data.weakPoints.join(', ') : 'Not specified'}
+Available equipment: ${data.availableEquipment?.length ? data.availableEquipment.join(', ') : 'Full gym assumed'}
+Limitations / injuries / avoid patterns: ${data.limitations?.length ? data.limitations.join(', ') : 'None specified'}
 
 Current maxes:
 - Squat: ${data.squatMax}kg
