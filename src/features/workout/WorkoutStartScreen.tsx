@@ -97,33 +97,42 @@ export function WorkoutStartScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>PowerLog</Text>
-          <Text style={styles.title}>Record today's work.</Text>
-          <Text style={styles.subtitle}>Fast offline logging with sets, RPE, and instant post-session feedback.</Text>
+          <Text style={styles.eyebrow}>Training deck</Text>
+          <Text style={styles.title}>Ready to lift?</Text>
+          <Text style={styles.subtitle}>Start fast, resume cleanly, and keep every set logged with RPE context.</Text>
         </View>
 
         {persistedSessionId && (
-          <Card style={styles.startCard}>
-            <Text style={styles.cardTitle}>Active workout in progress</Text>
-            <Text style={styles.lastWorkout}>You have an unfinished session.</Text>
-            <Button title="Resume Workout" onPress={() => router.push(`/workout/${persistedSessionId}` as Href)} />
+          <Card variant="coach" style={styles.resumeCard}>
+            <View style={styles.cardTopRow}>
+              <View style={styles.liveDot} />
+              <Text style={styles.resumeEyebrow}>Session in progress</Text>
+            </View>
+            <Text style={styles.cardTitle}>Pick up where you left off</Text>
+            <Text style={styles.lastWorkout}>You have an unfinished workout waiting.</Text>
+            <Button title="Resume Workout" onPress={() => router.push(`/workout/${persistedSessionId}` as Href)} fullWidth />
           </Card>
         )}
 
-        <Card style={styles.startCard}>
-          <Text style={styles.cardTitle}>Workout deck</Text>
+        <Card variant="elevated" style={styles.startCard}>
+          <View style={styles.cardTopRow}>
+            <Text style={styles.cardKicker}>Today</Text>
+            <Text style={styles.statusPill}>Offline ready</Text>
+          </View>
+          <Text style={styles.cardTitle}>Start today’s workout</Text>
           {isLoading ? (
             <ActivityIndicator color={colors.primary} style={styles.loader} />
           ) : lastWorkout ? (
-            <Text style={styles.lastWorkout}>Last workout: {formatDate(lastWorkout.date)}</Text>
+            <Text style={styles.lastWorkout}>Last logged session: {formatDate(lastWorkout.date)}</Text>
           ) : (
-            <Text style={styles.lastWorkout}>No workouts recorded yet.</Text>
+            <Text style={styles.lastWorkout}>No workouts recorded yet. Make today the baseline.</Text>
           )}
-          <Button title="Start Today's Workout" onPress={() => void handleStartWorkout()} loading={isStarting} disabled={!db} />
+          <Button title="Start Today's Workout" onPress={() => void handleStartWorkout()} loading={isStarting} disabled={!db} fullWidth />
         </Card>
 
-        <Card style={styles.startCard}>
+        <Card variant="tonal" style={styles.startCard}>
           <Text style={styles.cardTitle}>Log a past workout</Text>
+          <Text style={styles.lastWorkout}>Backfill training without disrupting today’s flow.</Text>
           <TextInput
             style={styles.dateInput}
             value={customDate}
@@ -137,13 +146,13 @@ export function WorkoutStartScreen() {
 
         {recentWorkouts.length > 1 && (
           <View>
-            <SectionHeader title="Recent" />
+            <SectionHeader title="Recent" subtitle="Completed sessions beyond your latest workout." />
             {recentWorkouts.slice(1).map((workout) => (
               <Card key={workout.id} variant="outlined" style={styles.recentCard}>
                 <View style={styles.recentRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.recentDate}>{formatDate(workout.date)}</Text>
-                    <Text style={styles.recentMeta}>{Math.round((workout.completionRate ?? 0) * 100)}% complete · {Math.round(workout.totalVolume ?? 0)} kg</Text>
+                    <Text style={styles.recentMeta}>{Math.round((workout.completionRate ?? 0) * 100)}% complete · {Math.round(workout.totalVolume ?? 0).toLocaleString()} kg</Text>
                   </View>
                   <Button title="Delete" size="sm" variant="secondary" onPress={() => void handleDeleteWorkout(workout)} />
                 </View>
@@ -159,11 +168,17 @@ export function WorkoutStartScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, gap: spacing.lg },
-  hero: { paddingTop: spacing.xxl, paddingBottom: spacing.md },
-  eyebrow: { ...typography.footnote, color: colors.primary, fontWeight: '700', textTransform: 'uppercase' },
-  title: { ...typography.largeTitle, color: colors.textPrimary, marginTop: spacing.sm },
+  hero: { paddingTop: spacing.xxl, paddingBottom: spacing.sm },
+  eyebrow: { ...typography.overline, color: colors.primary },
+  title: { ...typography.largeTitle, color: colors.textPrimary, marginTop: spacing.sm, maxWidth: 320 },
   subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm, lineHeight: 22 },
-  startCard: { gap: spacing.md, borderRadius: radius.lg },
+  startCard: { gap: spacing.md, borderRadius: radius.xl },
+  resumeCard: { gap: spacing.md, borderRadius: radius.xl },
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  cardKicker: { ...typography.overline, color: colors.primary },
+  statusPill: { ...typography.caption, color: colors.recovery, fontWeight: '800', backgroundColor: colors.successSoft, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, overflow: 'hidden' },
+  resumeEyebrow: { ...typography.overline, color: colors.coach },
+  liveDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.success, marginRight: spacing.xs },
   cardTitle: { ...typography.title3, color: colors.textPrimary },
   lastWorkout: { ...typography.callout, color: colors.textSecondary },
   loader: { alignSelf: 'flex-start' },
@@ -172,7 +187,7 @@ const styles = StyleSheet.create({
   recentDate: { ...typography.headline, color: colors.textPrimary },
   recentMeta: { ...typography.footnote, color: colors.textSecondary, marginTop: spacing.xs },
   dateInput: {
-    ...typography.body, color: colors.textPrimary, backgroundColor: colors.surfaceSecondary,
-    borderRadius: radius.sm, padding: spacing.md, borderWidth: 1, borderColor: colors.borderLight,
+    ...typography.body, color: colors.textPrimary, backgroundColor: colors.surface,
+    borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.borderLight,
   },
 });

@@ -9,7 +9,7 @@ import { useDatabase } from '@/src/hooks/useDatabase';
 import { addBodyweightEntry, addNutritionEntry, getLatestBodyweight, getNutritionByDate, getRecentWorkouts, updateBodyweightEntry, updateNutritionEntry } from '@/src/repositories';
 import { isAIConfigured, requestNutritionTags } from '@/src/services/aiService';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
-import { colors, spacing, typography } from '@/src/theme';
+import { colors, radius, spacing, typography } from '@/src/theme';
 
 const MAIN_LIFTS: Array<{ liftType: LiftType; label: string; color: string }> = [
   { liftType: 'squat', label: 'Squat', color: colors.primary },
@@ -149,29 +149,34 @@ export function HomeDashboard() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{todayLabel}</Text>
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Log the work, watch the numbers move.</Text>
+          <Text style={styles.title}>Training command center</Text>
+          <Text style={styles.subtitle}>Track today’s body signals, launch your workout, and keep the big lifts moving.</Text>
         </View>
 
-        <Card style={styles.card}>
-          <Text style={styles.cardTitle}>Start Workout</Text>
-          <Text style={styles.cardText}>Jump into today's training session and keep your streak alive.</Text>
-          <Button title="Start Workout" onPress={() => router.push('../workout')} style={styles.cardButton} />
+        <Card variant="elevated" style={styles.heroCard}>
+          <View style={styles.cardTopRow}>
+            <Text style={styles.cardKicker}>Primary action</Text>
+            <Text style={styles.statusPill}>Offline ready</Text>
+          </View>
+          <Text style={styles.cardTitle}>Start today’s workout</Text>
+          <Text style={styles.cardText}>Jump into logging with kg, reps, RPE, and post-session coaching.</Text>
+          <Button title="Start Workout" onPress={() => router.push('../workout')} style={styles.cardButton} fullWidth />
         </Card>
 
+        <View style={styles.quickGrid}>
+          <Card style={styles.quickCard} variant="coach" padding={spacing.md}>
+            <Text style={styles.quickLabel}>Weekly Review</Text>
+            <Text style={styles.quickCopy}>AI training recap</Text>
+            <Button title="View" onPress={() => router.push('/review')} variant="secondary" size="sm" />
+          </Card>
+          <Card style={styles.quickCard} variant="tonal" padding={spacing.md}>
+            <Text style={styles.quickLabel}>Current cycle</Text>
+            <Text style={styles.quickCopy}>No active program</Text>
+          </Card>
+        </View>
+
+        <SectionHeader title="Recent Workout" subtitle="Your latest completed session at a glance." />
         <Card style={styles.card} variant="outlined">
-          <Text style={styles.cardTitle}>Weekly Review</Text>
-          <Text style={styles.cardText}>AI-powered analysis of your training week.</Text>
-          <Button title="View Review" onPress={() => router.push('/review')} variant="secondary" size="md" />
-        </Card>
-
-        <Card style={styles.card} variant="outlined">
-          <Text style={styles.cardTitle}>Current cycle</Text>
-          <Text style={styles.emptyText}>No active program</Text>
-        </Card>
-
-        <SectionHeader title="Recent Workout" />
-        <Card style={styles.card}>
           {lastWorkout ? (
             <View style={styles.summaryGrid}>
               <View style={styles.summaryItem}>
@@ -192,7 +197,7 @@ export function HomeDashboard() {
           )}
         </Card>
 
-        <SectionHeader title="Bodyweight" />
+        <SectionHeader title="Bodyweight" subtitle="Keep weight context close to training performance." />
         <Card style={styles.card}>
           <Text style={styles.cardText}>
             Latest: {latestBodyweight ? `${latestBodyweight.bodyweight} kg · ${formatDate(latestBodyweight.date)}` : 'No data'}
@@ -207,7 +212,7 @@ export function HomeDashboard() {
           />
         </Card>
 
-        <SectionHeader title="Today's Nutrition" />
+        <SectionHeader title="Today's Nutrition" subtitle="Lightweight tags for recovery and context." />
         <Card style={styles.card}>
           <Text style={styles.cardText}>Status tags:</Text>
           <View style={styles.tagsRow}>
@@ -227,7 +232,7 @@ export function HomeDashboard() {
           <Button title="Save Nutrition" onPress={handleSaveNutrition} loading={isSavingNutrition} size="md" />
         </Card>
 
-        <SectionHeader title="Estimated 1RM" />
+        <SectionHeader title="Estimated 1RM" subtitle="Current max settings for the big three." />
         <View style={styles.metricsRow}>
           {MAIN_LIFTS.map((lift) => {
             const max = getMaxForLift(lift.liftType);
@@ -251,6 +256,7 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.lg,
     paddingBottom: spacing.xxxl,
+    gap: spacing.md,
   },
   loadingContainer: {
     flex: 1,
@@ -263,10 +269,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   hero: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.sm,
   },
   eyebrow: {
-    ...typography.subhead,
+    ...typography.overline,
     color: colors.primary,
     marginBottom: spacing.xs,
   },
@@ -278,19 +284,24 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     marginTop: spacing.xs,
+    lineHeight: 22,
   },
+  heroCard: { gap: spacing.md, marginBottom: spacing.sm },
   card: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
   },
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  cardKicker: { ...typography.overline, color: colors.primary },
+  statusPill: { ...typography.caption, color: colors.recovery, fontWeight: '800', backgroundColor: colors.successSoft, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, overflow: 'hidden' },
   cardTitle: {
     ...typography.title3,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
   },
   cardText: {
     ...typography.body,
     color: colors.textSecondary,
-    marginBottom: spacing.lg,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
   cardButton: {
     marginTop: spacing.xs,
@@ -305,6 +316,9 @@ const styles = StyleSheet.create({
   },
   summaryItem: {
     flex: 1,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.lg,
+    padding: spacing.md,
   },
   summaryLabel: {
     ...typography.caption,
@@ -322,8 +336,12 @@ const styles = StyleSheet.create({
   metricWrap: {
     flex: 1,
   },
+  quickGrid: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
+  quickCard: { flex: 1, gap: spacing.sm },
+  quickLabel: { ...typography.headline, color: colors.textPrimary },
+  quickCopy: { ...typography.footnote, color: colors.textSecondary, lineHeight: 18 },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.md },
-  tag: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: 16, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.borderLight },
+  tag: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.borderLight },
   tagSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   tagText: { ...typography.footnote, color: colors.textSecondary },
   tagTextSelected: { color: '#fff', fontWeight: '600' },
