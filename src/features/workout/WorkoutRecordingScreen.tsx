@@ -37,6 +37,7 @@ export function WorkoutRecordingScreen() {
   const updateSet = useActiveWorkoutStore((state) => state.updateSet);
   const completeSet = useActiveWorkoutStore((state) => state.completeSet);
   const completeWorkout = useActiveWorkoutStore((state) => state.completeWorkout);
+  const reorderExercise = useActiveWorkoutStore((state) => state.reorderExercise);
   const setsCompleted = useActiveWorkoutStore((state) => state.getSetsCompleted());
   const setsTotal = useActiveWorkoutStore((state) => state.getSetsTotal());
   const elapsedSeconds = useTimerStore((state) => state.elapsedSeconds);
@@ -45,6 +46,7 @@ export function WorkoutRecordingScreen() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [showPicker, setShowPicker] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isReorderMode, setIsReorderMode] = useState(false);
 
   const progressLabel = useMemo(() => `${setsCompleted} / ${setsTotal} sets`, [setsCompleted, setsTotal]);
   const completionPct = setsTotal > 0 ? Math.round((setsCompleted / setsTotal) * 100) : 0;
@@ -116,6 +118,25 @@ export function WorkoutRecordingScreen() {
     await removeSet(db, workoutExerciseId, setId);
   };
 
+  const updateExerciseOrderIndex = async (db: any, exerciseId: string, newOrderIndex: number) => {
+    await db.runAsync('UPDATE workout_exercises SET order_index = ? WHERE id = ?', [newOrderIndex, exerciseId]);
+  };
+
+  const handleMoveExercise = async (index: number, direction: 'up' | 'down') => {
+    if (!db) return;
+    
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= exercises.length) return;
+
+    const currentExercise = exercises[index];
+    const targetExercise = exercises[targetIndex];
+
+    reorderExercise(index, targetIndex);
+
+    await updateExerciseOrderIndex(db, currentExercise.id, targetIndex);
+    await updateExerciseOrderIndex(db, targetExercise.id, index);
+  };
+
   const handleCompleteWorkout = async () => {
     if (!db || !session) {
       return;
@@ -163,7 +184,14 @@ export function WorkoutRecordingScreen() {
           </View>
         </Card>
 
-        <SectionHeader title="Exercises" subtitle="Log each working set with fast kg/reps/RPE inputs." action={{ text: showPicker ? 'Close' : 'Add' , onPress: () => setShowPicker((value) => !value) }} />
+        <View style={styles.sectionHeaderWrapper}>
+          <SectionHeader title="Exercises" subtitle="Log each working set with fast kg/reps/RPE inputs." action={{ text: showPicker ? 'Close' : 'Add' , onPress: () => setShowPicker((value) => !value) }} />
+          {exercises.length > 1 && (
+            <Pressable onPress={() => setIsReorderMode(!isReorderMode)} style={styles.reorderToggleBtn}>
+              <Text style={styles.reorderToggleText}>{isReorderMode ? 'Done' : 'Reorder'}</Text>
+            </Pressable>
+          )}
+        </View>
         {showPicker && <ExercisePickerModal onSelect={() => setShowPicker(false)} />}
 
         {exercises.length === 0 ? (
@@ -173,7 +201,7 @@ export function WorkoutRecordingScreen() {
             <Button title="Add Exercise" onPress={() => setShowPicker(true)} variant="secondary" />
           </Card>
         ) : (
-          exercises.map((workoutExercise) => {
+          exercises.map((workoutExercise, index) => {
             const completed = workoutExercise.sets.filter((set) => set.completed).length;
             const rpeRequired = isMainLiftRole(workoutExercise.exercise.role);
             const guidance = getSetLoadGuidance(workoutExercise.sets);
@@ -196,6 +224,26 @@ export function WorkoutRecordingScreen() {
                 >
                   <Text style={styles.deleteExerciseText}>Remove exercise</Text>
                 </Pressable>
+                
+                {isReorderMode && (
+                  <View style={styles.reorderButtonsContainer}>
+                    <Pressable
+                      onPress={() => void handleMoveExercise(index, 'up')}
+                      disabled={index === 0}
+                      style={[styles.reorderBtn, index === 0 && styles.reorderBtnDisabled]}
+                    >
+                      <Text style={styles.reorderBtnText}>↑ Move Up</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => void handleMoveExercise(index, 'down')}
+                      disabled={index === exercises.length - 1}
+                      style={[styles.reorderBtn, index === exercises.length - 1 && styles.reorderBtnDisabled]}
+                    >
+                      <Text style={styles.reorderBtnText}>↓ Move Down</Text>
+                    </Pressable>
+                  </View>
+                )}
+
                 {guidance ? (
                   <View style={styles.guidanceBox}>
                     <Text style={[styles.guidanceTitle, guidance.severity === 'alert' && styles.guidanceAlert]}>{guidance.title}</Text>
@@ -269,9 +317,16 @@ const styles = StyleSheet.create({
   deleteExerciseText: { ...typography.footnote, color: colors.danger, fontWeight: '700' },
   deleteSetBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.xs },
   deleteSetText: { fontSize: 20, color: colors.danger, fontWeight: '700' },
+  reorderButtonsContainer: { flexDirection: 'column', gap: spacing.xs, marginBottom: spacing.sm },
+  reorderBtn: { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: radius.full, backgroundColor: colors.dangerSoft, alignSelf: 'flex-start' },
+  reorderBtnDisabled: { opacity: 0.5 },
+  reorderBtnText: { ...typography.footnote, color: colors.danger, fontWeight: '700' },
   guidanceBox: { borderRadius: radius.lg, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primaryBorder, padding: spacing.md, marginBottom: spacing.sm },
   guidanceTitle: { ...typography.subhead, color: colors.primary, fontWeight: '800', marginBottom: spacing.xs },
   guidanceAlert: { color: colors.danger },
   guidanceText: { ...typography.footnote, color: colors.textSecondary, lineHeight: 18 },
   footerActions: { gap: spacing.sm, marginTop: spacing.sm },
+  sectionHeaderWrapper: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  reorderToggleBtn: { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: radius.md, backgroundColor: colors.surfaceMuted, marginTop: spacing.sm },
+  reorderToggleText: { ...typography.subhead, color: colors.primary, fontWeight: '600' },
 });

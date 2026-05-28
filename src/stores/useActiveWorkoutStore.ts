@@ -28,6 +28,7 @@ interface ActiveWorkoutState {
   loadWorkout: (db: SQLiteDatabase, sessionId: string) => Promise<void>;
   addExercise: (db: SQLiteDatabase, exerciseId: string) => Promise<void>;
   removeExercise: (db: SQLiteDatabase, workoutExerciseId: string) => Promise<void>;
+  reorderExercise: (fromIndex: number, toIndex: number) => void;
   addSet: (db: SQLiteDatabase, workoutExerciseId: string) => Promise<void>;
   removeSet: (db: SQLiteDatabase, workoutExerciseId: string, setId: string) => Promise<void>;
   updateSet: (db: SQLiteDatabase, setId: string, updates: Partial<WorkoutSet>) => Promise<void>;
@@ -157,6 +158,21 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
     set((state) => ({
       exercises: state.exercises.filter((exercise) => exercise.id !== workoutExerciseId),
     }));
+  },
+
+  reorderExercise: (fromIndex, toIndex) => {
+    set((state) => {
+      const newExercises = [...state.exercises];
+      const [movedExercise] = newExercises.splice(fromIndex, 1);
+      newExercises.splice(toIndex, 0, movedExercise);
+      
+      return {
+        exercises: newExercises.map((exercise, index) => ({
+          ...exercise,
+          orderIndex: index,
+        })),
+      };
+    });
   },
 
   addSet: async (db, workoutExerciseId) => {

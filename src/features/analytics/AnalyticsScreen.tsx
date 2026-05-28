@@ -13,6 +13,7 @@ import {
   getMuscleGroupVolume,
   getRPEDistribution,
   getWeeklyCompletionRate,
+  getWeeklyMuscleHeatmap,
   getWeeklyVolume,
 } from '@/src/repositories';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
@@ -34,6 +35,7 @@ export function AnalyticsScreen() {
   const [completionRate, setCompletionRate] = useState<{ weekStart: string; rate: number }[]>([]);
   const [bodyweight, setBodyweight] = useState<{ date: string; bodyweight: number }[]>([]);
   const [muscleVolume, setMuscleVolume] = useState<{ muscleGroup: string; volume: number }[]>([]);
+  const [muscleHeatmap, setMuscleHeatmap] = useState<{ muscleGroup: string; volume: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export function AnalyticsScreen() {
 
     const load = async () => {
       setIsLoading(true);
-      const [vol, sqE1rm, bnE1rm, dlE1rm, rpeD, comp, bw, mv] = await Promise.all([
+      const [vol, sqE1rm, bnE1rm, dlE1rm, rpeD, comp, bw, mv, hm] = await Promise.all([
         getWeeklyVolume(db, 12),
         getE1RMHistory(db, 'squat', 20),
         getE1RMHistory(db, 'bench', 20),
@@ -50,6 +52,7 @@ export function AnalyticsScreen() {
         getWeeklyCompletionRate(db, 12),
         getBodyweightTrend(db, 90),
         getMuscleGroupVolume(db, 30),
+        getWeeklyMuscleHeatmap(db, 7),
       ]);
       setWeeklyVolume(vol);
       setE1rmData({ squat: sqE1rm, bench: bnE1rm, deadlift: dlE1rm });
@@ -57,6 +60,7 @@ export function AnalyticsScreen() {
       setCompletionRate(comp);
       setBodyweight(bw);
       setMuscleVolume(mv);
+      setMuscleHeatmap(hm);
       setIsLoading(false);
     };
 
@@ -186,6 +190,43 @@ export function AnalyticsScreen() {
           />
         </Card>
 
+        {/* Weekly Muscle Coverage */}
+        <SectionHeader title="Weekly Muscle Coverage" subtitle="Color intensity shows relative training volume" />
+        <Card style={styles.card}>
+          <View style={styles.heatmapContainer}>
+            {muscleHeatmap.map((item) => {
+              const maxVolume = Math.max(1, muscleHeatmap[0]?.volume ?? 1); // Heatmap is sorted by desc volume
+              const ratio = item.volume / maxVolume;
+              
+              // Scale color from muted (0) to successSoft to success
+              let backgroundColor: string = colors.surfaceMuted;
+              let textColor: string = colors.textPrimary;
+              if (item.volume > 0) {
+                if (ratio > 0.5) {
+                   backgroundColor = colors.success;
+                   textColor = colors.background; // ensure contrast
+                } else {
+                   backgroundColor = colors.successSoft;
+                   textColor = colors.success;
+                }
+              }
+
+              const formattedVolume = item.volume >= 1000 
+                ? (item.volume / 1000).toFixed(1) + 'k'
+                : Math.round(item.volume).toString();
+
+              return (
+                <View key={item.muscleGroup} style={[styles.heatmapPill, { backgroundColor }]}>
+                  <Text style={[styles.heatmapPillText, { color: textColor }]}>{item.muscleGroup}</Text>
+                  <Text style={[styles.heatmapPillVolume, { color: textColor }]}>
+                    {item.volume > 0 ? formattedVolume + ' kg' : '0 kg'}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </Card>
+
         {/* Bodyweight */}
         <SectionHeader title="Bodyweight" subtitle="Bodyweight context for performance changes." />
         <Card style={styles.card}>
@@ -214,4 +255,8 @@ const styles = StyleSheet.create({
   metricsRowCompact: { flexDirection: 'row', gap: spacing.sm, minWidth: 0 },
   metricWrap: { flex: 1, minWidth: 0 },
   card: { marginBottom: spacing.sm },
+  heatmapContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  heatmapPill: { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: 100, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  heatmapPillText: { ...typography.footnote, fontWeight: '500' },
+  heatmapPillVolume: { ...typography.caption, opacity: 0.8 },
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { colors } from '@/src/theme/colors';
 import { spacing } from '@/src/theme/spacing';
@@ -26,6 +26,9 @@ export function SetInput({
   onUpdate, rpeRequired,
 }: SetInputProps) {
   const [weightText, setWeightText] = useState(actualWeight != null ? String(actualWeight) : '');
+  const weightRef = useRef<TextInput>(null);
+  const repsRef = useRef<TextInput>(null);
+  const rpeRef = useRef<TextInput>(null);
 
   useEffect(() => {
     setWeightText(actualWeight != null ? String(actualWeight) : '');
@@ -63,16 +66,18 @@ export function SetInput({
       <Text style={[styles.setNum, completed && styles.setNumCompleted]}>{isWarmup ? 'W' : setNumber}</Text>
       <View style={styles.cell}>
         {plannedWeight != null && <Text style={styles.planned}>{plannedWeight}</Text>}
-        <TextInput style={[styles.input, completed && styles.completedInput]} value={weightText}
+        <TextInput ref={weightRef} style={[styles.input, completed && styles.completedInput]} value={weightText}
           onChangeText={handleWeightText} onBlur={commitWeight} keyboardType="decimal-pad" inputMode="decimal"
           placeholder="kg" placeholderTextColor={colors.textTertiary}
+          selectTextOnFocus returnKeyType="next" blurOnSubmit={false} onSubmitEditing={() => repsRef.current?.focus()}
           accessibilityLabel={`Set ${setNumber} weight`} />
       </View>
       <View style={styles.cell}>
         {plannedReps != null && <Text style={styles.planned}>{plannedReps}</Text>}
-        <TextInput style={[styles.input, completed && styles.completedInput]} value={actualReps != null ? String(actualReps) : ''}
+        <TextInput ref={repsRef} style={[styles.input, completed && styles.completedInput]} value={actualReps != null ? String(actualReps) : ''}
           onChangeText={handleNum('actualReps')} keyboardType="number-pad"
           placeholder="reps" placeholderTextColor={colors.textTertiary}
+          selectTextOnFocus returnKeyType="next" blurOnSubmit={false} onSubmitEditing={() => rpeRef.current?.focus()}
           accessibilityLabel={`Set ${setNumber} reps`} />
       </View>
       <View style={styles.cell}>

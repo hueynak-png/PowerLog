@@ -186,3 +186,46 @@ export const getMuscleGroupVolume = async (
     .map(([muscleGroup, volume]) => ({ muscleGroup, volume }))
     .sort((a, b) => b.volume - a.volume);
 };
+
+export const getWeeklyMuscleHeatmap = async (
+  db: SQLiteDatabase,
+  days: number = 7,
+): Promise<{ muscleGroup: string; volume: number }[]> => {
+  const rows = await db.getAllAsync<MuscleGroupVolumeRow>(
+    `SELECT e.muscle_groups, wset.actual_weight, wset.actual_reps
+    FROM workout_sets wset
+    JOIN workout_exercises we ON we.id = wset.workout_exercise_id
+    JOIN exercises e ON e.id = we.exercise_id
+    JOIN workout_sessions ws ON ws.id = we.workout_session_id
+    WHERE ws.date >= date('now', ? || ' days')
+      AND wset.completed = 1
+      AND wset.actual_weight IS NOT NULL
+      AND wset.actual_reps IS NOT NULL`,
+    [String(-days)],
+  );
+
+  const volumeMap = new Map<string, number>();
+  
+  const majorGroups = ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Abs'];
+  for (const mg of majorGroups) {
+    volumeMap.set(mg, 0);
+  }
+
+  for (const row of rows) {
+    const volume = row.actual_weight * row.actual_reps;
+    let muscleGroups: string[];
+    try {
+      muscleGroups = JSON.parse(row.muscle_groups);
+    } catch {
+      continue;
+    }
+    for (const mg of muscleGroups) {
+      volumeMap.set(mg, (volumeMap.get(mg) ?? 0) + volume);
+    }
+  }
+
+  return Array.from(volumeMap.entries())
+    .filter(([mg]) => majorGroups.includes(mg))
+    .map(([muscleGroup, volume]) => ({ muscleGroup, volume }))
+    .sort((a, b) => b.volume - a.volume);
+};
