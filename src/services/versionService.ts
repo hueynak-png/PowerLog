@@ -4,6 +4,11 @@ export const getAppVersion = (): string => Constants.expoConfig?.version ?? '1.0
 
 export const releaseNotes = [
   {
+    version: '1.2.1',
+    date: '2026-05-28',
+    highlights: ['组间休息计时器（完成一组后自动90秒倒计时）'],
+  },
+  {
     version: '1.2.0',
     date: '2026-05-28',
     highlights: ['组间休息计时器', '数字键盘智能跳转', '肌肉群训练热力图', '训练中拖拽排序动作'],

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 
@@ -47,9 +47,29 @@ export function WorkoutRecordingScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
+  const [restSeconds, setRestSeconds] = useState<number | null>(null);
+  const restTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const progressLabel = useMemo(() => `${setsCompleted} / ${setsTotal} sets`, [setsCompleted, setsTotal]);
   const completionPct = setsTotal > 0 ? Math.round((setsCompleted / setsTotal) * 100) : 0;
+
+  const clearRestTimer = () => {
+    if (restTimerRef.current) { clearInterval(restTimerRef.current); restTimerRef.current = null; }
+    setRestSeconds(null);
+  };
+
+  const startRestTimer = () => {
+    clearRestTimer();
+    setRestSeconds(90);
+    restTimerRef.current = setInterval(() => {
+      setRestSeconds((prev) => {
+        if (prev === null || prev <= 1) { clearRestTimer(); return null; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => () => clearRestTimer(), []);
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((current) => {
@@ -76,6 +96,7 @@ export function WorkoutRecordingScreen() {
           return;
         }
         await completeSet(db, set.id);
+        startRestTimer();
         return;
       }
       await updateSet(db, set.id, { completed: false });
@@ -179,6 +200,15 @@ export function WorkoutRecordingScreen() {
               <Text style={styles.progressLabel}>{progressLabel}</Text>
             </View>
           </View>
+          {restSeconds !== null ? (
+            <View style={styles.restTimerBanner}>
+              <Text style={styles.restTimerLabel}>Rest</Text>
+              <Text style={styles.restTimerValue}>{Math.floor(restSeconds / 60)}:{String(restSeconds % 60).padStart(2, '0')}</Text>
+              <Pressable onPress={clearRestTimer} style={styles.restSkipBtn}>
+                <Text style={styles.restSkipText}>⚡Skip</Text>
+              </Pressable>
+            </View>
+          ) : null}
           <View style={styles.progressTrack}>
             <View style={[styles.progressFill, { width: `${completionPct}%` }]} />
           </View>
@@ -329,4 +359,9 @@ const styles = StyleSheet.create({
   sectionHeaderWrapper: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   reorderToggleBtn: { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: radius.md, backgroundColor: colors.surfaceMuted, marginTop: spacing.sm },
   reorderToggleText: { ...typography.subhead, color: colors.primary, fontWeight: '600' },
+  restTimerBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.lg, backgroundColor: colors.primarySoft, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.md },
+  restTimerLabel: { ...typography.overline, color: colors.textSecondary },
+  restTimerValue: { ...typography.metric, color: colors.primary, fontSize: 36 },
+  restSkipBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full, backgroundColor: colors.primary },
+  restSkipText: { ...typography.footnote, color: '#FFFFFF', fontWeight: '800' },
 });
