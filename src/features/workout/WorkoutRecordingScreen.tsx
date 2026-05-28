@@ -244,7 +244,7 @@ export function WorkoutRecordingScreen() {
                 muscleGroups={workoutExercise.exercise.muscleGroups}
                 plannedSummary={rpeRequired ? 'Main lift · RPE required' : 'Accessory work'}
                 progress={`${completed}/${workoutExercise.sets.length}`}
-                isExpanded={expandedIds.has(workoutExercise.id) || workoutExercise.sets.length <= 1}
+                isExpanded={expandedIds.has(workoutExercise.id)}
                 onToggle={() => toggleExpanded(workoutExercise.id)}
                 >
                 <Pressable
