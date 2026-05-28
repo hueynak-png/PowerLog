@@ -49,6 +49,7 @@ export function WorkoutRecordingScreen() {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [restSeconds, setRestSeconds] = useState<number | null>(null);
   const restTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const dragIndex = useRef<number | null>(null);
 
   const progressLabel = useMemo(() => `${setsCompleted} / ${setsTotal} sets`, [setsCompleted, setsTotal]);
   const completionPct = setsTotal > 0 ? Math.round((setsCompleted / setsTotal) * 100) : 0;
@@ -147,15 +148,27 @@ export function WorkoutRecordingScreen() {
     if (!db) return;
     
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= exercises.length) return;
+    await swapExercises(index, targetIndex);
+  };
 
-    const currentExercise = exercises[index];
-    const targetExercise = exercises[targetIndex];
+  const handleDragStart = (index: number) => { dragIndex.current = index; };
 
-    reorderExercise(index, targetIndex);
+  const handleDragOver = (index: number) => {
+    if (dragIndex.current === null || dragIndex.current === index) return;
+    void swapExercises(dragIndex.current, index);
+    dragIndex.current = index;
+  };
 
-    await updateExerciseOrderIndex(db, currentExercise.id, targetIndex);
-    await updateExerciseOrderIndex(db, targetExercise.id, index);
+  const handleDragEnd = () => { dragIndex.current = null; };
+
+  const swapExercises = async (fromIndex: number, toIndex: number) => {
+    if (!db || fromIndex === toIndex) return;
+    if (toIndex < 0 || toIndex >= exercises.length) return;
+    const currentExercise = exercises[fromIndex];
+    const targetExercise = exercises[toIndex];
+    reorderExercise(fromIndex, toIndex);
+    await updateExerciseOrderIndex(db, currentExercise.id, toIndex);
+    await updateExerciseOrderIndex(db, targetExercise.id, fromIndex);
   };
 
   const handleCompleteWorkout = async () => {
@@ -236,6 +249,16 @@ export function WorkoutRecordingScreen() {
             const rpeRequired = isMainLiftRole(workoutExercise.exercise.role);
             const guidance = getSetLoadGuidance(workoutExercise.sets);
             return (
+              <View
+                key={workoutExercise.id}
+                {...(isReorderMode ? {
+                  draggable: true,
+                  onDragStart: () => handleDragStart(index),
+                  onDragOver: (e: any) => { e?.preventDefault(); handleDragOver(index); },
+                  onDragEnd: handleDragEnd,
+                  onDrop: handleDragEnd,
+                } : {})}
+              >
               <ExerciseCard
                 key={workoutExercise.id}
                 exerciseNameEn={workoutExercise.exercise.nameEn}
@@ -311,6 +334,7 @@ export function WorkoutRecordingScreen() {
                 ))}
                 <Button title="Add Set" onPress={() => void handleAddSet(workoutExercise.id)} variant="secondary" size="md" disabled={!db} fullWidth />
               </ExerciseCard>
+              </View>
             );
           })
         )}
