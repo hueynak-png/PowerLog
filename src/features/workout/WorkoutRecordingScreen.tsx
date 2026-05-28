@@ -210,14 +210,16 @@ export function WorkoutRecordingScreen() {
           </View>
         </Card>
 
-        <SectionHeader title="Exercises" subtitle="Log each working set with fast kg/reps/RPE inputs." action={{ text: showPicker ? 'Close' : 'Add' , onPress: () => setShowPicker((value) => !value) }} />
-        {exercises.length > 1 && (
-          <View style={styles.reorderBar}>
+        <SectionHeader
+          title="Exercises"
+          subtitle="Log each working set with fast kg/reps/RPE inputs."
+          action={{ text: showPicker ? 'Close' : 'Add', onPress: () => setShowPicker((value) => !value) }}
+          trailing={exercises.length > 1 ? (
             <Pressable onPress={() => setIsReorderMode(!isReorderMode)} style={styles.reorderToggleBtn}>
-              <Text style={styles.reorderToggleText}>{isReorderMode ? 'Done' : 'Reorder exercises'}</Text>
+              <Text style={styles.reorderToggleText}>{isReorderMode ? 'Done' : 'Reorder'}</Text>
             </Pressable>
-          </View>
-        )}
+          ) : null}
+        />
         {showPicker && <ExercisePickerModal onSelect={() => setShowPicker(false)} />}
 
         {exercises.length === 0 ? (

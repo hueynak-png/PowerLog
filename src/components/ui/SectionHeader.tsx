@@ -9,9 +9,10 @@ interface SectionHeaderProps {
   eyebrow?: string;
   subtitle?: string;
   action?: { text: string; onPress: () => void };
+  trailing?: React.ReactNode;
 }
 
-export function SectionHeader({ title, eyebrow, subtitle, action }: SectionHeaderProps) {
+export function SectionHeader({ title, eyebrow, subtitle, action, trailing }: SectionHeaderProps) {
   return (
     <View style={styles.container}>
       <View style={styles.copy}>
@@ -19,11 +20,14 @@ export function SectionHeader({ title, eyebrow, subtitle, action }: SectionHeade
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
-      {action && (
-        <Pressable onPress={action.onPress} accessibilityRole="button">
-          <Text style={styles.action}>{action.text}</Text>
-        </Pressable>
-      )}
+      <View style={styles.actions}>
+        {trailing}
+        {action && (
+          <Pressable onPress={action.onPress} accessibilityRole="button">
+            <Text style={styles.action}>{action.text}</Text>
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -46,5 +50,10 @@ const styles = StyleSheet.create({
   action: {
     ...typography.subhead,
     color: colors.primary,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
 });

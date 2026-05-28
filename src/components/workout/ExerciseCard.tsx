@@ -32,8 +32,10 @@ export function ExerciseCard({
             {muscleGroups?.slice(0, 2).map((group) => <Text key={group} style={styles.musclePill}>{group}</Text>)}
           </View>
           <Text style={styles.nameEn}>{exerciseNameEn}</Text>
-          <Text style={styles.nameZh}>{exerciseNameZh}</Text>
-          {headerAction}
+          <View style={styles.nameRow}>
+            <Text style={styles.nameZh}>{exerciseNameZh}</Text>
+            {headerAction}
+          </View>
           {plannedSummary && <Text style={styles.plan}>{plannedSummary}</Text>}
         </View>
         <View style={styles.headerRight}>
@@ -65,6 +67,7 @@ const styles = StyleSheet.create({
   musclePill: { ...typography.caption, color: colors.textSecondary, fontWeight: '700', backgroundColor: colors.surfaceMuted, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 2, overflow: 'hidden' },
   nameEn: { ...typography.headline, color: colors.textPrimary },
   nameZh: { ...typography.footnote, color: colors.textSecondary, marginTop: 2 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 },
   plan: { ...typography.caption, color: colors.textTertiary, marginTop: spacing.xs },
   progress: { ...typography.headline, color: colors.primary, backgroundColor: colors.primarySoft, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, overflow: 'hidden', marginBottom: spacing.xs },
   chevron: { fontSize: 12, color: colors.textTertiary },
