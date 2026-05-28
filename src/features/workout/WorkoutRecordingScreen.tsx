@@ -49,7 +49,6 @@ export function WorkoutRecordingScreen() {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [restSeconds, setRestSeconds] = useState<number | null>(null);
   const restTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const dragIndex = useRef<number | null>(null);
 
   const progressLabel = useMemo(() => `${setsCompleted} / ${setsTotal} sets`, [setsCompleted, setsTotal]);
   const completionPct = setsTotal > 0 ? Math.round((setsCompleted / setsTotal) * 100) : 0;
@@ -146,29 +145,13 @@ export function WorkoutRecordingScreen() {
 
   const handleMoveExercise = async (index: number, direction: 'up' | 'down') => {
     if (!db) return;
-    
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    await swapExercises(index, targetIndex);
-  };
-
-  const handleDragStart = (index: number) => { dragIndex.current = index; };
-
-  const handleDragOver = (index: number) => {
-    if (dragIndex.current === null || dragIndex.current === index) return;
-    void swapExercises(dragIndex.current, index);
-    dragIndex.current = index;
-  };
-
-  const handleDragEnd = () => { dragIndex.current = null; };
-
-  const swapExercises = async (fromIndex: number, toIndex: number) => {
-    if (!db || fromIndex === toIndex) return;
-    if (toIndex < 0 || toIndex >= exercises.length) return;
-    const currentExercise = exercises[fromIndex];
-    const targetExercise = exercises[toIndex];
-    reorderExercise(fromIndex, toIndex);
-    await updateExerciseOrderIndex(db, currentExercise.id, toIndex);
-    await updateExerciseOrderIndex(db, targetExercise.id, fromIndex);
+    if (targetIndex < 0 || targetIndex >= exercises.length) return;
+    const currentExercise = exercises[index];
+    const targetExercise = exercises[targetIndex];
+    reorderExercise(index, targetIndex);
+    await updateExerciseOrderIndex(db, currentExercise.id, targetIndex);
+    await updateExerciseOrderIndex(db, targetExercise.id, index);
   };
 
   const handleCompleteWorkout = async () => {
@@ -249,16 +232,6 @@ export function WorkoutRecordingScreen() {
             const rpeRequired = isMainLiftRole(workoutExercise.exercise.role);
             const guidance = getSetLoadGuidance(workoutExercise.sets);
             return (
-              <View
-                key={workoutExercise.id}
-                {...(isReorderMode ? {
-                  draggable: true,
-                  onDragStart: () => handleDragStart(index),
-                  onDragOver: (e: any) => { e?.preventDefault(); handleDragOver(index); },
-                  onDragEnd: handleDragEnd,
-                  onDrop: handleDragEnd,
-                } : {})}
-              >
               <ExerciseCard
                 key={workoutExercise.id}
                 exerciseNameEn={workoutExercise.exercise.nameEn}
@@ -269,7 +242,19 @@ export function WorkoutRecordingScreen() {
                 progress={`${completed}/${workoutExercise.sets.length}`}
                 isExpanded={expandedIds.has(workoutExercise.id)}
                 onToggle={() => toggleExpanded(workoutExercise.id)}
-                >
+                headerAction={isReorderMode ? (
+                  <View style={styles.reorderActions}>
+                    <Pressable onPress={() => void handleMoveExercise(index, 'up')} disabled={index === 0}
+                      style={[styles.reorderArrowBtn, index === 0 && styles.reorderArrowDisabled]}>
+                      <Text style={styles.reorderArrowText}>↑</Text>
+                    </Pressable>
+                    <Pressable onPress={() => void handleMoveExercise(index, 'down')} disabled={index === exercises.length - 1}
+                      style={[styles.reorderArrowBtn, index === exercises.length - 1 && styles.reorderArrowDisabled]}>
+                      <Text style={styles.reorderArrowText}>↓</Text>
+                    </Pressable>
+                  </View>
+                ) : undefined}
+              >
                 <Pressable
                   onPress={() => void handleRemoveExercise(workoutExercise.id)}
                   style={styles.deleteExerciseBtn}
@@ -277,25 +262,6 @@ export function WorkoutRecordingScreen() {
                 >
                   <Text style={styles.deleteExerciseText}>Remove exercise</Text>
                 </Pressable>
-                
-                {isReorderMode && (
-                  <View style={styles.reorderButtonsContainer}>
-                    <Pressable
-                      onPress={() => void handleMoveExercise(index, 'up')}
-                      disabled={index === 0}
-                      style={[styles.reorderBtn, index === 0 && styles.reorderBtnDisabled]}
-                    >
-                      <Text style={styles.reorderBtnText}>↑ Move Up</Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => void handleMoveExercise(index, 'down')}
-                      disabled={index === exercises.length - 1}
-                      style={[styles.reorderBtn, index === exercises.length - 1 && styles.reorderBtnDisabled]}
-                    >
-                      <Text style={styles.reorderBtnText}>↓ Move Down</Text>
-                    </Pressable>
-                  </View>
-                )}
 
                 {guidance ? (
                   <View style={styles.guidanceBox}>
@@ -334,7 +300,6 @@ export function WorkoutRecordingScreen() {
                 ))}
                 <Button title="Add Set" onPress={() => void handleAddSet(workoutExercise.id)} variant="secondary" size="md" disabled={!db} fullWidth />
               </ExerciseCard>
-              </View>
             );
           })
         )}
@@ -371,10 +336,10 @@ const styles = StyleSheet.create({
   deleteExerciseText: { ...typography.footnote, color: colors.danger, fontWeight: '700' },
   deleteSetBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.xs },
   deleteSetText: { fontSize: 20, color: colors.danger, fontWeight: '700' },
-  reorderButtonsContainer: { flexDirection: 'column', gap: spacing.xs, marginBottom: spacing.sm },
-  reorderBtn: { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: radius.full, backgroundColor: colors.dangerSoft, alignSelf: 'flex-start' },
-  reorderBtnDisabled: { opacity: 0.5 },
-  reorderBtnText: { ...typography.footnote, color: colors.danger, fontWeight: '700' },
+  reorderArrowBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: radius.full, backgroundColor: colors.surfaceMuted },
+  reorderArrowDisabled: { opacity: 0.3 },
+  reorderArrowText: { fontSize: 16, color: colors.primary, fontWeight: '900', lineHeight: 18 },
+  reorderActions: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs },
   guidanceBox: { borderRadius: radius.lg, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primaryBorder, padding: spacing.md, marginBottom: spacing.sm },
   guidanceTitle: { ...typography.subhead, color: colors.primary, fontWeight: '800', marginBottom: spacing.xs },
   guidanceAlert: { color: colors.danger },

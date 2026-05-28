@@ -14,12 +14,13 @@ interface ExerciseCardProps {
   progress?: string;
   isExpanded: boolean;
   onToggle: () => void;
+  headerAction?: React.ReactNode;
   children?: React.ReactNode;
 }
 
 export function ExerciseCard({
   exerciseNameEn, exerciseNameZh, category, muscleGroups,
-  plannedSummary, progress, isExpanded, onToggle, children,
+  plannedSummary, progress, isExpanded, onToggle, headerAction, children,
 }: ExerciseCardProps) {
   return (
     <View style={styles.card}>
@@ -32,6 +33,7 @@ export function ExerciseCard({
           </View>
           <Text style={styles.nameEn}>{exerciseNameEn}</Text>
           <Text style={styles.nameZh}>{exerciseNameZh}</Text>
+          {headerAction}
           {plannedSummary && <Text style={styles.plan}>{plannedSummary}</Text>}
         </View>
         <View style={styles.headerRight}>
