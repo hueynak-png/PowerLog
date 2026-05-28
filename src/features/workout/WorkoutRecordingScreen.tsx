@@ -214,14 +214,14 @@ export function WorkoutRecordingScreen() {
           </View>
         </Card>
 
-        <View style={styles.sectionHeaderWrapper}>
-          <SectionHeader title="Exercises" subtitle="Log each working set with fast kg/reps/RPE inputs." action={{ text: showPicker ? 'Close' : 'Add' , onPress: () => setShowPicker((value) => !value) }} />
-          {exercises.length > 1 && (
+        <SectionHeader title="Exercises" subtitle="Log each working set with fast kg/reps/RPE inputs." action={{ text: showPicker ? 'Close' : 'Add' , onPress: () => setShowPicker((value) => !value) }} />
+        {exercises.length > 1 && (
+          <View style={styles.reorderBar}>
             <Pressable onPress={() => setIsReorderMode(!isReorderMode)} style={styles.reorderToggleBtn}>
-              <Text style={styles.reorderToggleText}>{isReorderMode ? 'Done' : 'Reorder'}</Text>
+              <Text style={styles.reorderToggleText}>{isReorderMode ? 'Done' : 'Reorder exercises'}</Text>
             </Pressable>
-          )}
-        </View>
+          </View>
+        )}
         {showPicker && <ExercisePickerModal onSelect={() => setShowPicker(false)} />}
 
         {exercises.length === 0 ? (
@@ -356,8 +356,8 @@ const styles = StyleSheet.create({
   guidanceAlert: { color: colors.danger },
   guidanceText: { ...typography.footnote, color: colors.textSecondary, lineHeight: 18 },
   footerActions: { gap: spacing.sm, marginTop: spacing.sm },
-  sectionHeaderWrapper: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  reorderToggleBtn: { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: radius.md, backgroundColor: colors.surfaceMuted, marginTop: spacing.sm },
+  reorderBar: { paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
+  reorderToggleBtn: { paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, borderRadius: radius.md, backgroundColor: colors.surfaceMuted, alignSelf: 'flex-start' },
   reorderToggleText: { ...typography.subhead, color: colors.primary, fontWeight: '600' },
   restTimerBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.lg, backgroundColor: colors.primarySoft, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.md },
   restTimerLabel: { ...typography.overline, color: colors.textSecondary },
