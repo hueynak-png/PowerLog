@@ -4,6 +4,11 @@ export const getAppVersion = (): string => Constants.expoConfig?.version ?? '1.0
 
 export const releaseNotes = [
   {
+    version: '1.3.0',
+    date: '2026-05-28',
+    highlights: ['营养追踪升级：食物数据库 + 宏量计算 + 板块移至1RM下方'],
+  },
+  {
     version: '1.2.2',
     date: '2026-05-28',
     highlights: ['修复 Reorder 按钮布局超出页面'],

@@ -10,6 +10,7 @@ import { addNutritionEntry, getLatestBodyweight, getNutritionByDate, getRecentWo
 import { isAIConfigured, requestNutritionTags } from '@/src/services/aiService';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { colors, radius, spacing, typography } from '@/src/theme';
+import { commonFoods, type FoodItem } from '@/src/data/foodDatabase';
 
 const MAIN_LIFTS: Array<{ liftType: LiftType; label: string; color: string }> = [
   { liftType: 'squat', label: 'Squat', color: colors.primary },
@@ -51,6 +52,11 @@ export function HomeDashboard() {
   const [isSavingNutrition, setIsSavingNutrition] = useState(false);
   const [aiTags, setAiTags] = useState<string[]>([]);
 
+  const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
+  const [foodSearch, setFoodSearch] = useState('');
+  const [foodQuantities, setFoodQuantities] = useState<Record<string, number>>({});
+  const [showFoodList, setShowFoodList] = useState(false);
+
   const todayLabel = useMemo(
     () => new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()),
     [],
@@ -86,6 +92,41 @@ export function HomeDashboard() {
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
   };
+
+  const filteredFoods = foodSearch ? commonFoods.filter((f) =>
+    f.nameEn.toLowerCase().includes(foodSearch.toLowerCase()) ||
+    f.nameZh.includes(foodSearch) ||
+    f.category.toLowerCase().includes(foodSearch.toLowerCase()),
+  ) : commonFoods;
+
+  const addFood = (foodId: string) => {
+    setSelectedFoods((prev) => prev.includes(foodId) ? prev : [...prev, foodId]);
+    setFoodQuantities((prev) => ({ ...prev, [foodId]: prev[foodId] ?? 1 }));
+    setFoodSearch('');
+    setShowFoodList(false);
+  };
+
+  const removeFood = (foodId: string) => {
+    setSelectedFoods((prev) => prev.filter((f) => f !== foodId));
+  };
+
+  const setFoodQty = (foodId: string, qty: number) => {
+    setFoodQuantities((prev) => ({ ...prev, [foodId]: Math.max(0.5, qty) }));
+  };
+
+  const foodTotals = useMemo(() => {
+    let cal = 0; let p = 0; let c = 0; let f = 0;
+    for (const id of selectedFoods) {
+      const food = commonFoods.find((item) => item.id === id);
+      if (!food) continue;
+      const qty = foodQuantities[id] ?? 1;
+      cal += food.calories * qty;
+      p += food.protein * qty;
+      c += food.carbs * qty;
+      f += food.fat * qty;
+    }
+    return { calories: Math.round(cal), protein: Math.round(p), carbs: Math.round(c), fat: Math.round(f) };
+  }, [selectedFoods, foodQuantities]);
 
   const handleSaveNutrition = async () => {
     if (!db) return;
@@ -180,8 +221,88 @@ export function HomeDashboard() {
           )}
         </Card>
 
-        <SectionHeader title="Today's Nutrition" subtitle="Lightweight tags for recovery and context." />
+        <SectionHeader title="Estimated 1RM" subtitle="Current max settings for the big three." />
+        <View style={styles.metricsRow}>
+          {MAIN_LIFTS.map((lift) => {
+            const max = getMaxForLift(lift.liftType);
+            return (
+              <View key={lift.liftType} style={styles.metricWrap}>
+                <MetricCard label={lift.label} value={max ? String(max.oneRm) : '—'} unit={max ? 'kg' : undefined} color={lift.color} />
+              </View>
+            );
+          })}
+        </View>
+
+        <SectionHeader title="Today's Nutrition" subtitle="Track meals, macros, and recovery context." />
         <Card style={styles.card}>
+          <View style={styles.macroRow}>
+            <View style={styles.macroItem}>
+              <Text style={styles.macroValue}>{foodTotals.calories}</Text>
+              <Text style={styles.macroLabel}>kcal</Text>
+            </View>
+            <View style={styles.macroItem}>
+              <Text style={[styles.macroValue, { color: colors.primary }]}>{foodTotals.protein}</Text>
+              <Text style={styles.macroLabel}>Protein</Text>
+            </View>
+            <View style={styles.macroItem}>
+              <Text style={[styles.macroValue, { color: colors.warning }]}>{foodTotals.carbs}</Text>
+              <Text style={styles.macroLabel}>Carbs</Text>
+            </View>
+            <View style={styles.macroItem}>
+              <Text style={[styles.macroValue, { color: colors.danger }]}>{foodTotals.fat}</Text>
+              <Text style={styles.macroLabel}>Fat</Text>
+            </View>
+          </View>
+
+          {selectedFoods.length > 0 && (
+            <View style={styles.foodList}>
+              {selectedFoods.map((id) => {
+                const food = commonFoods.find((f) => f.id === id);
+                if (!food) return null;
+                const qty = foodQuantities[id] ?? 1;
+                return (
+                  <View key={id} style={styles.foodRow}>
+                    <Text style={styles.foodName}>{food.nameZh} {food.serving}</Text>
+                    <View style={styles.foodQtyRow}>
+                      <Pressable onPress={() => setFoodQty(id, qty - 0.5)} style={styles.qtyBtn}>
+                        <Text style={styles.qtyBtnText}>−</Text>
+                      </Pressable>
+                      <Text style={styles.qtyValue}>{qty}</Text>
+                      <Pressable onPress={() => setFoodQty(id, qty + 0.5)} style={styles.qtyBtn}>
+                        <Text style={styles.qtyBtnText}>+</Text>
+                      </Pressable>
+                    </View>
+                    <Text style={styles.foodKcal}>{Math.round(food.calories * qty)}kcal</Text>
+                    <Pressable onPress={() => removeFood(id)} style={styles.foodRemove}>
+                      <Text style={styles.foodRemoveText}>×</Text>
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          <Pressable onPress={() => setShowFoodList(!showFoodList)} style={styles.addFoodBtn}>
+            <Text style={styles.addFoodText}>+ Add Food</Text>
+          </Pressable>
+
+          {showFoodList && (
+            <View style={styles.foodPicker}>
+              <TextField label="Search foods" value={foodSearch} onChangeText={setFoodSearch} placeholder="鸡蛋, chicken, protein..." />
+              <ScrollView style={styles.foodPickerList} nestedScrollEnabled>
+                {filteredFoods.map((food) => (
+                  <Pressable key={food.id} onPress={() => addFood(food.id)} style={styles.foodPickerItem}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.foodPickerName}>{food.nameZh} · {food.nameEn}</Text>
+                      <Text style={styles.foodPickerMeta}>{food.serving} · {food.calories}kcal · P{food.protein} C{food.carbs} F{food.fat}</Text>
+                    </View>
+                    <Text style={styles.foodPickerAdd}>+</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           <Text style={styles.cardText}>Status tags:</Text>
           <View style={styles.tagsRow}>
             {NUTRITION_STATUS_OPTIONS.map((tag) => (
@@ -199,18 +320,6 @@ export function HomeDashboard() {
           )}
           <Button title="Save Nutrition" onPress={handleSaveNutrition} loading={isSavingNutrition} size="md" />
         </Card>
-
-        <SectionHeader title="Estimated 1RM" subtitle="Current max settings for the big three." />
-        <View style={styles.metricsRow}>
-          {MAIN_LIFTS.map((lift) => {
-            const max = getMaxForLift(lift.liftType);
-            return (
-              <View key={lift.liftType} style={styles.metricWrap}>
-                <MetricCard label={lift.label} value={max ? String(max.oneRm) : '—'} unit={max ? 'kg' : undefined} color={lift.color} />
-              </View>
-            );
-          })}
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -321,4 +430,26 @@ const styles = StyleSheet.create({
   aiTagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.md, alignItems: 'center' },
   aiTagsLabel: { ...typography.footnote, color: colors.textSecondary, marginRight: spacing.xs },
   aiTag: { ...typography.footnote, color: colors.primary, backgroundColor: colors.surfaceSecondary, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: 10 },
+  macroRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
+  macroItem: { flex: 1, alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radius.lg, padding: spacing.md },
+  macroValue: { ...typography.title3, color: colors.textPrimary, fontWeight: '800' },
+  macroLabel: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+  foodList: { gap: spacing.sm, marginBottom: spacing.md },
+  foodRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+  foodName: { flex: 1, ...typography.subhead, color: colors.textPrimary },
+  foodQtyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  qtyBtn: { width: 26, height: 26, alignItems: 'center', justifyContent: 'center', borderRadius: radius.full, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.borderLight },
+  qtyBtnText: { fontSize: 16, color: colors.primary, fontWeight: '700', lineHeight: 18 },
+  qtyValue: { ...typography.subhead, color: colors.textPrimary, minWidth: 24, textAlign: 'center' },
+  foodKcal: { ...typography.footnote, color: colors.textSecondary, minWidth: 44, textAlign: 'right' },
+  foodRemove: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderRadius: radius.full, backgroundColor: colors.dangerSoft },
+  foodRemoveText: { fontSize: 14, color: colors.danger, fontWeight: '700' },
+  addFoodBtn: { paddingVertical: spacing.sm, alignItems: 'center', borderRadius: radius.md, borderWidth: 1, borderColor: colors.primaryBorder, borderStyle: 'dashed', marginBottom: spacing.md },
+  addFoodText: { ...typography.subhead, color: colors.primary, fontWeight: '600' },
+  foodPicker: { marginBottom: spacing.md },
+  foodPickerList: { maxHeight: 200 },
+  foodPickerItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, paddingHorizontal: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+  foodPickerName: { ...typography.subhead, color: colors.textPrimary },
+  foodPickerMeta: { ...typography.footnote, color: colors.textSecondary, marginTop: 2 },
+  foodPickerAdd: { fontSize: 20, color: colors.primary, fontWeight: '700', paddingHorizontal: spacing.sm },
 });
