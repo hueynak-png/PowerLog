@@ -1,4 +1,4 @@
-const CACHE_NAME = 'powerlog-v2';
+const CACHE_NAME = 'powerlog-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

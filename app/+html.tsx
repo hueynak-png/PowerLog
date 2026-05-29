@@ -21,10 +21,11 @@ export default function Root({ children }: { children: ReactNode }) {
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F6FA" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#05070B" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <meta name="apple-mobile-web-app-title" content="PowerLog" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
 
+        <script dangerouslySetInnerHTML={{ __html: initialColorSchemeScript }} />
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
       </head>
@@ -50,6 +51,16 @@ body,
 #root {
   background-color: #F4F6FA;
 }
+html.powerlog-dark,
+html.powerlog-dark body,
+html.powerlog-dark #root {
+  background-color: #05070B !important;
+}
+html.powerlog-dark [style*="background-color: rgb(244, 246, 250)"],
+html.powerlog-dark [style*="background-color:#F4F6FA"],
+html.powerlog-dark [style*="background-color: #F4F6FA"] {
+  background-color: #05070B !important;
+}
 @media (prefers-color-scheme: dark) {
   html,
   body {
@@ -59,6 +70,17 @@ body,
     background-color: #05070B;
   }
 }`;
+
+const initialColorSchemeScript = `
+(function() {
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('powerlog-dark');
+      document.documentElement.style.backgroundColor = '#05070B';
+      document.documentElement.style.colorScheme = 'dark';
+    }
+  } catch (error) {}
+})();`;
 
 const runtimeScripts = `
 var colorSchemeQuery = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
