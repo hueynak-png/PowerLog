@@ -1,4 +1,6 @@
-export const colors = {
+import { Appearance } from 'react-native';
+
+export const lightColors = {
   background: '#F4F6FA',
   backgroundElevated: '#EAF0F8',
   surface: '#FFFFFF',
@@ -42,3 +44,52 @@ export const colors = {
   shadowMedium: 'rgba(15,23,42,0.14)',
   overlay: 'rgba(0,0,0,0.3)',
 } as const;
+
+type ColorPalette = { [K in keyof typeof lightColors]: string };
+
+export const darkColors: ColorPalette = {
+  background: '#05070B',
+  backgroundElevated: '#0B1220',
+  surface: '#111827',
+  surfaceRaised: '#182235',
+  surfaceSecondary: '#0F172A',
+  surfaceMuted: '#1E293B',
+  surfacePressed: '#263449',
+  textPrimary: '#F8FAFC',
+  textSecondary: '#CBD5E1',
+  textTertiary: '#94A3B8',
+  primary: '#6EA2FF',
+  primarySoft: '#162A55',
+  primaryBorder: '#315CA8',
+  accent: '#A78BFA',
+  accentSoft: '#2E1E55',
+  success: '#4ADE80',
+  successSoft: '#123524',
+  successBorder: '#27764A',
+  warning: '#FBBF24',
+  warningSoft: '#3A2A0B',
+  warningBorder: '#8A6514',
+  danger: '#FB7185',
+  dangerSoft: '#3A121C',
+  coach: '#C4B5FD',
+  coachSoft: '#2D214B',
+  coachBorder: '#6D56AA',
+  strength: '#F8FAFC',
+  volume: '#8DB7FF',
+  recovery: '#34D399',
+  fatigue: '#F59E0B',
+  rpeLow: '#4ADE80',
+  rpeMedium: '#FBBF24',
+  rpeHigh: '#FB7185',
+  border: '#334155',
+  borderLight: '#1E293B',
+  borderStrong: '#475569',
+  divider: '#233044',
+  tabBar: '#111827',
+  tabBarBorder: '#334155',
+  shadow: 'rgba(0,0,0,0.35)',
+  shadowMedium: 'rgba(0,0,0,0.55)',
+  overlay: 'rgba(0,0,0,0.55)',
+};
+
+export const colors = Appearance.getColorScheme() === 'dark' ? darkColors : lightColors;

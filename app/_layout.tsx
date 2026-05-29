@@ -54,7 +54,7 @@ export default function RootLayout() {
 function RootLayoutNav() {
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: colors.background },
