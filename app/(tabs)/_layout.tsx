@@ -36,6 +36,7 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textTertiary,
+        sceneStyle: { backgroundColor: colors.background },
         tabBarStyle: {
           position: 'absolute',
           left: spacing.lg,
