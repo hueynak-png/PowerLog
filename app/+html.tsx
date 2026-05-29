@@ -14,6 +14,7 @@ export default function Root({ children }: { children: ReactNode }) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="color-scheme" content="light dark" />
 
         {/* PWA manifest */}
         <link rel="manifest" href="/manifest.json" />
@@ -39,6 +40,7 @@ const responsiveBackground = `
 html,
 body {
   background-color: #F4F6FA;
+  color-scheme: light dark;
 }
 html,
 body,
