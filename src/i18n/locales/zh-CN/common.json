@@ -381,6 +381,38 @@
   "releaseNotes": {
     "title": "v{{version}} 更新内容"
   },
+  "seedPrograms": {
+    "seed-program-brad-full-cycle": {
+      "name": "Brad Excel 大周期",
+      "goal": "导入 Brad 风格力量举/增肌周期",
+      "description": "从 33 个非 PR 训练周表确定性导入。"
+    },
+    "seed-program-brad-powerbuilding-8": {
+      "name": "Brad 风格增肌力量 8 周",
+      "goal": "顶组/退阶增肌力量模块",
+      "description": "四天 Brad 风格模板，含竞赛配对和辅助动作。"
+    },
+    "seed-program-powerlifting-strength-12": {
+      "name": "力量举力量 12 周",
+      "goal": "通过容量和强化提升三大项力量",
+      "description": "12 周力量举模板，含计划减载和测试周。"
+    },
+    "seed-program-hypertrophy-upper-lower-8": {
+      "name": "增肌上下肢分化 8 周",
+      "goal": "稳定 RPE 的高质量上下肢训练量",
+      "description": "8 周上下肢增肌模块，含控制节奏。"
+    },
+    "seed-program-dup-strength-hypertrophy-10": {
+      "name": "DUP 力量增肌 10 周",
+      "goal": "轮换容量、力量和强度刺激",
+      "description": "10 周波动模板，含辅助训练和减量周。"
+    },
+    "seed-program-deload-peak-test-12": {
+      "name": "减载冲峰测试 12 周",
+      "goal": "低疲劳冲峰和测试周执行",
+      "description": "12 周冲峰/测试模板，含计划减载检查点。"
+    }
+  },
   "chart": {
     "noData": "暂无数据",
     "logMoreSessions": "记录更多训练以填充此图表。",

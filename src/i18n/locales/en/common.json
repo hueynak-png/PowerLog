@@ -381,6 +381,38 @@
   "releaseNotes": {
     "title": "What's new in v{{version}}"
   },
+  "seedPrograms": {
+    "seed-program-brad-full-cycle": {
+      "name": "Brad's Excel Large Cycle",
+      "goal": "Imported Brad-style powerlifting/powerbuilding cycle",
+      "description": "Deterministic import from 33 non-PR training week sheets."
+    },
+    "seed-program-brad-powerbuilding-8": {
+      "name": "Brad-Style Powerbuilding 8 Week",
+      "goal": "Top-set/back-off powerbuilding block",
+      "description": "Four-day Brad-style template with competition pairings and accessories."
+    },
+    "seed-program-powerlifting-strength-12": {
+      "name": "Powerlifting Strength 12 Week",
+      "goal": "Build SBD strength through volume and intensification",
+      "description": "12-week powerlifting template with planned deloads and test week."
+    },
+    "seed-program-hypertrophy-upper-lower-8": {
+      "name": "Hypertrophy Upper/Lower 8 Week",
+      "goal": "Quality upper/lower volume with stable RPE",
+      "description": "8-week upper/lower hypertrophy block with controlled tempo."
+    },
+    "seed-program-dup-strength-hypertrophy-10": {
+      "name": "DUP Strength + Hypertrophy 10 Week",
+      "goal": "Rotate volume, strength, and intensity",
+      "description": "10-week undulating template with accessories and taper."
+    },
+    "seed-program-deload-peak-test-12": {
+      "name": "Deload Peak Test 12 Week",
+      "goal": "Low-fatigue peaking and test-week execution",
+      "description": "12-week peak/test template with planned deload checkpoints."
+    }
+  },
   "chart": {
     "noData": "No data",
     "logMoreSessions": "Log more sessions to fill this chart.",

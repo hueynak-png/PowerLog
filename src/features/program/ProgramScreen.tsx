@@ -345,12 +345,15 @@ export function ProgramScreen() {
                 <Text style={styles.cardKicker}>{program.source === 'imported_excel' ? 'Excel 导入' : program.source === 'manual' ? '手动创建' : program.source.replace('_', ' ')}</Text>
                 <Text style={styles.statusPill}>{program.durationWeeks} {t('programOpts.weeks')}</Text>
               </View>
-              <Text style={styles.programName}>{program.name}</Text>
+              <Text style={styles.programName}>{program.id.startsWith('seed-program-') ? t(`seedPrograms.${program.id}.name`) : program.name}</Text>
               <Text style={styles.programMeta}>
-                {t(`program.${program.type}`)} • {program.durationWeeks} {t('programOpts.weeks')} • {program.source === 'imported_excel' ? 'Excel导入' : '手动创建'}
+                {t(`program.${program.type}`)} • {program.durationWeeks} {t('programOpts.weeks')} • {program.source === 'imported_excel' ? 'Excel 导入' : '手动创建'}
               </Text>
+              {program.goal && (
+                <Text style={styles.programGoal}>{program.id.startsWith('seed-program-') ? t(`seedPrograms.${program.id}.goal`) : program.goal}</Text>
+              )}
               {program.description && (
-                <Text style={styles.programDesc}>{program.description}</Text>
+                <Text style={styles.programDesc}>{program.id.startsWith('seed-program-') ? t(`seedPrograms.${program.id}.description`) : program.description}</Text>
               )}
               <View style={styles.programActions}>
                 {!cycle && (
@@ -490,6 +493,12 @@ const styles = StyleSheet.create({
     ...typography.footnote,
     color: colors.textSecondary,
     marginBottom: spacing.xs,
+  },
+  programGoal: {
+    ...typography.footnote,
+    color: colors.primary,
+    marginBottom: spacing.sm,
+    lineHeight: 18,
   },
   programDesc: {
     ...typography.subhead,
