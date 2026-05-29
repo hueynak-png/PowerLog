@@ -1,5 +1,6 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -51,7 +52,9 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   return (
-    <Stack
+    <>
+      <StatusBar style="dark" />
+      <Stack
       screenOptions={{
         contentStyle: { backgroundColor: colors.background },
         headerShadowVisible: false,
@@ -61,5 +64,6 @@ function RootLayoutNav() {
       <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
       <Stack.Screen name="review" options={{ headerShown: false }} />
     </Stack>
+    </>
   );
 }
