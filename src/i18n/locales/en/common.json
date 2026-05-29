@@ -463,7 +463,8 @@
     "savedProgram": "saved program",
     "noSavedPrograms": "No saved programs",
     "weeks": "weeks",
-    "createNewCycle": "Create a new cycle from your goal, maxes, and schedule."
+    "createNewCycle": "Create a new cycle from your goal, maxes, and schedule.",
+    "aiDraftHint": "AI can draft a structured block with weeks, training days, main lifts, and accessory work."
   },
   "route": {
     "loadingWorkout": "Loading workout…",
@@ -564,6 +565,10 @@
     "tracked": "Tracked",
     "recoveryKey": "Recovery Key",
     "backupFailed": "Backup failed",
+    "trainingPrefsSubtitle": "Defaults used when creating future sessions.",
+    "aiCoachSubtitle": "Connection used for weekly review and workout analysis.",
+    "cloudSyncSubtitle": "Manual Recovery Key backup and restore for Safari, PWA, and other browsers.",
+    "dataBackupSubtitle": "Download or import a local database backup file on web.",
     "kcal": "kcal",
     "powerLogVersion": "PowerLog v{{version}}",
     "searchExerciseHint": "Search by English, 中文, or family",
@@ -571,6 +576,10 @@
     "yyyyMMDD": "YYYY-MM-DD",
     "tracked": "Tracked",
     "recoveryKey": "Recovery Key",
-    "backupFailed": "Backup failed"
+    "backupFailed": "Backup failed",
+    "defaultsHint": "Defaults used when creating future sessions.",
+    "aiConnectionHint": "Connection used for weekly review and workout analysis.",
+    "cloudSyncSubtitle": "Manual Recovery Key backup and restore for Safari, PWA, and other browsers.",
+    "dataBackupSubtitle": "Download or import a local database backup file on web."
   }
 }

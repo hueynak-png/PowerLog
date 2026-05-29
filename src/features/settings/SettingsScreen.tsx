@@ -298,7 +298,7 @@ export function SettingsScreen() {
           <NumberField label={t('settingsExtras.deadlift1RM')} value={deadlift} onChangeValue={setDeadlift} step={2.5} min={0} unit="kg" />
         </Card>
 
-        <SectionHeader title={t('settings.trainingPreferences')} subtitle={t('Defaults used when creating future sessions.')} />
+        <SectionHeader title={t('settings.trainingPreferences')} subtitle={t('settingsExtras.trainingPrefsSubtitle')} />
         <Card variant="tonal" style={styles.card}>
           <NumberField
             label={t('settingsExtras.defaultSessionDuration')}
@@ -330,7 +330,7 @@ export function SettingsScreen() {
           />
         </Card>
 
-        <SectionHeader title={t('workout.aiCoach')} subtitle={t('Connection used for weekly review and workout analysis.')} />
+        <SectionHeader title={t('workout.aiCoach')} subtitle={t('settingsExtras.aiCoachSubtitle')} />
         <Card variant="coach" style={styles.card}>
           <Pressable onPress={() => setAiExpanded(!aiExpanded)} style={styles.aiHeader}>
             <Text style={[styles.aiStatus, !aiConfigured && styles.aiNotConfigured]}>
@@ -356,7 +356,7 @@ export function SettingsScreen() {
           )}
         </Card>
 
-        <SectionHeader title={t('settings.cloudSync')} subtitle={t('Manual Recovery Key backup and restore for Safari, PWA, and other browsers.')} />
+        <SectionHeader title={t('settings.cloudSync')} subtitle={t('settingsExtras.cloudSyncSubtitle')} />
         <Card variant="elevated" style={styles.card}>
           <Pressable onPress={() => setSyncExpanded(!syncExpanded)} style={styles.aiHeader}>
             <Text style={[styles.aiStatus, !syncConfigured && styles.aiNotConfigured]}>
@@ -392,7 +392,7 @@ export function SettingsScreen() {
           {syncError ? <Text style={styles.errorText}>{t('settingsExtras.cloudSyncFailed')}: {syncError}</Text> : null}
         </Card>
 
-        <SectionHeader title={t('settings.dataBackup')} subtitle={t('Download or import a local database backup file on web.')} />
+        <SectionHeader title={t('settings.dataBackup')} subtitle={t('settingsExtras.dataBackupSubtitle')} />
         <Card variant="tonal" style={styles.card}>
           <Text style={styles.cardText}>{t('settingsExtras.dataBackupHint')}</Text>
           {Platform.OS === 'web' ? (

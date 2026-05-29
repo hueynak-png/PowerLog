@@ -463,7 +463,8 @@
     "savedProgram": "个已保存计划",
     "noSavedPrograms": "暂无保存的计划",
     "weeks": "周",
-    "createNewCycle": "根据你的目标、最大重量和日程创建新周期。"
+    "createNewCycle": "根据你的目标、最大重量和日程创建新周期。",
+    "aiDraftHint": "AI 可以生成包含周数、训练日、主项和辅助动作的结构化训练模块。"
   },
   "route": {
     "loadingWorkout": "加载训练中…",
@@ -564,12 +565,20 @@
     "tracked": "已记录",
     "recoveryKey": "恢复密钥",
     "backupFailed": "备份失败",
+    "trainingPrefsSubtitle": "创建未来训练时的默认设置。",
+    "aiCoachSubtitle": "用于周报和训练分析的 AI 连接。",
+    "cloudSyncSubtitle": "Safari、PWA 及其他浏览器的手动恢复密钥备份与恢复。",
+    "dataBackupSubtitle": "在网页版下载或导入本地数据库备份文件。",
     "kcal": "千卡",
     "searchExerciseHint": "按英文、中文或分类搜索",
     "noExercisesFound": "未找到动作。",
     "yyyyMMDD": "YYYY-MM-DD",
     "tracked": "已记录",
     "recoveryKey": "恢复密钥",
-    "backupFailed": "备份失败"
+    "backupFailed": "备份失败",
+    "defaultsHint": "创建新训练时的默认设置。",
+    "aiConnectionHint": "用于周报和训练分析的 AI 连接。",
+    "cloudSyncSubtitle": "Safari、PWA 等浏览器的恢复密钥备份与恢复。",
+    "dataBackupSubtitle": "在网页上下载或导入本地数据库备份文件。"
   }
 }
