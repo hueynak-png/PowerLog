@@ -29,7 +29,7 @@ export default function Root({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
-        <script dangerouslySetInnerHTML={{ __html: registerSW }} />
+        <script dangerouslySetInnerHTML={{ __html: runtimeScripts }} />
       </body>
     </html>
   );
@@ -45,7 +45,19 @@ body {
   }
 }`;
 
-const registerSW = `
+const runtimeScripts = `
+var colorSchemeQuery = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+if (colorSchemeQuery) {
+  var reloadForColorSchemeChange = function() {
+    window.location.reload();
+  };
+  if (colorSchemeQuery.addEventListener) {
+    colorSchemeQuery.addEventListener('change', reloadForColorSchemeChange);
+  } else if (colorSchemeQuery.addListener) {
+    colorSchemeQuery.addListener(reloadForColorSchemeChange);
+  }
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/sw.js').then(function(registration) {
