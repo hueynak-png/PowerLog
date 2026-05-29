@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
 import '@/src/i18n';
@@ -52,18 +53,25 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   return (
-    <>
+    <View style={styles.root}>
       <StatusBar style="dark" />
       <Stack
-      screenOptions={{
-        contentStyle: { backgroundColor: colors.background },
-        headerShadowVisible: false,
-      }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
-      <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
-      <Stack.Screen name="review" options={{ headerShown: false }} />
-    </Stack>
-    </>
+        screenOptions={{
+          contentStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
+        }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
+        <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
+        <Stack.Screen name="review" options={{ headerShown: false }} />
+      </Stack>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+});
