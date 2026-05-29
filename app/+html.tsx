@@ -17,8 +17,8 @@ export default function Root({ children }: { children: ReactNode }) {
 
         {/* PWA manifest */}
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F6FA" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#05070B" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="PowerLog" />
@@ -37,11 +37,11 @@ export default function Root({ children }: { children: ReactNode }) {
 
 const responsiveBackground = `
 body {
-  background-color: #fff;
+  background-color: #F4F6FA;
 }
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #000;
+    background-color: #05070B;
   }
 }`;
 
