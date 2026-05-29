@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
+
+import i18n from '@/src/i18n';
 
 import { Button, Card, MetricCard, SectionHeader, TextField } from '@/src/components/ui';
 import type { BodyweightEntry, LiftType, NutritionEntry, WorkoutSession } from '@/src/domain/types';
@@ -20,7 +22,7 @@ const MAIN_LIFTS: Array<{ liftType: LiftType; label: string; color: string }> = 
 ];
 
 const formatDate = (value: string | Date) =>
-  new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(
+  new Intl.DateTimeFormat(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' }).format(
     typeof value === 'string' ? new Date(value) : value,
   );
 
@@ -60,7 +62,7 @@ export function HomeDashboard() {
   const [showFoodList, setShowFoodList] = useState(false);
 
   const todayLabel = useMemo(
-    () => new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()),
+    () => new Intl.DateTimeFormat(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date()),
     [],
   );
 

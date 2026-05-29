@@ -2,13 +2,13 @@ import type { ProgramSeed } from './types';
 
 export const bradExcelProgram: ProgramSeed = {
   "id": "seed-program-brad-full-cycle",
-  "name": "Brad's Excel Large Cycle",
+  "name": "Brad Excel 大周期",
   "type": "powerbuilding",
-  "goal": "Imported Brad-style powerlifting/powerbuilding cycle with competition lifts, variations, accessories, RPE progression, and deload exposure.",
+  "goal": "导入 Brad 风格的力量举/增肌周期，包含竞赛动作、变式、辅助训练、RPE 递增及减载。",
   "source": "imported_excel",
   "durationWeeks": 33,
   "includesDeload": true,
-  "description": "Deterministic import derived from 33 non-PR training week sheets in Brad's Program.xlsx. PR Tracker is intentionally ignored.",
+  "description": "从 Brad Program.xlsx 中 33 个非 PR 训练周表确定性导入。PR Tracker 已被有意忽略。",
   "createdAt": "2026-05-26T00:00:00.000Z",
   "weeks": [
     {

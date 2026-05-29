@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/src/i18n';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 
@@ -18,7 +19,7 @@ import { spacing } from '@/src/theme/spacing';
 import { typography } from '@/src/theme/typography';
 
 const formatDate = (date: string): string =>
-  new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(date));
+  new Intl.DateTimeFormat(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(date));
 
 export function WorkoutStartScreen() {
   const { t } = useTranslation();

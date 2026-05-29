@@ -342,12 +342,12 @@ export function ProgramScreen() {
           programs.map((program) => (
             <Card key={program.id} style={styles.card} variant="outlined">
               <View style={styles.cardTopRow}>
-                <Text style={styles.cardKicker}>{program.source.replace('_', ' ')}</Text>
+                <Text style={styles.cardKicker}>{program.source === 'imported_excel' ? 'Excel 导入' : program.source === 'manual' ? '手动创建' : program.source.replace('_', ' ')}</Text>
                 <Text style={styles.statusPill}>{program.durationWeeks} {t('programOpts.weeks')}</Text>
               </View>
               <Text style={styles.programName}>{program.name}</Text>
               <Text style={styles.programMeta}>
-                {program.type} • {program.durationWeeks} {t('programOpts.weeks')} • {program.source.replace('_', ' ')}
+                {t(`program.${program.type}`)} • {program.durationWeeks} {t('programOpts.weeks')} • {program.source === 'imported_excel' ? 'Excel导入' : '手动创建'}
               </Text>
               {program.description && (
                 <Text style={styles.programDesc}>{program.description}</Text>

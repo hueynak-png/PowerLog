@@ -10,6 +10,7 @@ import { confirmAction } from '@/src/lib/alert';
 import { deleteWorkoutSession, getWorkoutsByDate, getWorkoutsByMonth } from '@/src/repositories';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/src/i18n';
 
 import { colors, spacing, typography } from '@/src/theme';
 import { radius } from '@/src/theme/radius';
@@ -28,7 +29,7 @@ const getFirstDayOffset = (year: number, month: number): number => {
 };
 
 const formatMonthYear = (year: number, month: number): string =>
-  new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'long' }).format(new Date(year, month - 1));
+  new Intl.DateTimeFormat(i18n.language, { year: 'numeric', month: 'long' }).format(new Date(year, month - 1));
 
 const formatDuration = (seconds: number): string => {
   const m = Math.round(seconds / 60);
@@ -161,7 +162,7 @@ export function CalendarScreen() {
               <View style={styles.workoutRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.workoutTime}>
-                    {new Date(workout.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(workout.startedAt).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
                   </Text>
                   <Text style={styles.workoutMeta}>
                     {workout.durationSeconds ? formatDuration(workout.durationSeconds) : t('common.inProgress')}
