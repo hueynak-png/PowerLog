@@ -68,7 +68,14 @@ const PROGRAM_SUMMARIES = [
 export const seedProgramSummaries = async (db: PowerLogDatabase): Promise<void> => {
   for (const program of PROGRAM_SUMMARIES) {
     const existing = await db.getFirstAsync<{ id: string }>('SELECT id FROM programs WHERE id = ? LIMIT 1', [program.id]);
-    if (existing) continue;
+    if (existing) {
+      // Update existing seeded programs with latest translations
+      await db.runAsync(
+        `UPDATE programs SET name = ?, type = ?, goal = ?, description = ? WHERE id = ?`,
+        [program.name, program.type, program.goal, program.description, program.id],
+      );
+      continue;
+    }
 
     await db.runAsync(
       `INSERT INTO programs (id, name, type, goal, source, duration_weeks, includes_deload, description, created_at)
