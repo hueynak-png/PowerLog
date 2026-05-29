@@ -75,6 +75,7 @@ export default function TabLayout() {
           fontWeight: '800',
         },
         headerShadowVisible: false,
+        headerShown: false,
       }}>
       <Tabs.Screen
         name="index"

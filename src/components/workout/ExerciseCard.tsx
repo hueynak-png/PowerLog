@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@/src/theme/colors';
 import { spacing } from '@/src/theme/spacing';
 import { typography } from '@/src/theme/typography';
@@ -22,10 +23,11 @@ export function ExerciseCard({
   exerciseNameEn, exerciseNameZh, category, muscleGroups,
   plannedSummary, progress, isExpanded, onToggle, headerAction, children,
 }: ExerciseCardProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.card}>
       <Pressable onPress={onToggle} style={styles.header} accessibilityRole="button"
-        accessibilityLabel={`${exerciseNameEn} ${isExpanded ? 'collapse' : 'expand'}`}>
+        accessibilityLabel={`${exerciseNameEn} ${isExpanded ? t('exerciseCard.collapse') : t('exerciseCard.expand')}`}>
         <View style={styles.headerLeft}>
           <View style={styles.metaRow}>
             {category && <Text style={styles.metaPill}>{category}</Text>}

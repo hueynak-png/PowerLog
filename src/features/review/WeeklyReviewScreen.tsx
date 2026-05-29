@@ -57,7 +57,7 @@ export function WeeklyReviewScreen() {
       });
 
       if (thisWeek.length === 0) {
-        showAlert(t('review.noData'), 'No workouts in the last 7 days to review.');
+        showAlert(t('review.noData'), t('reviewExtras.noWorkoutsToReview'));
         setIsLoading(false);
         return;
       }
@@ -102,7 +102,7 @@ export function WeeklyReviewScreen() {
       });
       setGeneratedAt(saved.generatedAt);
     } catch (err) {
-      showAlert(t('common.error'), err instanceof Error ? err.message : 'Failed to generate review');
+      showAlert(t('common.error'), err instanceof Error ? err.message : t('reviewExtras.failedToGenerate'));
     } finally {
       setIsLoading(false);
     }
@@ -113,9 +113,9 @@ export function WeeklyReviewScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{t('review.weeklyReview')}</Text>
         <Text style={styles.subtitle}>
-          {period ? `AI analysis for ${period.start} → ${period.end}` : 'AI-powered analysis of your training week'}
+          {period ? t('reviewExtras.aiAnalysisPeriod', { start: period.start, end: period.end }) : t('reviewExtras.aiPoweredAnalysis')}
         </Text>
-        {generatedAt ? <Text style={styles.generatedText}>Saved review: {new Date(generatedAt).toLocaleString()}</Text> : null}
+        {generatedAt ? <Text style={styles.generatedText}>{t('reviewExtras.savedReview')} {new Date(generatedAt).toLocaleString()}</Text> : null}
 
         {!review && !isLoading && (
           <Button title={t('review.generateWeeklyReview')} onPress={handleGenerateReview} disabled={!db} />
@@ -150,7 +150,7 @@ export function WeeklyReviewScreen() {
 
             {review.fatigueSigns.length > 0 && (
               <>
-                <SectionHeader title="Fatigue Signs" />
+                <SectionHeader title={t('reviewExtras.fatigueSigns')} />
                 <Card style={styles.card}>
                   {review.fatigueSigns.map((s, i) => <Text key={i} style={styles.bullet}>• {s}</Text>)}
                 </Card>

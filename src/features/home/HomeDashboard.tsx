@@ -240,7 +240,7 @@ export function HomeDashboard() {
           <View style={styles.macroRow}>
             <View style={styles.macroItem}>
               <Text style={styles.macroValue}>{foodTotals.calories}</Text>
-              <Text style={styles.macroLabel}>kcal</Text>
+              <Text style={styles.macroLabel}>{t('settingsExtras.kcal')}</Text>
             </View>
             <View style={styles.macroItem}>
               <Text style={[styles.macroValue, { color: colors.primary }]}>{foodTotals.protein}</Text>

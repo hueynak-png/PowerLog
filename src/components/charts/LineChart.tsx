@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Polyline, Circle, Line, Text as SvgText } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/src/theme/colors';
 import { radius } from '@/src/theme/radius';
@@ -21,15 +22,16 @@ interface LineChartProps {
 }
 
 export function LineChart({ data, title, color = colors.primary, height = 160, unit = '' }: LineChartProps) {
+  const { t } = useTranslation();
   if (data.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.badge}>No data</Text>
+          <Text style={styles.badge}>{t('chart.noData')}</Text>
         </View>
         <View style={styles.emptyPanel}>
-          <Text style={styles.empty}>Log a few sessions to unlock this trend.</Text>
+          <Text style={styles.empty}>{t('chart.logFewSessions')}</Text>
         </View>
       </View>
     );
@@ -84,7 +86,7 @@ export function LineChart({ data, title, color = colors.primary, height = 160, u
           {data[data.length - 1].label}
         </SvgText>
       </Svg>
-      <Text style={styles.latest}>Latest sample: {data[data.length - 1].label}</Text>
+      <Text style={styles.latest}>{t('chart.latestSample', { label: data[data.length - 1].label })}</Text>
     </View>
   );
 }

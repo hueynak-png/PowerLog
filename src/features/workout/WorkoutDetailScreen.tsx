@@ -33,17 +33,17 @@ function ReadOnlySetRow({ set }: { set: WorkoutSet }) {
       <View style={styles.setCell}>
         <Text style={styles.setLabel}>{t('common.weight')}</Text>
         <Text style={styles.setValue}>{formatValue(set.actualWeight ?? set.plannedWeight, ' kg')}</Text>
-        {typeof set.plannedWeight === 'number' && <Text style={styles.plannedValue}>Plan {set.plannedWeight} kg</Text>}
+        {typeof set.plannedWeight === 'number' && <Text style={styles.plannedValue}>{t('workoutDetail.planWeight', { weight: set.plannedWeight })}</Text>}
       </View>
       <View style={styles.setCell}>
         <Text style={styles.setLabel}>{t('common.reps')}</Text>
         <Text style={styles.setValue}>{formatValue(set.actualReps ?? set.plannedReps)}</Text>
-        {typeof set.plannedReps === 'number' && <Text style={styles.plannedValue}>Plan {set.plannedReps}</Text>}
+        {typeof set.plannedReps === 'number' && <Text style={styles.plannedValue}>{t('workoutDetail.planReps', { reps: set.plannedReps })}</Text>}
       </View>
       <View style={styles.setCell}>
         <Text style={styles.setLabel}>{t('common.rpe')}</Text>
         <Text style={styles.setValue}>{formatValue(set.actualRpe ?? set.plannedRpe)}</Text>
-        {typeof set.plannedRpe === 'number' && <Text style={styles.plannedValue}>Plan {set.plannedRpe}</Text>}
+        {typeof set.plannedRpe === 'number' && <Text style={styles.plannedValue}>{t('workoutDetail.planRpe', { rpe: set.plannedRpe })}</Text>}
       </View>
       <CompletionBadge completed={set.completed} size="sm" />
     </View>
@@ -80,8 +80,8 @@ export function WorkoutDetailScreen() {
 
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{t('workout.workoutDetails')}</Text>
-          <Text style={styles.title}>{session ? new Date(session.startedAt).toLocaleString() : 'Completed session'}</Text>
-          <Text style={styles.subtitle}>Read-only view of the exercises and sets saved for this workout.</Text>
+          <Text style={styles.title}>{session ? new Date(session.startedAt).toLocaleString() : t('workoutDetail.completedSession')}</Text>
+          <Text style={styles.subtitle}>{t('workoutDetail.readonlyHint')}</Text>
         </View>
 
         <View style={styles.metricsRow}>
@@ -110,7 +110,7 @@ export function WorkoutDetailScreen() {
                 {workoutExercise.sets.map((set) => (
                   <View key={set.id}>
                     <ReadOnlySetRow set={set} />
-                    {set.notes ? <Text style={styles.setNotes}>Set note: {set.notes}</Text> : null}
+                    {set.notes ? <Text style={styles.setNotes}>{t('workoutDetail.setNote')} {set.notes}</Text> : null}
                   </View>
                 ))}
               </ExerciseCard>
@@ -118,7 +118,7 @@ export function WorkoutDetailScreen() {
           })
         ) : (
           <Card variant="outlined" style={styles.card}>
-            <Text style={styles.empty}>No exercise data saved for this workout.</Text>
+            <Text style={styles.empty}>{t('workoutDetail.noExerciseData')}</Text>
           </Card>
         )}
 

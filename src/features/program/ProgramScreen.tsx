@@ -51,26 +51,26 @@ const experienceOptions: Array<{ label: string; value: ExperienceLevel }> = [
 ];
 
 const volumeOptions: Array<{ label: string; value: VolumeTolerance }> = [
-  { label: 'Low', value: 'low' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'High', value: 'high' },
+  { label: 'programOpts.volumeLow', value: 'low' },
+  { label: 'programOpts.volumeMedium', value: 'medium' },
+  { label: 'programOpts.volumeHigh', value: 'high' },
 ];
 
 const intensityOptions: Array<{ label: string; value: IntensityPreference }> = [
-  { label: 'Conservative', value: 'conservative' },
-  { label: 'Moderate', value: 'moderate' },
-  { label: 'Aggressive', value: 'aggressive' },
+  { label: 'programOpts.intensityConservative', value: 'conservative' },
+  { label: 'programOpts.intensityModerate', value: 'moderate' },
+  { label: 'programOpts.intensityAggressive', value: 'aggressive' },
 ];
 
 const progressionOptions: Array<{ label: string; value: ProgressionStyle }> = [
-  { label: 'RPE-based', value: 'rpe' },
-  { label: 'Percentage', value: 'percentage' },
-  { label: 'Double progression', value: 'double_progression' },
+  { label: 'programOpts.progressionRpe', value: 'rpe' },
+  { label: 'programOpts.progressionPercentage', value: 'percentage' },
+  { label: 'programOpts.progressionDouble', value: 'double_progression' },
 ];
 
-const weakPointOptions = ['Bench lockout', 'Bench off chest', 'Squat depth', 'Squat strength', 'Deadlift lockout', 'Deadlift off floor', 'Quads', 'Glutes', 'Upper back', 'Shoulders', 'Arms'];
-const equipmentOptions = ['Barbell', 'Dumbbells', 'Cable', 'Machines', 'Bodyweight', 'Bands', 'Full gym', 'Home gym'];
-const limitationOptions = ['No overhead press', 'No low-bar squat', 'No sumo deadlift', 'Knee irritation', 'Shoulder irritation', 'Lower back fatigue', 'Limited time', 'Avoid high-impact work'];
+const weakPointOptions = ['programOpts.weakBenchLockout', 'programOpts.weakBenchOffChest', 'programOpts.weakSquatDepth', 'programOpts.weakSquatStrength', 'programOpts.weakDeadliftLockout', 'programOpts.weakDeadliftOffFloor', 'programOpts.weakQuads', 'programOpts.weakGlutes', 'programOpts.weakUpperBack', 'programOpts.weakShoulders', 'programOpts.weakArms'];
+const equipmentOptions = ['programOpts.equipBarbell', 'programOpts.equipDumbbells', 'programOpts.equipCable', 'programOpts.equipMachines', 'programOpts.equipBodyweight', 'programOpts.equipBands', 'programOpts.equipFullGym', 'programOpts.equipHomeGym'];
+const limitationOptions = ['programOpts.limitNoOHP', 'programOpts.limitNoLowBar', 'programOpts.limitNoSumo', 'programOpts.limitKnee', 'programOpts.limitShoulder', 'programOpts.limitLowerBack', 'programOpts.limitTime', 'programOpts.limitHighImpact'];
 
 function SelectChips<T extends string>({ label, value, options, onChange, t }: { label: string; value: T; options: Array<{ label: string; value: T }>; onChange: (value: T) => void; t: (key: string) => string }) {
   return (
@@ -126,7 +126,7 @@ export function ProgramScreen() {
   const [durationWeeks, setDurationWeeks] = useState<number | null>(6);
   const [includeDeload, setIncludeDeload] = useState(true);
   const [weakPoints, setWeakPoints] = useState<string[]>([]);
-  const [availableEquipment, setAvailableEquipment] = useState<string[]>(['Full gym']);
+  const [availableEquipment, setAvailableEquipment] = useState<string[]>(['programOpts.equipFullGym']);
   const [limitations, setLimitations] = useState<string[]>([]);
   const [volumeTolerance, setVolumeTolerance] = useState<VolumeTolerance>('medium');
   const [intensityPreference, setIntensityPreference] = useState<IntensityPreference>('moderate');
@@ -234,7 +234,7 @@ export function ProgramScreen() {
       }
 
       setShowForm(false);
-      showAlert(t('common.success'), t('Program "{{name}}" created!', { name: program.name }));
+      showAlert(t('common.success'), t('programOpts.programCreated', { name: program.name }));
       await refresh();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -246,7 +246,7 @@ export function ProgramScreen() {
 
   const handleSetActive = (program: Program) => {
     if (!db) return;
-    confirmAction(t('program.setActive'), t('Start "{{name}}" as your current cycle?', { name: program.name }), async () => {
+    confirmAction(t('program.setActive'), t('programOpts.programStartConfirm', { name: program.name }), async () => {
       await setCurrentCycle(db, {
         programId: program.id,
         goal: program.goal,
@@ -262,7 +262,7 @@ export function ProgramScreen() {
 
   const handleDelete = (program: Program) => {
     if (!db) return;
-    confirmAction(t('program.deleteProgram'), t('Delete "{{name}}"? This cannot be undone.', { name: program.name }), async () => {
+    confirmAction(t('program.deleteProgram'), t('programOpts.programDeleteConfirm', { name: program.name }), async () => {
       await deleteProgram(db, program.id);
       await refresh();
     });
@@ -270,7 +270,7 @@ export function ProgramScreen() {
 
   const handleDeactivate = () => {
     if (!db) return;
-    confirmAction(t('program.endCycle'), t('Deactivate the current training cycle?'), async () => {
+    confirmAction(t('program.endCycle'), t('programOpts.cycleDeactivateConfirm'), async () => {
       await deactivateCurrentCycle(db);
       await refresh();
     });
@@ -293,22 +293,22 @@ export function ProgramScreen() {
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{t('program.programBuilder')}</Text>
           <Text style={styles.title}>{t('nav.program')}</Text>
-          <Text style={styles.subtitle}>{t('Generate, store, and activate structured training cycles from one place.')}</Text>
+          <Text style={styles.subtitle}>{t('programOpts.heroSubtitle')}</Text>
         </View>
 
         {/* Current Cycle */}
-        <SectionHeader title={t('home.currentCycle')} subtitle={t('What PowerLog should treat as your active training block.')} />
+        <SectionHeader title={t('home.currentCycle')} subtitle={t('programOpts.activeBlockHint')} />
         {cycle ? (
           <Card variant="elevated" style={styles.card}>
             <View style={styles.cardTopRow}>
-              <Text style={styles.cardKicker}>{t('Active block')}</Text>
-              <Text style={styles.statusPill}>{t('Week')} {cycle.currentWeek}</Text>
+              <Text style={styles.cardKicker}>{t('programOpts.activeBlock')}</Text>
+              <Text style={styles.statusPill}>{t('programOpts.week')} {cycle.currentWeek}</Text>
             </View>
             <Text style={styles.cycleName}>
-              {programs.find((p) => p.id === cycle.programId)?.name ?? t('Unknown')}
+              {programs.find((p) => p.id === cycle.programId)?.name ?? t('programOpts.unknown')}
             </Text>
             <Text style={styles.cycleDetail}>
-              {t('Week')} {cycle.currentWeek} • {t('Phase')}: {cycle.currentPhase}
+              {t('programOpts.week')} {cycle.currentWeek} • {t('programOpts.phase')}: {cycle.currentPhase}
             </Text>
             <View style={styles.cycleActions}>
               <Button title={t('program.stopActivePlan')} onPress={handleDeactivate} variant="danger" size="md" fullWidth />
@@ -333,21 +333,21 @@ export function ProgramScreen() {
         </Card>
 
         {/* Program Library */}
-        <SectionHeader title={t('program.programLibrary')} subtitle={`${programs.length} ${t('saved program')}${programs.length === 1 ? '' : 's'}`} />
+        <SectionHeader title={t('program.programLibrary')} subtitle={`${programs.length} ${t('programOpts.savedProgram')}${programs.length === 1 ? '' : 's'}`} />
         {programs.length === 0 ? (
           <Card variant="outlined" style={styles.card}>
-            <Text style={styles.emptyText}>{t('No saved programs')}</Text>
+            <Text style={styles.emptyText}>{t('programOpts.noSavedPrograms')}</Text>
           </Card>
         ) : (
           programs.map((program) => (
             <Card key={program.id} style={styles.card} variant="outlined">
               <View style={styles.cardTopRow}>
                 <Text style={styles.cardKicker}>{program.source.replace('_', ' ')}</Text>
-                <Text style={styles.statusPill}>{program.durationWeeks} weeks</Text>
+                <Text style={styles.statusPill}>{program.durationWeeks} {t('programOpts.weeks')}</Text>
               </View>
               <Text style={styles.programName}>{program.name}</Text>
               <Text style={styles.programMeta}>
-                {program.type} • {program.durationWeeks} weeks • {program.source.replace('_', ' ')}
+                {program.type} • {program.durationWeeks} {t('programOpts.weeks')} • {program.source.replace('_', ' ')}
               </Text>
               {program.description && (
                 <Text style={styles.programDesc}>{program.description}</Text>
@@ -390,9 +390,9 @@ export function ProgramScreen() {
             <Card variant="elevated" style={styles.card}>
               <SelectChips label={t('program.goal')} value={goalType} options={goalTypeOptions} onChange={setGoalType} t={t} />
               <SelectChips label={t('program.experience')} value={experienceLevel} options={experienceOptions} onChange={setExperienceLevel} t={t} />
-              <NumberField label={t('Days per week')} value={daysPerWeek} onChangeValue={setDaysPerWeek} step={1} min={2} max={6} />
-              <NumberField label={t('Session duration')} value={sessionDuration} onChangeValue={setSessionDuration} step={5} min={45} max={150} unit="min" />
-              <NumberField label={t('Program weeks')} value={durationWeeks} onChangeValue={setDurationWeeks} step={1} min={3} max={16} />
+              <NumberField label={t('programOpts.daysPerWeek')} value={daysPerWeek} onChangeValue={setDaysPerWeek} step={1} min={2} max={6} />
+              <NumberField label={t('programOpts.sessionDuration')} value={sessionDuration} onChangeValue={setSessionDuration} step={5} min={45} max={150} unit="min" />
+              <NumberField label={t('programOpts.programWeeks')} value={durationWeeks} onChangeValue={setDurationWeeks} step={1} min={3} max={16} />
               <MultiSelectChips label={t('program.weakPoints')} values={weakPoints} options={weakPointOptions} onChange={setWeakPoints} t={t} />
               <MultiSelectChips label={t('program.availableEquipment')} values={availableEquipment} options={equipmentOptions} onChange={setAvailableEquipment} t={t} />
               <MultiSelectChips label={t('program.limitations')} values={limitations} options={limitationOptions} onChange={setLimitations} t={t} />
@@ -405,7 +405,7 @@ export function ProgramScreen() {
               </View>
             </Card>
 
-            <SectionHeader title={t('program.current1RM')} subtitle={t('Used to anchor percentages and loading targets.')} />
+            <SectionHeader title={t('program.current1RM')} subtitle={t('programOpts.anchorPercentages')} />
             <Card style={styles.card}>
               <NumberField label={t('analytics.squat')} value={squatMax} onChangeValue={setSquatMax} step={2.5} min={0} unit="kg" />
               <NumberField label={t('analytics.bench')} value={benchMax} onChangeValue={setBenchMax} step={2.5} min={0} unit="kg" />
@@ -420,7 +420,7 @@ export function ProgramScreen() {
               fullWidth
             />
             {generating && (
-              <Text style={styles.generatingHint}>{t('This may take up to 2 minutes…')}</Text>
+              <Text style={styles.generatingHint}>{t('programOpts.generatingHint')}</Text>
             )}
           </ScrollView>
         </SafeAreaView>

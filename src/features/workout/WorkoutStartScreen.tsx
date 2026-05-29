@@ -139,7 +139,7 @@ export function WorkoutStartScreen() {
             style={styles.dateInput}
             value={customDate}
             onChangeText={setCustomDate}
-            placeholder="YYYY-MM-DD"
+            placeholder={t('settingsExtras.yyyyMMDD')}
             placeholderTextColor={colors.textTertiary}
             accessibilityLabel={t('workout.pastWorkoutDate')}
           />

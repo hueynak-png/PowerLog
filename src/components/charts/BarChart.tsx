@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Rect, Text as SvgText, Line } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/src/theme/colors';
 import { radius } from '@/src/theme/radius';
@@ -20,15 +21,16 @@ interface BarChartProps {
 }
 
 export function BarChart({ data, title, height = 140 }: BarChartProps) {
+  const { t } = useTranslation();
   if (data.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.badge}>No data</Text>
+          <Text style={styles.badge}>{t('chart.noData')}</Text>
         </View>
         <View style={styles.emptyPanel}>
-          <Text style={styles.empty}>Log more sessions to fill this chart.</Text>
+          <Text style={styles.empty}>{t('chart.logMoreSessions')}</Text>
         </View>
       </View>
     );
@@ -46,7 +48,7 @@ export function BarChart({ data, title, height = 140 }: BarChartProps) {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.badge}>Peak {Math.round(maxVal).toLocaleString()}</Text>
+        <Text style={styles.badge}>{t('chart.peak', { value: Math.round(maxVal).toLocaleString() })}</Text>
       </View>
       <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
         <Line x1={padding.left} y1={padding.top} x2={padding.left + chartW} y2={padding.top} stroke={colors.divider} strokeWidth={1} strokeDasharray="4 6" />

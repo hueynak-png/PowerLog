@@ -14,7 +14,7 @@ export default function NotFoundScreen() {
         <Text style={styles.title}>{t('notFound.message')}</Text>
 
         <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen!</Text>
+          <Text style={styles.linkText}>{t('route.goToHome')}</Text>
         </Link>
       </View>
     </>

@@ -93,7 +93,7 @@ export function ExercisePickerModal({ onSelect }: ExercisePickerModalProps) {
       <TextInput
         value={query}
         onChangeText={setQuery}
-        placeholder="Search by English, 中文, or family"
+        placeholder={t('settingsExtras.searchExerciseHint')}
         placeholderTextColor={colors.textTertiary}
         style={styles.search}
       />
@@ -120,7 +120,7 @@ export function ExercisePickerModal({ onSelect }: ExercisePickerModalProps) {
               ))}
             </View>
           ))}
-          {filtered.length === 0 && <Text style={styles.empty}>No exercises found.</Text>}
+          {filtered.length === 0 && <Text style={styles.empty}>{t('settingsExtras.noExercisesFound')}</Text>}
         </ScrollView>
       )}
     </Card>

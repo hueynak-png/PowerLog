@@ -45,11 +45,11 @@ export function WorkoutSummaryScreen() {
   );
 
   const aiScores: ScoreItem[] = aiAnalysis ? [
-    { label: '完成度', value: aiAnalysis.scores.completion, tone: 'success' },
-    { label: '刺激', value: aiAnalysis.scores.stimulusEffectiveness, tone: 'coach' },
-    { label: '强度', value: aiAnalysis.scores.intensityRationality, tone: 'coach' },
-    { label: '疲劳', value: aiAnalysis.scores.fatigueControl, tone: 'warning' },
-    { label: '结构', value: aiAnalysis.scores.exerciseStructure, tone: 'success' },
+    { label: t('workoutSummary.completenessAnalysis'), value: aiAnalysis.scores.completion, tone: 'success' },
+    { label: t('workoutSummary.trainingStimulus'), value: aiAnalysis.scores.stimulusEffectiveness, tone: 'coach' },
+    { label: t('workoutSummary.intensityJudgment'), value: aiAnalysis.scores.intensityRationality, tone: 'coach' },
+    { label: t('workoutSummary.fatigueAndRisk'), value: aiAnalysis.scores.fatigueControl, tone: 'warning' },
+    { label: t('workoutSummary.structuredSummary'), value: aiAnalysis.scores.exerciseStructure, tone: 'success' },
   ] : [];
 
   const scoreToneStyles = {
@@ -139,7 +139,7 @@ export function WorkoutSummaryScreen() {
         }
         await requestAnalysis(false);
       } catch (err) {
-        if (!cancelled) setAiError(err instanceof Error ? err.message : 'AI unavailable');
+        if (!cancelled) setAiError(err instanceof Error ? err.message : t('common.aiUnavailable'));
       } finally {
         if (!cancelled) setAiLoading(false);
       }
@@ -157,8 +157,8 @@ export function WorkoutSummaryScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{t('workout.sessionComplete')}</Text>
-          <Text style={styles.title}>Strong work.</Text>
-          <Text style={styles.subtitle}>Your workout is saved offline with a local summary and coaching rules.</Text>
+          <Text style={styles.title}>{t('workoutSummary.strongWork')}</Text>
+          <Text style={styles.subtitle}>{t('workoutSummary.savedOffline')}</Text>
         </View>
 
         <View style={styles.metricsRow}>
@@ -179,13 +179,13 @@ export function WorkoutSummaryScreen() {
                 <Text style={styles.stat}>RPE {lift.avgRpe.toFixed(1)}</Text>
               </View>
               <Text style={[styles.status, { color: lift.allSetsCompleted ? colors.success : colors.warning }]}>
-                {lift.allSetsCompleted ? 'All sets completed' : 'Some sets missed'}
+                {lift.allSetsCompleted ? t('workoutSummary.allSetsCompleted') : t('workoutSummary.someSetsMissed')}
               </Text>
             </Card>
           ))
         ) : (
           <Card variant="outlined" style={styles.card}>
-            <Text style={styles.empty}>No main lift data recorded.</Text>
+            <Text style={styles.empty}>{t('workoutSummary.noMainLiftData')}</Text>
           </Card>
         )}
 
@@ -206,16 +206,16 @@ export function WorkoutSummaryScreen() {
               </View>
             ))
           ) : (
-            <Text style={styles.empty}>No rule-based adjustments today. Keep the plan moving.</Text>
+            <Text style={styles.empty}>{t('workoutSummary.noRuleAdjustments')}</Text>
           )}
         </Card>
 
-        <SectionHeader title={t('workout.aiCoach')} eyebrow="Post-session report" subtitle="Loaded once per workout unless you manually re-analyze." />
+        <SectionHeader title={t('workout.aiCoach')} eyebrow={t('workoutSummary.postSessionReport')} subtitle={t('workoutSummary.loadedOnce')} />
         <Card variant="coach" style={styles.card}>
           {aiLoading && (
             <View style={styles.aiLoading}>
               <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={styles.aiLoadingText}>AI analyzing your session...</Text>
+              <Text style={styles.aiLoadingText}>{t('workoutSummary.aiAnalyzing')}</Text>
             </View>
           )}
           {aiError && (
@@ -227,10 +227,10 @@ export function WorkoutSummaryScreen() {
             <View style={styles.aiContent}>
               <View style={styles.aiHeaderRow}>
                 <View style={styles.aiVerdictBadge}>
-                  <Text style={styles.aiVerdictBadgeText}>Coach verdict</Text>
+                  <Text style={styles.aiVerdictBadgeText}>{t('workoutSummary.coachVerdict')}</Text>
                 </View>
                 <Button
-                  title={aiLoading ? 'Analyzing...' : t('workout.reAnalyze')}
+                  title={aiLoading ? t('workoutSummary.analyzing') : t('workout.reAnalyze')}
                   onPress={() => void requestAnalysis(true)}
                   variant="secondary"
                   size="sm"
@@ -250,29 +250,29 @@ export function WorkoutSummaryScreen() {
               </View>
               <View style={styles.aiSectionGrid}>
                 <View style={styles.aiSection}>
-                  <Text style={styles.aiSectionTitle}>完成度分析</Text>
+                  <Text style={styles.aiSectionTitle}>{t('workoutSummary.completenessAnalysis')}</Text>
                   <Text style={styles.aiBullet}>{aiAnalysis.completionAnalysis}</Text>
                 </View>
                 <View style={styles.aiSection}>
-                  <Text style={styles.aiSectionTitle}>训练刺激</Text>
+                  <Text style={styles.aiSectionTitle}>{t('workoutSummary.trainingStimulus')}</Text>
                   <Text style={styles.aiBullet}>{aiAnalysis.stimulusAnalysis}</Text>
                 </View>
                 <View style={styles.aiSection}>
-                  <Text style={styles.aiSectionTitle}>强度判断</Text>
+                  <Text style={styles.aiSectionTitle}>{t('workoutSummary.intensityJudgment')}</Text>
                   <Text style={styles.aiBullet}>{aiAnalysis.intensityAnalysis}</Text>
                 </View>
                 <View style={[styles.aiSection, styles.riskSection]}>
-                  <Text style={[styles.aiSectionTitle, { color: colors.warning }]}>疲劳与风险</Text>
+                  <Text style={[styles.aiSectionTitle, { color: colors.warning }]}>{t('workoutSummary.fatigueAndRisk')}</Text>
                   <Text style={styles.aiBullet}>{aiAnalysis.fatigueAndRiskAnalysis}</Text>
                 </View>
                 <View style={styles.aiSection}>
-                  <Text style={styles.aiSectionTitle}>目标匹配</Text>
+                  <Text style={styles.aiSectionTitle}>{t('workoutSummary.goalMatch')}</Text>
                   <Text style={styles.aiBullet}>{aiAnalysis.goalMatchAnalysis}</Text>
                 </View>
               </View>
               {aiAnalysis.nextSessionAdjustments.length > 0 && (
                 <View style={styles.aiSection}>
-                  <Text style={styles.aiSectionTitle}>下一次同类训练调整</Text>
+                  <Text style={styles.aiSectionTitle}>{t('workoutSummary.nextAdjustment')}</Text>
                   {aiAnalysis.nextSessionAdjustments.map((adjustment, i) => (
                     <View key={`${adjustment.exercise}-${i}`} style={styles.nextActionCard}>
                       <Text style={styles.nextActionExercise}>{adjustment.exercise}</Text>
@@ -283,17 +283,17 @@ export function WorkoutSummaryScreen() {
                 </View>
               )}
               <View style={[styles.aiSection, styles.structuredPanel]}>
-                <Text style={styles.aiSectionTitle}>结构化总结</Text>
+                <Text style={styles.aiSectionTitle}>{t('workoutSummary.structuredSummary')}</Text>
                 <View style={styles.structuredRow}>
-                  <Text style={styles.structuredLabel}>目标</Text>
+                  <Text style={styles.structuredLabel}>{t('workoutSummary.goal')}</Text>
                   <Text style={styles.structuredValue}>{aiAnalysis.structuredSummary.identifiedGoal}</Text>
                 </View>
                 <View style={styles.structuredRow}>
-                  <Text style={styles.structuredLabel}>有效组</Text>
+                  <Text style={styles.structuredLabel}>{t('workoutSummary.effectiveSets')}</Text>
                   <Text style={styles.structuredValue}>{aiAnalysis.structuredSummary.effectiveSets}</Text>
                 </View>
                 <View style={styles.structuredRow}>
-                  <Text style={styles.structuredLabel}>下次重点</Text>
+                  <Text style={styles.structuredLabel}>{t('workoutSummary.nextFocus')}</Text>
                   <Text style={styles.structuredValue}>{aiAnalysis.structuredSummary.nextFocus}</Text>
                 </View>
                 <Text style={styles.aiBullet}>{aiAnalysis.structuredSummary.libraryNote}</Text>
@@ -301,7 +301,7 @@ export function WorkoutSummaryScreen() {
             </View>
           )}
           {!aiLoading && !aiError && !aiAnalysis && (
-            <Text style={styles.empty}>AI not configured. Local rules applied above.</Text>
+            <Text style={styles.empty}>{t('workoutSummary.aiNotConfiguredLocal')}</Text>
           )}
         </Card>
 

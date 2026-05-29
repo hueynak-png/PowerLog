@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@/src/theme/colors';
 import { spacing } from '@/src/theme/spacing';
 import { typography } from '@/src/theme/typography';
@@ -25,6 +26,7 @@ export function SetInput({
   actualWeight, actualReps, actualRpe, completed, isWarmup,
   onUpdate, rpeRequired,
 }: SetInputProps) {
+  const { t } = useTranslation();
   const [weightText, setWeightText] = useState(actualWeight != null ? String(actualWeight) : '');
   const weightRef = useRef<TextInput>(null);
   const repsRef = useRef<TextInput>(null);
@@ -68,29 +70,29 @@ export function SetInput({
         {plannedWeight != null && <Text style={styles.planned}>{plannedWeight}</Text>}
         <TextInput ref={weightRef} style={[styles.input, completed && styles.completedInput]} value={weightText}
           onChangeText={handleWeightText} onBlur={commitWeight} keyboardType="decimal-pad" inputMode="decimal"
-          placeholder="kg" placeholderTextColor={colors.textTertiary}
+          placeholder={t('setInput.kg')} placeholderTextColor={colors.textTertiary}
           selectTextOnFocus returnKeyType="next" blurOnSubmit={false} onSubmitEditing={() => repsRef.current?.focus()}
-          accessibilityLabel={`Set ${setNumber} weight`} />
+          accessibilityLabel={t('setInput.setWeight', { setNumber })} />
       </View>
       <View style={styles.cell}>
         {plannedReps != null && <Text style={styles.planned}>{plannedReps}</Text>}
         <TextInput ref={repsRef} style={[styles.input, completed && styles.completedInput]} value={actualReps != null ? String(actualReps) : ''}
           onChangeText={handleNum('actualReps')} keyboardType="number-pad"
-          placeholder="reps" placeholderTextColor={colors.textTertiary}
+          placeholder={t('setInput.reps')} placeholderTextColor={colors.textTertiary}
           selectTextOnFocus returnKeyType="next" blurOnSubmit={false} onSubmitEditing={() => rpeRef.current?.focus()}
-          accessibilityLabel={`Set ${setNumber} reps`} />
+          accessibilityLabel={t('setInput.setReps', { setNumber })} />
       </View>
       <View style={styles.cell}>
         {plannedRpe != null && <Text style={styles.planned}>{plannedRpe}</Text>}
         <TextInput style={[styles.input, completed && styles.completedInput, rpeRequired && actualRpe == null && styles.rpeRequiredInput]} value={actualRpe != null ? String(actualRpe) : ''}
           onChangeText={handleNum('actualRpe')} keyboardType="decimal-pad"
           inputMode="decimal"
-          placeholder={rpeRequired ? 'RPE*' : 'RPE'}
+          placeholder={rpeRequired ? t('setInput.rpeRequired') : t('setInput.rpe')}
           placeholderTextColor={rpeRequired ? colors.warning : colors.textTertiary}
-          accessibilityLabel={`Set ${setNumber} RPE`} />
+          accessibilityLabel={t('setInput.setRpe', { setNumber })} />
       </View>
       <Pressable onPress={() => onUpdate('completed', !completed)}
-        accessibilityLabel={`Set ${setNumber} ${completed ? 'uncomplete' : 'complete'}`}>
+        accessibilityLabel={completed ? t('setInput.setUncomplete', { setNumber }) : t('setInput.setComplete', { setNumber })}>
         <CompletionBadge completed={completed} size="sm" />
       </Pressable>
     </View>

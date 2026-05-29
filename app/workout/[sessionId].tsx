@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -19,6 +20,7 @@ export default function WorkoutSessionScreen() {
   const isActive = useActiveWorkoutStore((state) => state.isActive);
   const startTimerFrom = useTimerStore((state) => state.startFrom);
   const [isLoading, setIsLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!db || !sessionId) {
@@ -49,7 +51,7 @@ export default function WorkoutSessionScreen() {
     return (
       <SafeAreaView style={styles.centered}>
         <ActivityIndicator color={colors.primary} />
-        <Text style={styles.loadingText}>Loading workout…</Text>
+        <Text style={styles.loadingText}>{t('route.loadingWorkout')}</Text>
       </SafeAreaView>
     );
   }
@@ -57,7 +59,7 @@ export default function WorkoutSessionScreen() {
   if (!session) {
     return (
       <SafeAreaView style={styles.centered}>
-        <Text style={styles.loadingText}>Workout not found.</Text>
+        <Text style={styles.loadingText}>{t('route.workoutNotFound')}</Text>
       </SafeAreaView>
     );
   }

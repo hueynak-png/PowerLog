@@ -193,7 +193,7 @@ export function SettingsScreen() {
     saveSyncConfig();
     const meta = await getLatestSnapshotMeta();
     setRemoteSnapshot(meta);
-    return meta ? `${t('Cloud snapshot found from')} ${new Date(meta.createdAt).toLocaleString()}.` : t('settings.noSnapshot');
+    return meta ? `${t('settingsExtras.cloudSnapshotFoundFrom')} ${new Date(meta.createdAt).toLocaleString()}.` : t('settings.noSnapshot');
   });
 
   const handleUploadSnapshot = () => runSyncAction(async () => {
@@ -201,7 +201,7 @@ export function SettingsScreen() {
     const { bytes, meta: localMeta } = await createSnapshotUploadPayload();
     const meta = await uploadSnapshot(bytes, localMeta);
     setRemoteSnapshot(meta);
-    return t('Uploaded {{size}} backup at {{date}}.', { size: formatSnapshotSize(meta.sizeBytes), date: new Date(meta.createdAt).toLocaleString() });
+    return t('settingsExtras.uploadedBackup', { size: formatSnapshotSize(meta.sizeBytes), date: new Date(meta.createdAt).toLocaleString() });
   });
 
   const restoreLatestSnapshot = () => runSyncAction(async () => {
@@ -214,7 +214,7 @@ export function SettingsScreen() {
     markSnapshotRestored(meta);
     setRemoteSnapshot(meta);
     setSyncStatusMeta(getLocalSyncStatus());
-    return t('Restored cloud backup. Local pre-restore backup saved as {{backupId}}. Reload the app to use the restored data.', { backupId: backup.backupId });
+    return t('settingsExtras.restoredCloudBackup', { backupId: backup.backupId });
   });
 
   const runBackupAction = async (action: () => Promise<string>) => {
@@ -224,7 +224,7 @@ export function SettingsScreen() {
     try {
       setBackupMessage(await action());
     } catch (error) {
-      setBackupError(error instanceof Error ? error.message : t('Backup action failed.'));
+      setBackupError(error instanceof Error ? error.message : t('settingsExtras.backupActionFailed'));
     } finally {
       setBackupBusy(false);
     }
@@ -232,17 +232,17 @@ export function SettingsScreen() {
 
   const handleExportBackup = () => runBackupAction(async () => {
     const filename = await exportBackupFile();
-    return t('Exported {{filename}}.', { filename });
+    return t('settingsExtras.exportedFile', { filename });
   });
 
   const handleImportBackup = (file: File) => runBackupAction(async () => {
     const backup = await importBackupFile(file);
-    return t('Imported backup. Previous local data was saved as {{backupId}}. Reload the app to use the imported data.', { backupId: backup.backupId });
+    return t('settingsExtras.importedBackup', { backupId: backup.backupId });
   });
 
   const handleRestoreSnapshot = () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.confirm === 'function') {
-      const confirmed = window.confirm(t('Restore the latest cloud backup onto this web app? A local backup will be created first.'));
+      const confirmed = window.confirm(t('settingsExtras.restoreConfirm'));
       if (!confirmed) return;
       restoreLatestSnapshot();
       return;
@@ -250,10 +250,10 @@ export function SettingsScreen() {
 
     Alert.alert(
       t('settings.restoreCloudBackup'),
-      t('A local backup will be created first, then this device will load the cloud snapshot.'),
+      t('settingsExtras.restoreHint'),
       [
         { text: t('common.cancel'), style: 'cancel' },
-        { text: t('Restore'), style: 'destructive', onPress: restoreLatestSnapshot },
+        { text: t('settings.restoreCloudBackup'), style: 'destructive', onPress: restoreLatestSnapshot },
       ],
     );
   };
@@ -279,29 +279,29 @@ export function SettingsScreen() {
             <Pressable
               style={styles.langToggle}
               onPress={() => i18n.changeLanguage(i18n.language === 'zh-CN' ? 'en' : 'zh-CN')}
-              accessibilityLabel={t('Switch language')}
+              accessibilityLabel={t('settingsExtras.switchLanguage')}
             >
               <Text style={styles.langToggleText}>{i18n.language === 'zh-CN' ? 'EN' : '中'}</Text>
             </Pressable>
           </View>
-          <Text style={styles.subtitle}>{t('Tune your maxes, bodyweight context, session defaults, and AI connection.')}</Text>
+          <Text style={styles.subtitle}>{t('settingsExtras.heroSubtitle')}</Text>
         </View>
 
-        <SectionHeader title={t('settings.oneRMSettings')} subtitle={t('Current maxes used across dashboards and workout planning.')} />
+        <SectionHeader title={t('settings.oneRMSettings')} subtitle={t('settingsExtras.currentMaxes')} />
         <Card variant="elevated" style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Text style={styles.cardKicker}>{t('Strength profile')}</Text>
-            <Text style={styles.statusPill}>{t('Big three')}</Text>
+            <Text style={styles.cardKicker}>{t('settingsExtras.strengthProfile')}</Text>
+            <Text style={styles.statusPill}>{t('settingsExtras.bigThree')}</Text>
           </View>
-          <NumberField label={t('Squat 1RM')} value={squat} onChangeValue={setSquat} step={2.5} min={0} unit="kg" />
-          <NumberField label={t('Bench 1RM')} value={bench} onChangeValue={setBench} step={2.5} min={0} unit="kg" />
-          <NumberField label={t('Deadlift 1RM')} value={deadlift} onChangeValue={setDeadlift} step={2.5} min={0} unit="kg" />
+          <NumberField label={t('settingsExtras.squat1RM')} value={squat} onChangeValue={setSquat} step={2.5} min={0} unit="kg" />
+          <NumberField label={t('settingsExtras.bench1RM')} value={bench} onChangeValue={setBench} step={2.5} min={0} unit="kg" />
+          <NumberField label={t('settingsExtras.deadlift1RM')} value={deadlift} onChangeValue={setDeadlift} step={2.5} min={0} unit="kg" />
         </Card>
 
         <SectionHeader title={t('settings.trainingPreferences')} subtitle={t('Defaults used when creating future sessions.')} />
         <Card variant="tonal" style={styles.card}>
           <NumberField
-            label={t('Default session duration')}
+            label={t('settingsExtras.defaultSessionDuration')}
             value={duration}
             onChangeValue={setDuration}
             step={5}
@@ -311,14 +311,14 @@ export function SettingsScreen() {
           />
         </Card>
 
-        <SectionHeader title={t('settings.bodyweight')} subtitle={t('Used as recovery context for nutrition and performance trends.')} />
+        <SectionHeader title={t('settings.bodyweight')} subtitle={t('settingsExtras.bodyweightHint')} />
         <Card style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Text style={styles.cardKicker}>{t('Body context')}</Text>
+            <Text style={styles.cardKicker}>{t('settingsExtras.bodyContext')}</Text>
             <Text style={styles.statusPill}>{latestBodyweight ? t('Tracked') : t('common.noData')}</Text>
           </View>
           <Text style={styles.cardText}>
-            {t('Latest')}: {latestBodyweight ? `${latestBodyweight.bodyweight} kg · ${new Date(latestBodyweight.date).toLocaleDateString()}` : t('common.noData')}
+            {t('settingsExtras.latest')}: {latestBodyweight ? `${latestBodyweight.bodyweight} kg · ${new Date(latestBodyweight.date).toLocaleDateString()}` : t('common.noData')}
           </Text>
           <NumberField label={t('settings.bodyweight')} value={bodyweightValue} onChangeValue={setBodyweightValue} step={0.5} min={20} unit="kg" />
           <Button
@@ -334,23 +334,23 @@ export function SettingsScreen() {
         <Card variant="coach" style={styles.card}>
           <Pressable onPress={() => setAiExpanded(!aiExpanded)} style={styles.aiHeader}>
             <Text style={[styles.aiStatus, !aiConfigured && styles.aiNotConfigured]}>
-              {aiConfigured ? '✓ ' + t('AI configured') : '✗ ' + t('Not configured')}
+              {aiConfigured ? '✓ ' + t('settingsExtras.aiConfigured') : '✗ ' + t('settingsExtras.notConfigured')}
             </Text>
             <Text style={styles.aiToggle}>{aiExpanded ? '▲' : '▼'}</Text>
           </Pressable>
           {aiExpanded && (
             <>
               <TextField
-                label={t('Backend URL')}
+                label={t('settingsExtras.backendUrl')}
                 value={aiBaseUrl}
                 onChangeText={setAiBaseUrl}
                 placeholder="https://your-worker.workers.dev"
               />
               <TextField
-                label={t('Auth Token')}
+                label={t('settingsExtras.authToken')}
                 value={aiAuthToken}
                 onChangeText={setAiAuthToken}
-                placeholder={t('Your auth token')}
+                placeholder={t('settingsExtras.yourAuthToken')}
               />
             </>
           )}
@@ -360,15 +360,15 @@ export function SettingsScreen() {
         <Card variant="elevated" style={styles.card}>
           <Pressable onPress={() => setSyncExpanded(!syncExpanded)} style={styles.aiHeader}>
             <Text style={[styles.aiStatus, !syncConfigured && styles.aiNotConfigured]}>
-              {syncConfigured ? '✓ ' + t('Cloud Sync configured') : '✗ ' + t('Not configured')}
+              {syncConfigured ? '✓ ' + t('settingsExtras.cloudSyncConfigured') : '✗ ' + t('settingsExtras.notConfigured')}
             </Text>
             <Text style={styles.aiToggle}>{syncExpanded ? '▲' : '▼'}</Text>
           </Pressable>
           {syncExpanded && (
             <>
-              <Text style={styles.cardText}>{t('Create or paste a Recovery Key, then upload this device or restore the latest cloud backup manually.')}</Text>
-              <TextField label={t('Backend URL')} value={syncBaseUrl} onChangeText={setSyncBaseUrl} placeholder="https://your-worker.workers.dev" />
-              <TextField label={t('Recovery Key')} value={syncRecoveryKey} onChangeText={setSyncRecoveryKey} placeholder="PL-XXXX-XXXX-XXXX-XXXX" />
+              <Text style={styles.cardText}>{t('settingsExtras.cloudSyncHint')}</Text>
+              <TextField label={t('settingsExtras.backendUrl')} value={syncBaseUrl} onChangeText={setSyncBaseUrl} placeholder="https://your-worker.workers.dev" />
+              <TextField label={t('Recovery Key')} value={syncRecoveryKey} onChangeText={setSyncRecoveryKey} placeholder={t('settingsExtras.recoveryKeyPlaceholder')} />
               <View style={styles.buttonRow}>
                 <Button title={t('settings.create')} onPress={handleCreateRecoveryKey} loading={syncBusy} size="sm" style={styles.rowButton} />
                 <Button title={t('common.save')} onPress={saveSyncConfig} variant="secondary" disabled={!syncBaseUrl || !syncRecoveryKey} size="sm" style={styles.rowButton} />
@@ -382,19 +382,19 @@ export function SettingsScreen() {
           )}
           {remoteSnapshot ? (
             <Text style={styles.cardText}>
-              {t('Cloud backup')}: {new Date(remoteSnapshot.createdAt).toLocaleString()} · {formatSnapshotSize(remoteSnapshot.sizeBytes)} · {remoteSnapshot.sha256.slice(0, 8)}…
+              {t('settingsExtras.cloudBackup')}: {new Date(remoteSnapshot.createdAt).toLocaleString()} · {formatSnapshotSize(remoteSnapshot.sizeBytes)} · {remoteSnapshot.sha256.slice(0, 8)}…
             </Text>
           ) : null}
-          {syncStatusMeta.lastManualUploadAt ? <Text style={styles.cardText}>{t('Last manual upload')}: {new Date(syncStatusMeta.lastManualUploadAt).toLocaleString()}</Text> : null}
-          {syncStatusMeta.lastAutoUploadAt ? <Text style={styles.cardText}>{t('Last auto upload')}: {new Date(syncStatusMeta.lastAutoUploadAt).toLocaleString()}</Text> : null}
-          {syncStatusMeta.lastRestoreAt ? <Text style={styles.cardText}>{t('Last restore')}: {new Date(syncStatusMeta.lastRestoreAt).toLocaleString()}</Text> : null}
+          {syncStatusMeta.lastManualUploadAt ? <Text style={styles.cardText}>{t('settingsExtras.lastManualUpload')}: {new Date(syncStatusMeta.lastManualUploadAt).toLocaleString()}</Text> : null}
+          {syncStatusMeta.lastAutoUploadAt ? <Text style={styles.cardText}>{t('settingsExtras.lastAutoUpload')}: {new Date(syncStatusMeta.lastAutoUploadAt).toLocaleString()}</Text> : null}
+          {syncStatusMeta.lastRestoreAt ? <Text style={styles.cardText}>{t('settingsExtras.lastRestore')}: {new Date(syncStatusMeta.lastRestoreAt).toLocaleString()}</Text> : null}
           {syncMessage ? <Text style={styles.savedText}>{syncMessage}</Text> : null}
-          {syncError ? <Text style={styles.errorText}>{t('Cloud Sync failed')}: {syncError}</Text> : null}
+          {syncError ? <Text style={styles.errorText}>{t('settingsExtras.cloudSyncFailed')}: {syncError}</Text> : null}
         </Card>
 
         <SectionHeader title={t('settings.dataBackup')} subtitle={t('Download or import a local database backup file on web.')} />
         <Card variant="tonal" style={styles.card}>
-          <Text style={styles.cardText}>{t('Export creates a local training database file. Import creates a local backup first, then replaces this device database.')}</Text>
+          <Text style={styles.cardText}>{t('settingsExtras.dataBackupHint')}</Text>
           {Platform.OS === 'web' ? (
             <>
               <View style={styles.buttonRow}>
@@ -414,19 +414,19 @@ export function SettingsScreen() {
               />
             </>
           ) : (
-            <Text style={styles.cardText}>{t('File backup is web-first in this version.')}</Text>
+            <Text style={styles.cardText}>{t('settingsExtras.fileBackupWebOnly')}</Text>
           )}
           {backupMessage ? <Text style={styles.savedText}>{backupMessage}</Text> : null}
           {backupError ? <Text style={styles.errorText}>{t('Backup failed')}: {backupError}</Text> : null}
         </Card>
 
-        <SectionHeader title={t('settings.appVersion')} subtitle={t('PWA update status for the installed web app.')} />
+        <SectionHeader title={t('settings.appVersion')} subtitle={t('settingsExtras.pwaUpdateStatus')} />
         <Card variant="outlined" style={styles.card}>
           <Pressable style={styles.cardTopRow} onPress={() => setReleaseNotesExpanded((value) => !value)}>
-            <Text style={styles.cardKicker}>PowerLog v{getAppVersion()}</Text>
-            <Text style={styles.statusPill}>{updateAvailable ? t('settings.updateReady') : t('Current')}</Text>
+            <Text style={styles.cardKicker}>{t('settingsExtras.powerLogVersion', { version: getAppVersion() })}</Text>
+            <Text style={styles.statusPill}>{updateAvailable ? t('settings.updateReady') : t('settingsExtras.current')}</Text>
           </Pressable>
-          <Text style={styles.cardText}>{updateAvailable ? t('A newer web app version is available. Refresh to load it.') : t('The installed web app checks for new deployments when opened.')}</Text>
+          <Text style={styles.cardText}>{updateAvailable ? t('settingsExtras.updateAvailableHint') : t('settingsExtras.upToDateHint')}</Text>
           <Button title={releaseNotesExpanded ? t('settings.hideUpdateNotes') : t('settings.viewUpdateNotes')} onPress={() => setReleaseNotesExpanded((value) => !value)} variant="secondary" size="sm" fullWidth />
           {releaseNotesExpanded ? (
             <View style={styles.releaseList}>

@@ -94,7 +94,7 @@ export function WorkoutRecordingScreen() {
       if (value === true) {
         const nextRpe = set.actualRpe;
         if (rpeRequired && typeof nextRpe !== 'number') {
-          showAlert(t('workout.rpeRequired'), 'Main lift sets need an RPE before completion.');
+          showAlert(t('workout.rpeRequired'), t('workoutRecording.rpeAlertMainLift'));
           return;
         }
         await completeSet(db, set.id);
@@ -165,7 +165,7 @@ export function WorkoutRecordingScreen() {
       isMainLiftRole(exercise.exercise.role) && exercise.sets.some((set) => set.completed && typeof set.actualRpe !== 'number'),
     );
     if (missingRpe) {
-      showAlert(t('workout.rpeRequired'), 'Add RPE to every completed main lift set before finishing.');
+      showAlert(t('workout.rpeRequired'), t('workoutRecording.rpeAlertAllLifts'));
       return;
     }
 
@@ -214,7 +214,7 @@ export function WorkoutRecordingScreen() {
 
         <SectionHeader
           title={t('workout.exercises')}
-          subtitle="Log each working set with fast kg/reps/RPE inputs."
+          subtitle={t('workoutRecording.exercisesSubtitle')}
           action={{ text: showPicker ? t('common.close') : t('common.add'), onPress: () => setShowPicker((value) => !value) }}
           trailing={exercises.length > 1 ? (
             <Pressable onPress={() => setIsReorderMode(!isReorderMode)} style={styles.reorderToggleBtn}>
@@ -227,7 +227,7 @@ export function WorkoutRecordingScreen() {
         {exercises.length === 0 ? (
           <Card variant="outlined" style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>{t('workout.buildTheSession')}</Text>
-            <Text style={styles.emptyCopy}>Add your first lift, then record weight, reps, and RPE as you train.</Text>
+            <Text style={styles.emptyCopy}>{t('workoutRecording.emptyStateHint')}</Text>
             <Button title={t('workout.addExercise')} onPress={() => setShowPicker(true)} variant="secondary" />
           </Card>
         ) : (
@@ -262,7 +262,7 @@ export function WorkoutRecordingScreen() {
                 <Pressable
                   onPress={() => void handleRemoveExercise(workoutExercise.id)}
                   style={styles.deleteExerciseBtn}
-                  accessibilityLabel={`Delete ${workoutExercise.exercise.nameEn}`}
+                  accessibilityLabel={t('workoutRecording.deleteExercise', { name: workoutExercise.exercise.nameEn })}
                 >
                   <Text style={styles.deleteExerciseText}>{t('workout.removeExercise')}</Text>
                 </Pressable>
@@ -294,7 +294,7 @@ export function WorkoutRecordingScreen() {
                       <Pressable
                         onPress={() => void handleRemoveSet(workoutExercise.id, set.id)}
                         style={styles.deleteSetBtn}
-                        accessibilityLabel={`Delete set ${set.setNumber}`}
+                        accessibilityLabel={t('workoutRecording.deleteSet', { number: set.setNumber })}
                       >
                         <Text style={styles.deleteSetText}>×</Text>
                       </Pressable>

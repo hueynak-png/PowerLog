@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography } from '@/src/theme';
 import { radius } from '@/src/theme/radius';
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
 const getToday = () => new Date().toISOString().slice(0, 10);
 
@@ -120,7 +120,7 @@ export function CalendarScreen() {
           {/* Weekday headers */}
           <View style={styles.weekRow}>
             {WEEKDAYS.map((d) => (
-              <Text key={d} style={styles.weekday}>{d}</Text>
+              <Text key={d} style={styles.weekday}>{t(`weekdays.${d}`)}</Text>
             ))}
           </View>
 

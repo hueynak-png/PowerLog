@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@/src/theme/colors';
 import { spacing } from '@/src/theme/spacing';
 import { typography } from '@/src/theme/typography';
@@ -20,9 +21,10 @@ function getRpeColor(rpe: number): string {
 }
 
 export function RpeSelector({ value, onChange, required }: RpeSelectorProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, required && styles.labelRequired]}>RPE{required ? ' required' : ''}</Text>
+      <Text style={[styles.label, required && styles.labelRequired]}>{required ? t('rpeSelector.rpeRequired') : t('common.rpe')}</Text>
       <View style={styles.grid}>
         {RPE_VALUES.map((rpe) => {
           const isSelected = value === rpe;
@@ -31,7 +33,7 @@ export function RpeSelector({ value, onChange, required }: RpeSelectorProps) {
             <Pressable
               key={rpe}
               onPress={() => onChange(rpe)}
-              accessibilityLabel={`RPE ${rpe}`}
+              accessibilityLabel={t('rpeSelector.rpeValue', { rpe })}
               style={[styles.chip, isSelected && { backgroundColor: rpeColor, borderColor: rpeColor }]}
             >
               <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
