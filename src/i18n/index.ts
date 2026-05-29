@@ -15,41 +15,38 @@ function resolveLocale(tag: string): 'en' | 'zh-CN' {
   return 'en';
 }
 
-async function detectLanguage(): Promise<'en' | 'zh-CN'> {
-  try {
-    const saved = await AsyncStorage.getItem(LANGUAGE_KEY);
-    if (saved === 'en' || saved === 'zh-CN') return saved;
-  } catch { /* ignore */ }
-  return resolveLocale(deviceLocale);
-}
+// Initialize synchronously first — app must render immediately
+i18n.use(initReactI18next).init({
+  compatibilityJSON: 'v4',
+  resources: {
+    en: { common: en },
+    'zh-CN': { common: zhCN },
+  },
+  lng: resolveLocale(deviceLocale),
+  fallbackLng: 'en',
+  defaultNS: 'common',
+  interpolation: {
+    escapeValue: false,
+  },
+});
 
-// Override changeLanguage to persist preference
+// Load saved language preference in background (non-blocking)
+AsyncStorage.getItem(LANGUAGE_KEY)
+  .then((saved) => {
+    if (saved === 'en' || saved === 'zh-CN') {
+      i18n.changeLanguage(saved);
+    }
+  })
+  .catch(() => {});
+
+// Persist language choice when user toggles
 const originalChangeLanguage = i18n.changeLanguage.bind(i18n);
 i18n.changeLanguage = async (lng: string | undefined) => {
   const result = await originalChangeLanguage(lng);
   if (lng) {
-    try {
-      await AsyncStorage.setItem(LANGUAGE_KEY, lng);
-    } catch { /* ignore */ }
+    AsyncStorage.setItem(LANGUAGE_KEY, lng).catch(() => {});
   }
   return result;
 };
-
-// Initialize with saved preference
-detectLanguage().then((lng) => {
-  i18n.use(initReactI18next).init({
-    compatibilityJSON: 'v4',
-    resources: {
-      en: { common: en },
-      'zh-CN': { common: zhCN },
-    },
-    lng,
-    fallbackLng: 'en',
-    defaultNS: 'common',
-    interpolation: {
-      escapeValue: false,
-    },
-  });
-});
 
 export default i18n;
