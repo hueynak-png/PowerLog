@@ -17,6 +17,8 @@ import {
   getWeeklyVolume,
 } from '@/src/repositories';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
+import { useTranslation } from 'react-i18next';
+
 import { colors, spacing, typography } from '@/src/theme';
 
 const MAIN_LIFTS: Array<{ liftFamily: string; label: string; color: string }> = [
@@ -28,6 +30,7 @@ const MAIN_LIFTS: Array<{ liftFamily: string; label: string; color: string }> = 
 export function AnalyticsScreen() {
   const db = useDatabase();
   const getMaxForLift = useSettingsStore((state) => state.getMaxForLift);
+  const { t } = useTranslation();
 
   const [e1rmData, setE1rmData] = useState<Record<string, { date: string; e1rm: number }[]>>({});
   const [weeklyVolume, setWeeklyVolume] = useState<{ weekStart: string; totalVolume: number }[]>([]);
@@ -72,7 +75,7 @@ export function AnalyticsScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loading}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={styles.loadingText}>Loading analytics...</Text>
+          <Text style={styles.loadingText}>{t('common.loadingAnalytics')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -87,32 +90,32 @@ export function AnalyticsScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>Training intelligence</Text>
-          <Text style={styles.pageTitle}>Analytics</Text>
-          <Text style={styles.subtitle}>Strength trends, workload, fatigue signals, and recovery context in one dashboard.</Text>
+          <Text style={styles.eyebrow}>{t('analytics.trainingIntelligence')}</Text>
+          <Text style={styles.pageTitle}>{t('nav.analytics')}</Text>
+          <Text style={styles.subtitle}>{t('analytics.strengthTrendsWorkload')}</Text>
         </View>
 
         <View style={styles.metricsRow}>
           <View style={styles.metricWrap}>
-            <MetricCard label="This week" value={latestVolume ? Math.round(latestVolume).toLocaleString() : '—'} unit={latestVolume ? 'kg' : undefined} color={colors.volume} tone="default" />
+            <MetricCard label={t('analytics.thisWeek')} value={latestVolume ? Math.round(latestVolume).toLocaleString() : '—'} unit={latestVolume ? 'kg' : undefined} color={colors.volume} tone="default" />
           </View>
           <View style={styles.metricWrap}>
-            <MetricCard label="Complete" value={`${Math.round(latestCompletion * 100)}`} unit="%" color={colors.success} tone="success" />
+            <MetricCard label={t('common.complete')} value={`${Math.round(latestCompletion * 100)}`} unit="%" color={colors.success} tone="success" />
           </View>
           <View style={styles.metricWrap}>
-            <MetricCard label="Bodyweight" value={latestBodyweight ? String(latestBodyweight) : '—'} unit={latestBodyweight ? 'kg' : undefined} color={colors.textPrimary} tone="coach" />
+            <MetricCard label={t('analytics.bodyweight')} value={latestBodyweight ? String(latestBodyweight) : '—'} unit={latestBodyweight ? 'kg' : undefined} color={colors.textPrimary} tone="coach" />
           </View>
         </View>
 
         {/* Current 1RM */}
-        <SectionHeader title="Strength board" subtitle="Current estimated 1RM settings for the big three." />
+        <SectionHeader title={t('analytics.strengthBoard')} subtitle={t('analytics.currentEstimated1RM')} />
         <Card variant="elevated" style={styles.card}>
           <View style={styles.metricsRowCompact}>
             {MAIN_LIFTS.map((lift) => {
               const max = getMaxForLift(lift.liftFamily as LiftType);
               return (
                 <View key={lift.liftFamily} style={styles.metricWrap}>
-                  <MetricCard label={lift.label} value={max ? String(max.oneRm) : '—'} unit={max ? 'kg' : undefined} color={lift.color} />
+                  <MetricCard label={t(`analytics.${lift.liftFamily}`)} value={max ? String(max.oneRm) : '—'} unit={max ? 'kg' : undefined} color={lift.color} />
                 </View>
               );
             })}
@@ -120,12 +123,12 @@ export function AnalyticsScreen() {
         </Card>
 
         {/* e1RM Curves */}
-        <SectionHeader title="Estimated 1RM Trend" subtitle="Follow the direction of your main lift strength." />
+        <SectionHeader title={t('analytics.estimated1RMTrend')} subtitle={t('analytics.followMainLiftStrength')} />
         <Card style={styles.card}>
           {MAIN_LIFTS.map((lift) => (
             <LineChart
               key={lift.liftFamily}
-              title={lift.label}
+              title={t(`analytics.${lift.liftFamily}`)}
               data={(e1rmData[lift.liftFamily] ?? []).map((d) => ({ label: d.date.slice(5), value: d.e1rm }))}
               color={lift.color}
               unit="kg"
@@ -134,10 +137,10 @@ export function AnalyticsScreen() {
         </Card>
 
         {/* Weekly Volume */}
-        <SectionHeader title="Weekly Volume" subtitle="Tonnage by week across all logged exercises." />
+        <SectionHeader title={t('analytics.weeklyVolume')} subtitle={t('analytics.tonnageByWeek')} />
         <Card style={styles.card}>
           <LineChart
-            title="Total Volume (kg)"
+            title={t('analytics.totalVolumeKg')}
             data={weeklyVolume.map((d) => ({ label: d.weekStart.slice(5), value: d.totalVolume }))}
             color={colors.primary}
             unit="kg"
@@ -145,10 +148,10 @@ export function AnalyticsScreen() {
         </Card>
 
         {/* Completion Rate */}
-        <SectionHeader title="Weekly Completion Rate" subtitle="How much of the planned work was completed." />
+        <SectionHeader title={t('analytics.weeklyCompletionRate')} subtitle={t('analytics.howMuchPlannedWork')} />
         <Card style={styles.card}>
           <LineChart
-            title="Avg Completion %"
+            title={t('analytics.avgCompletionPct')}
             data={completionRate.map((d) => ({ label: d.weekStart.slice(5), value: d.rate * 100 }))}
             color={colors.success}
             unit="%"
@@ -156,42 +159,42 @@ export function AnalyticsScreen() {
         </Card>
 
         {/* RPE Distribution */}
-        <SectionHeader title="RPE Distribution (30 days)" subtitle="Intensity balance from easier work to high-effort sets." />
+        <SectionHeader title={t('analytics.rpeDistribution30Days')} subtitle={t('analytics.intensityBalance')} />
         <View style={styles.metricsRow}>
           <View style={styles.metricWrap}>
-              <MetricCard label="Low (6-7)" value={`${rpe.low}`} color={colors.rpeLow} tone="success" />
+              <MetricCard label={t('analytics.low67')} value={`${rpe.low}`} color={colors.rpeLow} tone="success" />
           </View>
           <View style={styles.metricWrap}>
-              <MetricCard label="Med (7.5-8.5)" value={`${rpe.medium}`} color={colors.rpeMedium} tone="warning" />
+              <MetricCard label={t('analytics.med7585')} value={`${rpe.medium}`} color={colors.rpeMedium} tone="warning" />
           </View>
           <View style={styles.metricWrap}>
-              <MetricCard label="High (9+)" value={`${rpe.high}`} color={colors.rpeHigh} tone="danger" />
+              <MetricCard label={t('analytics.high9plus')} value={`${rpe.high}`} color={colors.rpeHigh} tone="danger" />
           </View>
         </View>
         {rpeTotal > 0 && (
           <Card style={styles.card}>
             <BarChart
-              title="RPE Breakdown"
+              title={t('analytics.rpeBreakdown')}
               data={[
-                { label: 'Low', value: rpe.low, color: colors.rpeLow },
-                { label: 'Med', value: rpe.medium, color: colors.rpeMedium },
-                { label: 'High', value: rpe.high, color: colors.rpeHigh },
+                { label: t('analytics.low'), value: rpe.low, color: colors.rpeLow },
+                { label: t('analytics.med'), value: rpe.medium, color: colors.rpeMedium },
+                { label: t('analytics.high'), value: rpe.high, color: colors.rpeHigh },
               ]}
             />
           </Card>
         )}
 
         {/* Muscle Group Volume */}
-        <SectionHeader title="Muscle Group Volume (30 days)" subtitle="Which areas received the most total work recently." />
+        <SectionHeader title={t('analytics.muscleGroupVolume30Days')} subtitle={t('analytics.whichAreasReceivedWork')} />
         <Card style={styles.card}>
           <BarChart
-            title="Volume by Muscle Group"
+            title={t('analytics.volumeByMuscleGroup')}
             data={muscleVolume.slice(0, 8).map((d) => ({ label: d.muscleGroup, value: Math.round(d.volume) }))}
           />
         </Card>
 
         {/* Weekly Muscle Coverage */}
-        <SectionHeader title="Weekly Muscle Coverage" subtitle="Color intensity shows relative training volume" />
+        <SectionHeader title={t('analytics.weeklyMuscleCoverage')} subtitle={t('analytics.colorIntensityShowsVolume')} />
         <Card style={styles.card}>
           <View style={styles.heatmapContainer}>
             {muscleHeatmap.map((item) => {
@@ -228,10 +231,10 @@ export function AnalyticsScreen() {
         </Card>
 
         {/* Bodyweight */}
-        <SectionHeader title="Bodyweight" subtitle="Bodyweight context for performance changes." />
+        <SectionHeader title={t('analytics.bodyweight')} subtitle={t('analytics.bodyweightContext')} />
         <Card style={styles.card}>
           <LineChart
-            title="Bodyweight (90 days)"
+            title={t('analytics.bodyweight90Days')}
             data={bodyweight.map((d) => ({ label: d.date.slice(5), value: d.bodyweight }))}
             color={colors.textPrimary}
             unit="kg"

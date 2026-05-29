@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 
@@ -25,21 +26,22 @@ const formatValue = (value?: number, unit = ''): string =>
   typeof value === 'number' ? `${value}${unit}` : '—';
 
 function ReadOnlySetRow({ set }: { set: WorkoutSet }) {
+  const { t } = useTranslation();
   return (
     <View style={[styles.setRow, set.isWarmup && styles.warmupRow]}>
       <Text style={styles.setNumber}>{set.isWarmup ? 'W' : set.setNumber}</Text>
       <View style={styles.setCell}>
-        <Text style={styles.setLabel}>Weight</Text>
+        <Text style={styles.setLabel}>{t('common.weight')}</Text>
         <Text style={styles.setValue}>{formatValue(set.actualWeight ?? set.plannedWeight, ' kg')}</Text>
         {typeof set.plannedWeight === 'number' && <Text style={styles.plannedValue}>Plan {set.plannedWeight} kg</Text>}
       </View>
       <View style={styles.setCell}>
-        <Text style={styles.setLabel}>Reps</Text>
+        <Text style={styles.setLabel}>{t('common.reps')}</Text>
         <Text style={styles.setValue}>{formatValue(set.actualReps ?? set.plannedReps)}</Text>
         {typeof set.plannedReps === 'number' && <Text style={styles.plannedValue}>Plan {set.plannedReps}</Text>}
       </View>
       <View style={styles.setCell}>
-        <Text style={styles.setLabel}>RPE</Text>
+        <Text style={styles.setLabel}>{t('common.rpe')}</Text>
         <Text style={styles.setValue}>{formatValue(set.actualRpe ?? set.plannedRpe)}</Text>
         {typeof set.plannedRpe === 'number' && <Text style={styles.plannedValue}>Plan {set.plannedRpe}</Text>}
       </View>
@@ -49,6 +51,7 @@ function ReadOnlySetRow({ set }: { set: WorkoutSet }) {
 }
 
 export function WorkoutDetailScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const session = useActiveWorkoutStore((state) => state.session);
   const exercises = useActiveWorkoutStore((state) => state.exercises);
@@ -72,22 +75,22 @@ export function WorkoutDetailScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹ Back</Text>
+          <Text style={styles.backBtnText}>{`‹ ${t('common.back')}`}</Text>
         </Pressable>
 
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>Workout details</Text>
+          <Text style={styles.eyebrow}>{t('workout.workoutDetails')}</Text>
           <Text style={styles.title}>{session ? new Date(session.startedAt).toLocaleString() : 'Completed session'}</Text>
           <Text style={styles.subtitle}>Read-only view of the exercises and sets saved for this workout.</Text>
         </View>
 
         <View style={styles.metricsRow}>
-          <MetricCard label="Duration" value={formatDuration(summary.durationSeconds)} color={colors.primary} />
-          <MetricCard label="Complete" value={`${Math.round(summary.completionRate * 100)}`} unit="%" color={colors.success} />
-          <MetricCard label="Volume" value={`${Math.round(summary.totalVolume)}`} unit="kg" color={colors.textPrimary} />
+          <MetricCard label={t('common.duration')} value={formatDuration(summary.durationSeconds)} color={colors.primary} />
+          <MetricCard label={t('common.complete')} value={`${Math.round(summary.completionRate * 100)}`} unit="%" color={colors.success} />
+          <MetricCard label={t('common.volume')} value={`${Math.round(summary.totalVolume)}`} unit="kg" color={colors.textPrimary} />
         </View>
 
-        <SectionHeader title="Exercises" />
+        <SectionHeader title={t('workout.exercises')} />
         {exercises.length > 0 ? (
           exercises.map((workoutExercise) => {
             const completed = workoutExercise.sets.filter((set) => set.completed).length;
@@ -103,7 +106,7 @@ export function WorkoutDetailScreen() {
                 isExpanded={expandedIds.has(workoutExercise.id)}
                 onToggle={() => toggleExpanded(workoutExercise.id)}
               >
-                {workoutExercise.notes ? <Text style={styles.notes}>Notes: {workoutExercise.notes}</Text> : null}
+                {workoutExercise.notes ? <Text style={styles.notes}>{t('common.notes')}: {workoutExercise.notes}</Text> : null}
                 {workoutExercise.sets.map((set) => (
                   <View key={set.id}>
                     <ReadOnlySetRow set={set} />
@@ -121,15 +124,15 @@ export function WorkoutDetailScreen() {
 
         {session?.notes ? (
           <>
-            <SectionHeader title="Session notes" />
+            <SectionHeader title={t('workout.sessionNotes')} />
             <Card style={styles.card}>
               <Text style={styles.notes}>{session.notes}</Text>
             </Card>
           </>
         ) : null}
 
-        <Button title="View Summary" variant="secondary" onPress={() => session && router.push(`/workout/${session.id}/summary` as Href)} />
-        <Button title="Done" onPress={() => router.replace('/(tabs)/calendar')} />
+        <Button title={t('workout.viewSummary')} variant="secondary" onPress={() => session && router.push(`/workout/${session.id}/summary` as Href)} />
+        <Button title={t('common.done')} onPress={() => router.replace('/(tabs)/calendar')} />
       </ScrollView>
     </SafeAreaView>
   );

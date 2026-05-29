@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -28,6 +29,7 @@ const formatDuration = (seconds: number): string => {
 type ScoreItem = { label: string; value: number; tone: 'success' | 'warning' | 'coach' };
 
 export function WorkoutSummaryScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const db = useDatabase();
   const session = useActiveWorkoutStore((state) => state.session);
@@ -113,7 +115,7 @@ export function WorkoutSummaryScreen() {
         aiSummaryJson: JSON.stringify(res.data),
       });
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : 'AI unavailable');
+      setAiError(err instanceof Error ? err.message : t('common.aiUnavailable'));
       await updateWorkoutSession(db, session.id, { aiSummaryStatus: 'failed' });
     } finally {
       setAiLoading(false);
@@ -154,18 +156,18 @@ export function WorkoutSummaryScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>Session complete</Text>
+          <Text style={styles.eyebrow}>{t('workout.sessionComplete')}</Text>
           <Text style={styles.title}>Strong work.</Text>
           <Text style={styles.subtitle}>Your workout is saved offline with a local summary and coaching rules.</Text>
         </View>
 
         <View style={styles.metricsRow}>
-          <MetricCard label="Duration" value={formatDuration(summary.durationSeconds)} color={colors.primary} />
-          <MetricCard label="Complete" value={`${Math.round(summary.completionRate * 100)}`} unit="%" color={colors.success} />
-          <MetricCard label="Volume" value={`${Math.round(summary.totalVolume)}`} unit="kg" color={colors.textPrimary} />
+          <MetricCard label={t('common.duration')} value={formatDuration(summary.durationSeconds)} color={colors.primary} />
+          <MetricCard label={t('common.complete')} value={`${Math.round(summary.completionRate * 100)}`} unit="%" color={colors.success} />
+          <MetricCard label={t('common.volume')} value={`${Math.round(summary.totalVolume)}`} unit="kg" color={colors.textPrimary} />
         </View>
 
-        <SectionHeader title="Main lifts" />
+        <SectionHeader title={t('workout.mainLifts')} />
         {summary.mainLiftPerformance.length > 0 ? (
           summary.mainLiftPerformance.map((lift) => (
             <Card key={lift.exerciseId} style={styles.card}>
@@ -187,14 +189,14 @@ export function WorkoutSummaryScreen() {
           </Card>
         )}
 
-        <SectionHeader title="RPE distribution" />
+        <SectionHeader title={t('workout.rpeDistribution')} />
         <View style={styles.metricsRow}>
-          <MetricCard label="Low" value={`${summary.rpeDistribution.low}`} color={colors.rpeLow} />
-          <MetricCard label="Medium" value={`${summary.rpeDistribution.medium}`} color={colors.rpeMedium} />
-          <MetricCard label="High" value={`${summary.rpeDistribution.high}`} color={colors.rpeHigh} />
+          <MetricCard label={t('analytics.low')} value={`${summary.rpeDistribution.low}`} color={colors.rpeLow} />
+          <MetricCard label={t('analytics.med')} value={`${summary.rpeDistribution.medium}`} color={colors.rpeMedium} />
+          <MetricCard label={t('analytics.high')} value={`${summary.rpeDistribution.high}`} color={colors.rpeHigh} />
         </View>
 
-        <SectionHeader title="Suggestions" />
+        <SectionHeader title={t('workout.suggestions')} />
         <Card style={styles.card}>
           {summary.suggestions.length > 0 ? (
             summary.suggestions.map((suggestion, index) => (
@@ -208,7 +210,7 @@ export function WorkoutSummaryScreen() {
           )}
         </Card>
 
-        <SectionHeader title="AI Coach" eyebrow="Post-session report" subtitle="Loaded once per workout unless you manually re-analyze." />
+        <SectionHeader title={t('workout.aiCoach')} eyebrow="Post-session report" subtitle="Loaded once per workout unless you manually re-analyze." />
         <Card variant="coach" style={styles.card}>
           {aiLoading && (
             <View style={styles.aiLoading}>
@@ -218,7 +220,7 @@ export function WorkoutSummaryScreen() {
           )}
           {aiError && (
             <Text style={styles.aiError}>
-              {aiError === 'AI service not configured' ? 'AI not configured. Set up in Settings.' : `AI unavailable: ${aiError}`}
+              {aiError === 'AI service not configured' ? t('common.aiNotConfiguredSetup') : `${t('common.aiUnavailable')}: ${aiError}`}
             </Text>
           )}
           {aiAnalysis && (
@@ -228,7 +230,7 @@ export function WorkoutSummaryScreen() {
                   <Text style={styles.aiVerdictBadgeText}>Coach verdict</Text>
                 </View>
                 <Button
-                  title={aiLoading ? 'Analyzing...' : 'Re-analyze'}
+                  title={aiLoading ? 'Analyzing...' : t('workout.reAnalyze')}
                   onPress={() => void requestAnalysis(true)}
                   variant="secondary"
                   size="sm"
@@ -303,7 +305,7 @@ export function WorkoutSummaryScreen() {
           )}
         </Card>
 
-        <Button title="Done" onPress={() => router.replace('/(tabs)')} />
+        <Button title={t('common.done')} onPress={() => router.replace('/(tabs)')} />
       </ScrollView>
     </SafeAreaView>
   );

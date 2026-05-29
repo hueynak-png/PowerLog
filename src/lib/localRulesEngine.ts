@@ -1,6 +1,7 @@
 import type { Exercise, RuleSuggestion, WorkoutSet } from '@/src/domain/types';
 import { calculateCompletionRate } from '@/src/lib/volume';
 import { getRpeDeviation, isMainLift } from '@/src/lib/rpe';
+import i18n from '@/src/i18n';
 
 const RPE_OVERSHOOT_THRESHOLD = 1;
 const RPE_UNDERSHOOT_THRESHOLD = 1;
@@ -25,7 +26,7 @@ export function checkRpeOvershoot(set: WorkoutSet): RuleSuggestion | null {
     type: 'reduce_weight',
     severity: 'warning',
     suggestedAdjustmentPercent: -5,
-    message: `Set ${set.setNumber} overshot planned RPE by ${deviation.toFixed(1)}. Consider reducing weight 2.5-5%.`,
+    message: i18n.t('guidance.overshotRpe', { setNumber: set.setNumber, deviation: deviation.toFixed(1), defaultValue: `Set ${set.setNumber} overshot planned RPE by ${deviation.toFixed(1)}. Consider reducing weight 2.5-5%.` }),
   };
 }
 
@@ -43,7 +44,7 @@ export function checkRpeUndershoot(set: WorkoutSet): RuleSuggestion | null {
     type: 'increase_weight',
     severity: 'info',
     suggestedAdjustmentPercent: 2.5,
-    message: `Set ${set.setNumber} undershot planned RPE by ${deviation.toFixed(1)}. Consider a small weight increase.`,
+    message: i18n.t('guidance.undershotRpe', { setNumber: set.setNumber, deviation: deviation.toFixed(1), defaultValue: `Set ${set.setNumber} undershot planned RPE by ${deviation.toFixed(1)}. Consider a small weight increase.` }),
   };
 }
 
@@ -73,7 +74,7 @@ export function checkConsecutiveOvershoot(sets: WorkoutSet[]): RuleSuggestion | 
   return {
     type: 'stop_adding',
     severity: 'alert',
-    message: 'Two consecutive completed sets overshot the planned RPE. Stop adding load or reduce weight.',
+    message: i18n.t('guidance.consecutiveOvershoot', { defaultValue: 'Two consecutive completed sets overshot the planned RPE. Stop adding load or reduce weight.' }),
   };
 }
 
@@ -94,7 +95,7 @@ export function checkMainLiftCompletion(sets: WorkoutSet[], exercise: Exercise):
   return {
     type: 'main_lift_underperformed',
     severity: 'warning',
-    message: `Main lift completion rate is ${(completionRate * 100).toFixed(0)}%, below the 80% target.`,
+    message: i18n.t('guidance.mainLiftCompletionLow', { rate: (completionRate * 100).toFixed(0), defaultValue: `Main lift completion rate is ${(completionRate * 100).toFixed(0)}%, below the 80% target.` }),
   };
 }
 

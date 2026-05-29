@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Card } from '@/src/components/ui/Card';
@@ -18,6 +19,7 @@ interface ExercisePickerModalProps {
 const familyOrder: LiftFamily[] = ['squat', 'bench', 'deadlift', 'upper', 'lower', 'accessory'];
 
 export function ExercisePickerModal({ onSelect }: ExercisePickerModalProps) {
+  const { t } = useTranslation();
   const db = useDatabase();
   const addExercise = useActiveWorkoutStore((state) => state.addExercise);
   const [query, setQuery] = useState('');
@@ -87,7 +89,7 @@ export function ExercisePickerModal({ onSelect }: ExercisePickerModalProps) {
 
   return (
     <Card variant="outlined" style={styles.container}>
-      <Text style={styles.title}>Add exercise</Text>
+      <Text style={styles.title}>{t('workout.addExercise')}</Text>
       <TextInput
         value={query}
         onChangeText={setQuery}
@@ -113,7 +115,7 @@ export function ExercisePickerModal({ onSelect }: ExercisePickerModalProps) {
                     <Text style={styles.nameEn}>{exercise.nameEn}</Text>
                     <Text style={styles.nameZh}>{exercise.nameZh}</Text>
                   </View>
-                  <Text style={styles.role}>{selectedId === exercise.id ? 'Adding…' : exercise.role}</Text>
+                  <Text style={styles.role}>{selectedId === exercise.id ? t('workout.adding') : exercise.role}</Text>
                 </Pressable>
               ))}
             </View>

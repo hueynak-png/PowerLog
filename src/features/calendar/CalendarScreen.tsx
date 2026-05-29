@@ -9,6 +9,8 @@ import { useDatabase } from '@/src/hooks/useDatabase';
 import { confirmAction } from '@/src/lib/alert';
 import { deleteWorkoutSession, getWorkoutsByDate, getWorkoutsByMonth } from '@/src/repositories';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
+import { useTranslation } from 'react-i18next';
+
 import { colors, spacing, typography } from '@/src/theme';
 import { radius } from '@/src/theme/radius';
 
@@ -37,6 +39,7 @@ export function CalendarScreen() {
   const db = useDatabase();
   const router = useRouter();
   const startWorkout = useActiveWorkoutStore((state) => state.startWorkout);
+  const { t } = useTranslation();
 
   const today = getToday();
   const [year, setYear] = useState(() => new Date().getFullYear());
@@ -80,8 +83,8 @@ export function CalendarScreen() {
   const handleDeleteWorkout = useCallback(async (session: WorkoutSession) => {
     if (!db) return;
     confirmAction(
-      'Delete Workout',
-      `Delete workout from ${session.date}? This cannot be undone.`,
+      t('common.deleteWorkout'),
+      t('common.deleteWorkoutConfirm', { date: session.date }),
       async () => {
         await deleteWorkoutSession(db, session.id);
         setDayWorkouts((prev) => prev.filter((w) => w.id !== session.id));
@@ -94,9 +97,9 @@ export function CalendarScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>Training history</Text>
-          <Text style={styles.title}>Calendar</Text>
-          <Text style={styles.subtitle}>Review completed sessions, jump into workout details, or backfill a training day.</Text>
+          <Text style={styles.eyebrow}>{t('calendar.trainingHistory')}</Text>
+          <Text style={styles.title}>{t('nav.calendar')}</Text>
+          <Text style={styles.subtitle}>{t('calendar.reviewCompletedSessions')}</Text>
         </View>
 
         {/* Month navigation */}
@@ -106,7 +109,7 @@ export function CalendarScreen() {
               <Text style={styles.navBtnText}>‹</Text>
             </Pressable>
             <View style={styles.monthTitleBlock}>
-              <Text style={styles.monthKicker}>Month view</Text>
+              <Text style={styles.monthKicker}>{t('calendar.monthView')}</Text>
               <Text style={styles.monthTitle}>{formatMonthYear(year, month)}</Text>
             </View>
             <Pressable onPress={nextMonth} style={styles.navBtn}>
@@ -151,7 +154,7 @@ export function CalendarScreen() {
         </Card>
 
         {/* Selected date detail */}
-        <SectionHeader title={selectedDate === today ? 'Today' : selectedDate} subtitle={`${dayWorkouts.length} session${dayWorkouts.length === 1 ? '' : 's'} logged`} />
+        <SectionHeader title={selectedDate === today ? t('common.today') : selectedDate} subtitle={`${dayWorkouts.length} ${dayWorkouts.length === 1 ? t('common.session') : t('common.sessions')} ${t('common.logged')}`} />
         {dayWorkouts.length > 0 ? (
           dayWorkouts.map((workout) => (
             <Card key={workout.id} variant="outlined" style={styles.workoutCard}>
@@ -161,15 +164,15 @@ export function CalendarScreen() {
                     {new Date(workout.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
                   <Text style={styles.workoutMeta}>
-                    {workout.durationSeconds ? formatDuration(workout.durationSeconds) : 'In progress'}
+                    {workout.durationSeconds ? formatDuration(workout.durationSeconds) : t('common.inProgress')}
                     {workout.totalVolume ? ` · ${Math.round(workout.totalVolume)} kg` : ''}
                     {workout.completionRate != null ? ` · ${Math.round(workout.completionRate * 100)}%` : ''}
                   </Text>
                 </View>
                 <View style={styles.workoutActions}>
-                  <Button title="View" size="sm" variant="secondary"
+                  <Button title={t('common.view')} size="sm" variant="secondary"
                     onPress={() => router.push(`/workout/${workout.id}` as Href)} />
-                  <Button title="Delete" size="sm" variant="secondary"
+                  <Button title={t('common.delete')} size="sm" variant="secondary"
                     onPress={() => void handleDeleteWorkout(workout)} />
                 </View>
               </View>
@@ -177,12 +180,12 @@ export function CalendarScreen() {
           ))
         ) : (
           <Card variant="tonal" style={styles.workoutCard}>
-            <Text style={styles.emptyText}>No workout on this day</Text>
+            <Text style={styles.emptyText}>{t('common.noWorkoutThisDay')}</Text>
           </Card>
         )}
 
         <Button
-          title={`Start Workout for ${selectedDate === today ? 'Today' : selectedDate}`}
+          title={t('calendar.startWorkoutFor', { date: selectedDate === today ? t('common.today') : selectedDate })}
           onPress={() => void handleStartWorkout(selectedDate)}
           disabled={!db}
           fullWidth

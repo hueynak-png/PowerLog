@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { colors, radius, spacing } from '@/src/theme';
 
@@ -28,6 +29,8 @@ function DockIcon({ name, color, focused }: { name: keyof typeof iconMap; color:
 }
 
 export default function TabLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
@@ -76,42 +79,42 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('nav.home'),
           tabBarIcon: ({ color, focused }) => <DockIcon name="home" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="workout"
         options={{
-          title: 'Workout',
+          title: t('nav.workout'),
           tabBarIcon: ({ color, focused }) => <DockIcon name="workout" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Calendar',
+          title: t('nav.calendar'),
           tabBarIcon: ({ color, focused }) => <DockIcon name="calendar" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="program"
         options={{
-          title: 'Program',
+          title: t('nav.program'),
           tabBarIcon: ({ color, focused }) => <DockIcon name="program" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="analytics"
         options={{
-          title: 'Analytics',
+          title: t('nav.analytics'),
           tabBarIcon: ({ color, focused }) => <DockIcon name="analytics" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: t('nav.settings'),
           tabBarIcon: ({ color, focused }) => <DockIcon name="settings" color={color} focused={focused} />,
         }}
       />

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +12,7 @@ import { isAIConfigured, requestWeeklyReview, type WeeklyReviewResponse } from '
 import { colors, spacing, typography } from '@/src/theme';
 
 export function WeeklyReviewScreen() {
+  const { t } = useTranslation();
   const db = useDatabase();
   const [isLoading, setIsLoading] = useState(false);
   const [review, setReview] = useState<WeeklyReviewResponse['data'] | null>(null);
@@ -36,7 +38,7 @@ export function WeeklyReviewScreen() {
   const handleGenerateReview = useCallback(async () => {
     if (!db) return;
     if (!isAIConfigured()) {
-      showAlert('AI not configured', 'Set up AI in Settings first.');
+      showAlert(t('review.aiNotConfigured'), t('common.aiNotConfiguredSetup'));
       return;
     }
 
@@ -55,7 +57,7 @@ export function WeeklyReviewScreen() {
       });
 
       if (thisWeek.length === 0) {
-        showAlert('No data', 'No workouts in the last 7 days to review.');
+        showAlert(t('review.noData'), 'No workouts in the last 7 days to review.');
         setIsLoading(false);
         return;
       }
@@ -100,7 +102,7 @@ export function WeeklyReviewScreen() {
       });
       setGeneratedAt(saved.generatedAt);
     } catch (err) {
-      showAlert('Error', err instanceof Error ? err.message : 'Failed to generate review');
+      showAlert(t('common.error'), err instanceof Error ? err.message : 'Failed to generate review');
     } finally {
       setIsLoading(false);
     }
@@ -109,31 +111,31 @@ export function WeeklyReviewScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Weekly Review</Text>
+        <Text style={styles.title}>{t('review.weeklyReview')}</Text>
         <Text style={styles.subtitle}>
           {period ? `AI analysis for ${period.start} → ${period.end}` : 'AI-powered analysis of your training week'}
         </Text>
         {generatedAt ? <Text style={styles.generatedText}>Saved review: {new Date(generatedAt).toLocaleString()}</Text> : null}
 
         {!review && !isLoading && (
-          <Button title="Generate Weekly Review" onPress={handleGenerateReview} disabled={!db} />
+          <Button title={t('review.generateWeeklyReview')} onPress={handleGenerateReview} disabled={!db} />
         )}
 
         {isLoading && (
           <Card style={styles.card}>
             <ActivityIndicator color={colors.primary} />
-            <Text style={styles.loadingText}>Analyzing your week...</Text>
+            <Text style={styles.loadingText}>{t('review.analyzing')}</Text>
           </Card>
         )}
 
         {review && (
           <>
-            <SectionHeader title="Summary" />
+            <SectionHeader title={t('review.summary')} />
             <Card style={styles.card}>
               <Text style={styles.bodyText}>{review.weekSummary}</Text>
             </Card>
 
-            <SectionHeader title="Lift Analysis" />
+            <SectionHeader title={t('review.liftAnalysis')} />
             {review.liftAnalysis.map((lift) => (
               <Card key={lift.lift} style={styles.card}>
                 <View style={styles.liftRow}>
@@ -155,7 +157,7 @@ export function WeeklyReviewScreen() {
               </>
             )}
 
-            <SectionHeader title="Suggestions" />
+            <SectionHeader title={t('review.suggestions')} />
             <Card style={styles.card}>
               {review.suggestions.map((s, i) => (
                 <View key={i} style={styles.suggestionRow}>
@@ -165,20 +167,20 @@ export function WeeklyReviewScreen() {
               ))}
             </Card>
 
-            <SectionHeader title="Deload?" />
+            <SectionHeader title={t('review.deload')} />
             <Card style={styles.card}>
               <Text style={[styles.deloadStatus, review.deloadRecommendation.needed && styles.deloadNeeded]}>
-                {review.deloadRecommendation.needed ? 'Deload recommended' : 'No deload needed'}
+                {review.deloadRecommendation.needed ? t('review.deloadRecommended') : t('review.noDeloadNeeded')}
               </Text>
               <Text style={styles.bodyText}>{review.deloadRecommendation.reasoning}</Text>
             </Card>
 
-            <SectionHeader title="Next Week Focus" />
+            <SectionHeader title={t('review.nextWeekFocus')} />
             <Card style={styles.card}>
               <Text style={styles.bodyText}>{review.nextWeekFocus}</Text>
             </Card>
 
-            <Button title="Generate New Review" onPress={handleGenerateReview} variant="secondary" />
+            <Button title={t('review.generateNewReview')} onPress={handleGenerateReview} variant="secondary" />
           </>
         )}
       </ScrollView>

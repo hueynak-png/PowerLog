@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 
@@ -27,6 +28,7 @@ type SetField = 'actualWeight' | 'actualReps' | 'actualRpe' | 'completed';
 const isMainLiftRole = (role: string): boolean => role === 'competition' || role === 'variation';
 
 export function WorkoutRecordingScreen() {
+  const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
   const session = useActiveWorkoutStore((state) => state.session);
@@ -92,7 +94,7 @@ export function WorkoutRecordingScreen() {
       if (value === true) {
         const nextRpe = set.actualRpe;
         if (rpeRequired && typeof nextRpe !== 'number') {
-          showAlert('RPE required', 'Main lift sets need an RPE before completion.');
+          showAlert(t('workout.rpeRequired'), 'Main lift sets need an RPE before completion.');
           return;
         }
         await completeSet(db, set.id);
@@ -163,7 +165,7 @@ export function WorkoutRecordingScreen() {
       isMainLiftRole(exercise.exercise.role) && exercise.sets.some((set) => set.completed && typeof set.actualRpe !== 'number'),
     );
     if (missingRpe) {
-      showAlert('RPE required', 'Add RPE to every completed main lift set before finishing.');
+      showAlert(t('workout.rpeRequired'), 'Add RPE to every completed main lift set before finishing.');
       return;
     }
 
@@ -183,12 +185,12 @@ export function WorkoutRecordingScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Back button */}
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>‹ Back</Text>
+          <Text style={styles.backBtnText}>{`‹ ${t('common.back')}`}</Text>
         </Pressable>
 
         <Card variant="elevated" style={styles.topCard}>
-          <Text style={styles.sessionKicker}>Active workout</Text>
-          <Text style={styles.sessionTitle}>Training cockpit</Text>
+          <Text style={styles.sessionKicker}>{t('workout.activeWorkout')}</Text>
+          <Text style={styles.sessionTitle}>{t('workout.trainingCockpit')}</Text>
           <View style={styles.topRow}>
             <TimerPill elapsedSeconds={elapsedSeconds} isRunning={isRunning} />
             <View style={styles.progressBlock}>
@@ -198,10 +200,10 @@ export function WorkoutRecordingScreen() {
           </View>
           {restSeconds !== null ? (
             <View style={styles.restTimerBanner}>
-              <Text style={styles.restTimerLabel}>Rest</Text>
+              <Text style={styles.restTimerLabel}>{t('workout.rest')}</Text>
               <Text style={styles.restTimerValue}>{Math.floor(restSeconds / 60)}:{String(restSeconds % 60).padStart(2, '0')}</Text>
               <Pressable onPress={clearRestTimer} style={styles.restSkipBtn}>
-                <Text style={styles.restSkipText}>⚡Skip</Text>
+                <Text style={styles.restSkipText}>{`⚡${t('workout.skip')}`}</Text>
               </Pressable>
             </View>
           ) : null}
@@ -211,12 +213,12 @@ export function WorkoutRecordingScreen() {
         </Card>
 
         <SectionHeader
-          title="Exercises"
+          title={t('workout.exercises')}
           subtitle="Log each working set with fast kg/reps/RPE inputs."
-          action={{ text: showPicker ? 'Close' : 'Add', onPress: () => setShowPicker((value) => !value) }}
+          action={{ text: showPicker ? t('common.close') : t('common.add'), onPress: () => setShowPicker((value) => !value) }}
           trailing={exercises.length > 1 ? (
             <Pressable onPress={() => setIsReorderMode(!isReorderMode)} style={styles.reorderToggleBtn}>
-              <Text style={styles.reorderToggleText}>{isReorderMode ? 'Done' : 'Reorder'}</Text>
+              <Text style={styles.reorderToggleText}>{isReorderMode ? t('common.done') : t('workout.reorder')}</Text>
             </Pressable>
           ) : null}
         />
@@ -224,9 +226,9 @@ export function WorkoutRecordingScreen() {
 
         {exercises.length === 0 ? (
           <Card variant="outlined" style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>Build the session</Text>
+            <Text style={styles.emptyTitle}>{t('workout.buildTheSession')}</Text>
             <Text style={styles.emptyCopy}>Add your first lift, then record weight, reps, and RPE as you train.</Text>
-            <Button title="Add Exercise" onPress={() => setShowPicker(true)} variant="secondary" />
+            <Button title={t('workout.addExercise')} onPress={() => setShowPicker(true)} variant="secondary" />
           </Card>
         ) : (
           exercises.map((workoutExercise, index) => {
@@ -240,7 +242,7 @@ export function WorkoutRecordingScreen() {
                 exerciseNameZh={workoutExercise.exercise.nameZh}
                 category={workoutExercise.exercise.category}
                 muscleGroups={workoutExercise.exercise.muscleGroups}
-                plannedSummary={rpeRequired ? 'Main lift · RPE required' : 'Accessory work'}
+                plannedSummary={rpeRequired ? `${t('workout.mainLift')} · ${t('workout.rpeRequired')}` : t('workout.accessoryWork')}
                 progress={`${completed}/${workoutExercise.sets.length}`}
                 isExpanded={expandedIds.has(workoutExercise.id)}
                 onToggle={() => toggleExpanded(workoutExercise.id)}
@@ -262,7 +264,7 @@ export function WorkoutRecordingScreen() {
                   style={styles.deleteExerciseBtn}
                   accessibilityLabel={`Delete ${workoutExercise.exercise.nameEn}`}
                 >
-                  <Text style={styles.deleteExerciseText}>Remove exercise</Text>
+                  <Text style={styles.deleteExerciseText}>{t('workout.removeExercise')}</Text>
                 </Pressable>
 
                 {guidance ? (
@@ -300,15 +302,15 @@ export function WorkoutRecordingScreen() {
                     <RpeSelector value={set.actualRpe ?? null} required={rpeRequired} onChange={(rpe) => void handleRpeChange(set.id, rpe)} />
                   </View>
                 ))}
-                <Button title="Add Set" onPress={() => void handleAddSet(workoutExercise.id)} variant="secondary" size="md" disabled={!db} fullWidth />
+                <Button title={t('workout.addSet')} onPress={() => void handleAddSet(workoutExercise.id)} variant="secondary" size="md" disabled={!db} fullWidth />
               </ExerciseCard>
             );
           })
         )}
 
         <View style={styles.footerActions}>
-          <Button title="Add Exercise" onPress={() => setShowPicker(true)} variant="secondary" disabled={!db} fullWidth />
-          <Button title="Complete Workout" onPress={handleCompleteWorkout} loading={isCompleting} disabled={!db || !session || setsTotal === 0} fullWidth />
+          <Button title={t('workout.addExercise')} onPress={() => setShowPicker(true)} variant="secondary" disabled={!db} fullWidth />
+          <Button title={t('workout.completeWorkout')} onPress={handleCompleteWorkout} loading={isCompleting} disabled={!db || !session || setsTotal === 0} fullWidth />
         </View>
       </ScrollView>
     </SafeAreaView>

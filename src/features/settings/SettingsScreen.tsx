@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
@@ -28,6 +29,7 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { colors, radius, spacing, typography } from '@/src/theme';
 
 export function SettingsScreen() {
+  const { t } = useTranslation();
   const db = useDatabase();
   const profile = useSettingsStore((state) => state.profile);
   const getMaxForLift = useSettingsStore((state) => state.getMaxForLift);
@@ -147,7 +149,7 @@ export function SettingsScreen() {
 
       setLastSavedAt(savedAt);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to save settings.');
+      setSaveError(error instanceof Error ? error.message : t('settings.failedToSave'));
     } finally {
       setIsSaving(false);
     }
@@ -159,7 +161,7 @@ export function SettingsScreen() {
     setSyncRecoveryKey(getSyncConfig().recoveryKey);
     setSyncConfigured(isSyncConfigured());
     setSyncExpanded(false);
-    setSyncMessage('Cloud Sync settings saved.');
+    setSyncMessage(t('settings.cloudSyncSaved'));
     setSyncError(null);
   };
 
@@ -172,7 +174,7 @@ export function SettingsScreen() {
       setSyncStatusMeta(getLocalSyncStatus());
       setSyncConfigured(isSyncConfigured());
     } catch (error) {
-      setSyncError(error instanceof Error ? error.message : 'Cloud Sync action failed.');
+      setSyncError(error instanceof Error ? error.message : t('settings.cloudSyncFailed'));
     } finally {
       setSyncBusy(false);
     }
@@ -184,14 +186,14 @@ export function SettingsScreen() {
     setSyncBaseUrl(getSyncConfig().baseUrl);
     setSyncConfigured(true);
     setSyncExpanded(true);
-    return 'Recovery Key created. Save it somewhere safe before leaving this screen.';
+    return t('settings.recoveryKeyCreated');
   });
 
   const handleCheckCloudSnapshot = () => runSyncAction(async () => {
     saveSyncConfig();
     const meta = await getLatestSnapshotMeta();
     setRemoteSnapshot(meta);
-    return meta ? `Cloud snapshot found from ${new Date(meta.createdAt).toLocaleString()}.` : 'No cloud snapshot found yet.';
+    return meta ? `${t('Cloud snapshot found from')} ${new Date(meta.createdAt).toLocaleString()}.` : t('settings.noSnapshot');
   });
 
   const handleUploadSnapshot = () => runSyncAction(async () => {
@@ -199,20 +201,20 @@ export function SettingsScreen() {
     const { bytes, meta: localMeta } = await createSnapshotUploadPayload();
     const meta = await uploadSnapshot(bytes, localMeta);
     setRemoteSnapshot(meta);
-    return `Uploaded ${formatSnapshotSize(meta.sizeBytes)} backup at ${new Date(meta.createdAt).toLocaleString()}.`;
+    return t('Uploaded {{size}} backup at {{date}}.', { size: formatSnapshotSize(meta.sizeBytes), date: new Date(meta.createdAt).toLocaleString() });
   });
 
   const restoreLatestSnapshot = () => runSyncAction(async () => {
     saveSyncConfig();
     const { bytes, meta } = await downloadLatestSnapshot();
     const downloadedHash = await sha256Hex(bytes);
-    if (downloadedHash !== meta.sha256.toLowerCase()) throw new Error('Downloaded snapshot checksum mismatch.');
+    if (downloadedHash !== meta.sha256.toLowerCase()) throw new Error(t('errors.snapshotChecksumMismatch'));
     const backup = await createPreRestoreBackup();
     await replaceLocalSnapshot(bytes);
     markSnapshotRestored(meta);
     setRemoteSnapshot(meta);
     setSyncStatusMeta(getLocalSyncStatus());
-    return `Restored cloud backup. Local pre-restore backup saved as ${backup.backupId}. Reload the app to use the restored data.`;
+    return t('Restored cloud backup. Local pre-restore backup saved as {{backupId}}. Reload the app to use the restored data.', { backupId: backup.backupId });
   });
 
   const runBackupAction = async (action: () => Promise<string>) => {
@@ -222,7 +224,7 @@ export function SettingsScreen() {
     try {
       setBackupMessage(await action());
     } catch (error) {
-      setBackupError(error instanceof Error ? error.message : 'Backup action failed.');
+      setBackupError(error instanceof Error ? error.message : t('Backup action failed.'));
     } finally {
       setBackupBusy(false);
     }
@@ -230,28 +232,28 @@ export function SettingsScreen() {
 
   const handleExportBackup = () => runBackupAction(async () => {
     const filename = await exportBackupFile();
-    return `Exported ${filename}.`;
+    return t('Exported {{filename}}.', { filename });
   });
 
   const handleImportBackup = (file: File) => runBackupAction(async () => {
     const backup = await importBackupFile(file);
-    return `Imported backup. Previous local data was saved as ${backup.backupId}. Reload the app to use the imported data.`;
+    return t('Imported backup. Previous local data was saved as {{backupId}}. Reload the app to use the imported data.', { backupId: backup.backupId });
   });
 
   const handleRestoreSnapshot = () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.confirm === 'function') {
-      const confirmed = window.confirm('Restore the latest cloud backup onto this web app? A local backup will be created first.');
+      const confirmed = window.confirm(t('Restore the latest cloud backup onto this web app? A local backup will be created first.'));
       if (!confirmed) return;
       restoreLatestSnapshot();
       return;
     }
 
     Alert.alert(
-      'Restore Cloud Backup?',
-      'A local backup will be created first, then this device will load the cloud snapshot.',
+      t('settings.restoreCloudBackup'),
+      t('A local backup will be created first, then this device will load the cloud snapshot.'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Restore', style: 'destructive', onPress: restoreLatestSnapshot },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('Restore'), style: 'destructive', onPress: restoreLatestSnapshot },
       ],
     );
   };
@@ -261,7 +263,7 @@ export function SettingsScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={styles.loadingText}>Loading settings…</Text>
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -271,26 +273,26 @@ export function SettingsScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>Control room</Text>
-          <Text style={styles.title}>Settings</Text>
-          <Text style={styles.subtitle}>Tune your maxes, bodyweight context, session defaults, and AI connection.</Text>
+          <Text style={styles.eyebrow}>{t('settings.controlRoom')}</Text>
+          <Text style={styles.title}>{t('nav.settings')}</Text>
+          <Text style={styles.subtitle}>{t('Tune your maxes, bodyweight context, session defaults, and AI connection.')}</Text>
         </View>
 
-        <SectionHeader title="1RM Settings" subtitle="Current maxes used across dashboards and workout planning." />
+        <SectionHeader title={t('settings.oneRMSettings')} subtitle={t('Current maxes used across dashboards and workout planning.')} />
         <Card variant="elevated" style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Text style={styles.cardKicker}>Strength profile</Text>
-            <Text style={styles.statusPill}>Big three</Text>
+            <Text style={styles.cardKicker}>{t('Strength profile')}</Text>
+            <Text style={styles.statusPill}>{t('Big three')}</Text>
           </View>
-          <NumberField label="Squat 1RM" value={squat} onChangeValue={setSquat} step={2.5} min={0} unit="kg" />
-          <NumberField label="Bench 1RM" value={bench} onChangeValue={setBench} step={2.5} min={0} unit="kg" />
-          <NumberField label="Deadlift 1RM" value={deadlift} onChangeValue={setDeadlift} step={2.5} min={0} unit="kg" />
+          <NumberField label={t('Squat 1RM')} value={squat} onChangeValue={setSquat} step={2.5} min={0} unit="kg" />
+          <NumberField label={t('Bench 1RM')} value={bench} onChangeValue={setBench} step={2.5} min={0} unit="kg" />
+          <NumberField label={t('Deadlift 1RM')} value={deadlift} onChangeValue={setDeadlift} step={2.5} min={0} unit="kg" />
         </Card>
 
-        <SectionHeader title="Training Preferences" subtitle="Defaults used when creating future sessions." />
+        <SectionHeader title={t('settings.trainingPreferences')} subtitle={t('Defaults used when creating future sessions.')} />
         <Card variant="tonal" style={styles.card}>
           <NumberField
-            label="Default session duration"
+            label={t('Default session duration')}
             value={duration}
             onChangeValue={setDuration}
             step={5}
@@ -300,18 +302,18 @@ export function SettingsScreen() {
           />
         </Card>
 
-        <SectionHeader title="Bodyweight" subtitle="Used as recovery context for nutrition and performance trends." />
+        <SectionHeader title={t('settings.bodyweight')} subtitle={t('Used as recovery context for nutrition and performance trends.')} />
         <Card style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Text style={styles.cardKicker}>Body context</Text>
-            <Text style={styles.statusPill}>{latestBodyweight ? 'Tracked' : 'No data'}</Text>
+            <Text style={styles.cardKicker}>{t('Body context')}</Text>
+            <Text style={styles.statusPill}>{latestBodyweight ? t('Tracked') : t('common.noData')}</Text>
           </View>
           <Text style={styles.cardText}>
-            Latest: {latestBodyweight ? `${latestBodyweight.bodyweight} kg · ${new Date(latestBodyweight.date).toLocaleDateString()}` : 'No data'}
+            {t('Latest')}: {latestBodyweight ? `${latestBodyweight.bodyweight} kg · ${new Date(latestBodyweight.date).toLocaleDateString()}` : t('common.noData')}
           </Text>
-          <NumberField label="Bodyweight" value={bodyweightValue} onChangeValue={setBodyweightValue} step={0.5} min={20} unit="kg" />
+          <NumberField label={t('settings.bodyweight')} value={bodyweightValue} onChangeValue={setBodyweightValue} step={0.5} min={20} unit="kg" />
           <Button
-            title="Save Bodyweight"
+            title={t('settings.saveBodyweight')}
             onPress={handleSaveBodyweight}
             disabled={bodyweightValue === null}
             loading={isSavingBodyweight}
@@ -319,76 +321,76 @@ export function SettingsScreen() {
           />
         </Card>
 
-        <SectionHeader title="AI Coach" subtitle="Connection used for weekly review and workout analysis." />
+        <SectionHeader title={t('workout.aiCoach')} subtitle={t('Connection used for weekly review and workout analysis.')} />
         <Card variant="coach" style={styles.card}>
           <Pressable onPress={() => setAiExpanded(!aiExpanded)} style={styles.aiHeader}>
             <Text style={[styles.aiStatus, !aiConfigured && styles.aiNotConfigured]}>
-              {aiConfigured ? '✓ AI configured' : '✗ Not configured'}
+              {aiConfigured ? '✓ ' + t('AI configured') : '✗ ' + t('Not configured')}
             </Text>
             <Text style={styles.aiToggle}>{aiExpanded ? '▲' : '▼'}</Text>
           </Pressable>
           {aiExpanded && (
             <>
               <TextField
-                label="Backend URL"
+                label={t('Backend URL')}
                 value={aiBaseUrl}
                 onChangeText={setAiBaseUrl}
                 placeholder="https://your-worker.workers.dev"
               />
               <TextField
-                label="Auth Token"
+                label={t('Auth Token')}
                 value={aiAuthToken}
                 onChangeText={setAiAuthToken}
-                placeholder="Your auth token"
+                placeholder={t('Your auth token')}
               />
             </>
           )}
         </Card>
 
-        <SectionHeader title="Cloud Sync" subtitle="Manual Recovery Key backup and restore for Safari, PWA, and other browsers." />
+        <SectionHeader title={t('settings.cloudSync')} subtitle={t('Manual Recovery Key backup and restore for Safari, PWA, and other browsers.')} />
         <Card variant="elevated" style={styles.card}>
           <Pressable onPress={() => setSyncExpanded(!syncExpanded)} style={styles.aiHeader}>
             <Text style={[styles.aiStatus, !syncConfigured && styles.aiNotConfigured]}>
-              {syncConfigured ? '✓ Cloud Sync configured' : '✗ Not configured'}
+              {syncConfigured ? '✓ ' + t('Cloud Sync configured') : '✗ ' + t('Not configured')}
             </Text>
             <Text style={styles.aiToggle}>{syncExpanded ? '▲' : '▼'}</Text>
           </Pressable>
           {syncExpanded && (
             <>
-              <Text style={styles.cardText}>Create or paste a Recovery Key, then upload this device or restore the latest cloud backup manually.</Text>
-              <TextField label="Backend URL" value={syncBaseUrl} onChangeText={setSyncBaseUrl} placeholder="https://your-worker.workers.dev" />
-              <TextField label="Recovery Key" value={syncRecoveryKey} onChangeText={setSyncRecoveryKey} placeholder="PL-XXXX-XXXX-XXXX-XXXX" />
+              <Text style={styles.cardText}>{t('Create or paste a Recovery Key, then upload this device or restore the latest cloud backup manually.')}</Text>
+              <TextField label={t('Backend URL')} value={syncBaseUrl} onChangeText={setSyncBaseUrl} placeholder="https://your-worker.workers.dev" />
+              <TextField label={t('Recovery Key')} value={syncRecoveryKey} onChangeText={setSyncRecoveryKey} placeholder="PL-XXXX-XXXX-XXXX-XXXX" />
               <View style={styles.buttonRow}>
-                <Button title="Create" onPress={handleCreateRecoveryKey} loading={syncBusy} size="sm" style={styles.rowButton} />
-                <Button title="Save" onPress={saveSyncConfig} variant="secondary" disabled={!syncBaseUrl || !syncRecoveryKey} size="sm" style={styles.rowButton} />
+                <Button title={t('settings.create')} onPress={handleCreateRecoveryKey} loading={syncBusy} size="sm" style={styles.rowButton} />
+                <Button title={t('common.save')} onPress={saveSyncConfig} variant="secondary" disabled={!syncBaseUrl || !syncRecoveryKey} size="sm" style={styles.rowButton} />
               </View>
               <View style={styles.buttonRow}>
-                <Button title="Check" onPress={handleCheckCloudSnapshot} variant="secondary" disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="sm" style={styles.rowButton} />
-                <Button title="Upload" onPress={handleUploadSnapshot} disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="sm" style={styles.rowButton} />
+                <Button title={t('settings.check')} onPress={handleCheckCloudSnapshot} variant="secondary" disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="sm" style={styles.rowButton} />
+                <Button title={t('settings.upload')} onPress={handleUploadSnapshot} disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="sm" style={styles.rowButton} />
               </View>
-              <Button title="Restore Cloud Backup" onPress={handleRestoreSnapshot} variant="danger" disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="md" fullWidth />
+              <Button title={t('settings.restoreCloudBackup')} onPress={handleRestoreSnapshot} variant="danger" disabled={!syncBaseUrl || !syncRecoveryKey} loading={syncBusy} size="md" fullWidth />
             </>
           )}
           {remoteSnapshot ? (
             <Text style={styles.cardText}>
-              Cloud backup: {new Date(remoteSnapshot.createdAt).toLocaleString()} · {formatSnapshotSize(remoteSnapshot.sizeBytes)} · {remoteSnapshot.sha256.slice(0, 8)}…
+              {t('Cloud backup')}: {new Date(remoteSnapshot.createdAt).toLocaleString()} · {formatSnapshotSize(remoteSnapshot.sizeBytes)} · {remoteSnapshot.sha256.slice(0, 8)}…
             </Text>
           ) : null}
-          {syncStatusMeta.lastManualUploadAt ? <Text style={styles.cardText}>Last manual upload: {new Date(syncStatusMeta.lastManualUploadAt).toLocaleString()}</Text> : null}
-          {syncStatusMeta.lastAutoUploadAt ? <Text style={styles.cardText}>Last auto upload: {new Date(syncStatusMeta.lastAutoUploadAt).toLocaleString()}</Text> : null}
-          {syncStatusMeta.lastRestoreAt ? <Text style={styles.cardText}>Last restore: {new Date(syncStatusMeta.lastRestoreAt).toLocaleString()}</Text> : null}
+          {syncStatusMeta.lastManualUploadAt ? <Text style={styles.cardText}>{t('Last manual upload')}: {new Date(syncStatusMeta.lastManualUploadAt).toLocaleString()}</Text> : null}
+          {syncStatusMeta.lastAutoUploadAt ? <Text style={styles.cardText}>{t('Last auto upload')}: {new Date(syncStatusMeta.lastAutoUploadAt).toLocaleString()}</Text> : null}
+          {syncStatusMeta.lastRestoreAt ? <Text style={styles.cardText}>{t('Last restore')}: {new Date(syncStatusMeta.lastRestoreAt).toLocaleString()}</Text> : null}
           {syncMessage ? <Text style={styles.savedText}>{syncMessage}</Text> : null}
-          {syncError ? <Text style={styles.errorText}>Cloud Sync failed: {syncError}</Text> : null}
+          {syncError ? <Text style={styles.errorText}>{t('Cloud Sync failed')}: {syncError}</Text> : null}
         </Card>
 
-        <SectionHeader title="Data Backup" subtitle="Download or import a local database backup file on web." />
+        <SectionHeader title={t('settings.dataBackup')} subtitle={t('Download or import a local database backup file on web.')} />
         <Card variant="tonal" style={styles.card}>
-          <Text style={styles.cardText}>Export creates a local training database file. Import creates a local backup first, then replaces this device database.</Text>
+          <Text style={styles.cardText}>{t('Export creates a local training database file. Import creates a local backup first, then replaces this device database.')}</Text>
           {Platform.OS === 'web' ? (
             <>
               <View style={styles.buttonRow}>
-                <Button title="Export" onPress={handleExportBackup} loading={backupBusy} size="sm" style={styles.rowButton} />
-                <Button title="Import" onPress={() => fileInputRef.current?.click()} variant="secondary" disabled={backupBusy} size="sm" style={styles.rowButton} />
+                <Button title={t('settings.export')} onPress={handleExportBackup} loading={backupBusy} size="sm" style={styles.rowButton} />
+                <Button title={t('settings.import')} onPress={() => fileInputRef.current?.click()} variant="secondary" disabled={backupBusy} size="sm" style={styles.rowButton} />
               </View>
               <input
                 ref={fileInputRef}
@@ -403,20 +405,20 @@ export function SettingsScreen() {
               />
             </>
           ) : (
-            <Text style={styles.cardText}>File backup is web-first in this version.</Text>
+            <Text style={styles.cardText}>{t('File backup is web-first in this version.')}</Text>
           )}
           {backupMessage ? <Text style={styles.savedText}>{backupMessage}</Text> : null}
-          {backupError ? <Text style={styles.errorText}>Backup failed: {backupError}</Text> : null}
+          {backupError ? <Text style={styles.errorText}>{t('Backup failed')}: {backupError}</Text> : null}
         </Card>
 
-        <SectionHeader title="App Version" subtitle="PWA update status for the installed web app." />
+        <SectionHeader title={t('settings.appVersion')} subtitle={t('PWA update status for the installed web app.')} />
         <Card variant="outlined" style={styles.card}>
           <Pressable style={styles.cardTopRow} onPress={() => setReleaseNotesExpanded((value) => !value)}>
             <Text style={styles.cardKicker}>PowerLog v{getAppVersion()}</Text>
-            <Text style={styles.statusPill}>{updateAvailable ? 'Update ready' : 'Current'}</Text>
+            <Text style={styles.statusPill}>{updateAvailable ? t('settings.updateReady') : t('Current')}</Text>
           </Pressable>
-          <Text style={styles.cardText}>{updateAvailable ? 'A newer web app version is available. Refresh to load it.' : 'The installed web app checks for new deployments when opened.'}</Text>
-          <Button title={releaseNotesExpanded ? 'Hide Update Notes' : 'View Update Notes'} onPress={() => setReleaseNotesExpanded((value) => !value)} variant="secondary" size="sm" fullWidth />
+          <Text style={styles.cardText}>{updateAvailable ? t('A newer web app version is available. Refresh to load it.') : t('The installed web app checks for new deployments when opened.')}</Text>
+          <Button title={releaseNotesExpanded ? t('settings.hideUpdateNotes') : t('settings.viewUpdateNotes')} onPress={() => setReleaseNotesExpanded((value) => !value)} variant="secondary" size="sm" fullWidth />
           {releaseNotesExpanded ? (
             <View style={styles.releaseList}>
               {releaseNotes.map((release) => (
@@ -429,12 +431,12 @@ export function SettingsScreen() {
               ))}
             </View>
           ) : null}
-          {updateAvailable ? <Button title="Refresh App" onPress={reloadForPwaUpdate} variant="secondary" size="sm" fullWidth /> : null}
+          {updateAvailable ? <Button title={t('common.refresh')} onPress={reloadForPwaUpdate} variant="secondary" size="sm" fullWidth /> : null}
         </Card>
 
-        <Button title="Save Settings" onPress={handleSave} loading={isSaving} fullWidth />
-        {lastSavedAt ? <Text style={styles.savedText}>Last saved: {new Date(lastSavedAt).toLocaleString()}</Text> : null}
-        {saveError ? <Text style={styles.errorText}>Save failed: {saveError}</Text> : null}
+        <Button title={t('settings.saveSettings')} onPress={handleSave} loading={isSaving} fullWidth />
+        {lastSavedAt ? <Text style={styles.savedText}>{t('settings.lastSaved', { date: new Date(lastSavedAt).toLocaleString() })}</Text> : null}
+        {saveError ? <Text style={styles.errorText}>{t('settings.saveFailed')}: {saveError}</Text> : null}
       </ScrollView>
     </SafeAreaView>
   );

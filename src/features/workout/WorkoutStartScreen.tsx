@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 
@@ -20,6 +21,7 @@ const formatDate = (date: string): string =>
   new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(date));
 
 export function WorkoutStartScreen() {
+  const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
   const startWorkout = useActiveWorkoutStore((state) => state.startWorkout);
@@ -72,7 +74,7 @@ export function WorkoutStartScreen() {
 
   const handleStartPastWorkout = () => {
     if (!customDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      showAlert('Invalid date', 'Please use YYYY-MM-DD format (e.g. 2024-12-25)');
+      showAlert(t('common.invalidDate'), t('common.invalidDateFormat'));
       return;
     }
     void handleStartWorkout(customDate);
@@ -81,8 +83,8 @@ export function WorkoutStartScreen() {
   const handleDeleteWorkout = useCallback(async (session: WorkoutSession) => {
     if (!db) return;
     confirmAction(
-      'Delete Workout',
-      `Delete workout from ${session.date}? This cannot be undone.`,
+      t('common.deleteWorkout'),
+      t('common.deleteWorkoutConfirm', { date: session.date }),
       async () => {
         await deleteWorkoutSession(db, session.id);
         setRecentWorkouts((prev) => prev.filter((w) => w.id !== session.id));
@@ -97,56 +99,56 @@ export function WorkoutStartScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>Training deck</Text>
-          <Text style={styles.title}>Ready to lift?</Text>
-          <Text style={styles.subtitle}>Start fast, resume cleanly, and keep every set logged with RPE context.</Text>
+          <Text style={styles.eyebrow}>{t('workout.trainingDeck')}</Text>
+          <Text style={styles.title}>{t('workout.readyToLift')}</Text>
+          <Text style={styles.subtitle}>{t('workout.startFastResumeClean')}</Text>
         </View>
 
         {persistedSessionId && (
           <Card variant="coach" style={styles.resumeCard}>
             <View style={styles.cardTopRow}>
               <View style={styles.liveDot} />
-              <Text style={styles.resumeEyebrow}>Session in progress</Text>
+              <Text style={styles.resumeEyebrow}>{t('workout.sessionInProgress')}</Text>
             </View>
-            <Text style={styles.cardTitle}>Pick up where you left off</Text>
-            <Text style={styles.lastWorkout}>You have an unfinished workout waiting.</Text>
-            <Button title="Resume Workout" onPress={() => router.push(`/workout/${persistedSessionId}` as Href)} fullWidth />
+            <Text style={styles.cardTitle}>{t('workout.pickUpWhereLeftOff')}</Text>
+            <Text style={styles.lastWorkout}>{t('workout.unfinishedWorkout')}</Text>
+            <Button title={t('workout.resumeWorkout')} onPress={() => router.push(`/workout/${persistedSessionId}` as Href)} fullWidth />
           </Card>
         )}
 
         <Card variant="elevated" style={styles.startCard}>
           <View style={styles.cardTopRow}>
-            <Text style={styles.cardKicker}>Today</Text>
-            <Text style={styles.statusPill}>Offline ready</Text>
+            <Text style={styles.cardKicker}>{t('common.today')}</Text>
+            <Text style={styles.statusPill}>{t('common.offlineReady')}</Text>
           </View>
-          <Text style={styles.cardTitle}>Start today’s workout</Text>
+          <Text style={styles.cardTitle}>{t('home.startTodaysWorkout')}</Text>
           {isLoading ? (
             <ActivityIndicator color={colors.primary} style={styles.loader} />
           ) : lastWorkout ? (
-            <Text style={styles.lastWorkout}>Last logged session: {formatDate(lastWorkout.date)}</Text>
+            <Text style={styles.lastWorkout}>{t('home.lastLoggedSession', { date: formatDate(lastWorkout.date) })}</Text>
           ) : (
-            <Text style={styles.lastWorkout}>No workouts recorded yet. Make today the baseline.</Text>
+            <Text style={styles.lastWorkout}>{t('home.noWorkoutsRecorded')}</Text>
           )}
-          <Button title="Start Today's Workout" onPress={() => void handleStartWorkout()} loading={isStarting} disabled={!db} fullWidth />
+          <Button title={t('workout.startTodaysWorkout')} onPress={() => void handleStartWorkout()} loading={isStarting} disabled={!db} fullWidth />
         </Card>
 
         <Card variant="tonal" style={styles.startCard}>
-          <Text style={styles.cardTitle}>Log a past workout</Text>
-          <Text style={styles.lastWorkout}>Backfill training without disrupting today’s flow.</Text>
+          <Text style={styles.cardTitle}>{t('workout.logPastWorkout')}</Text>
+          <Text style={styles.lastWorkout}>{t('workout.backfillTraining')}</Text>
           <TextInput
             style={styles.dateInput}
             value={customDate}
             onChangeText={setCustomDate}
             placeholder="YYYY-MM-DD"
             placeholderTextColor={colors.textTertiary}
-            accessibilityLabel="Past workout date"
+            accessibilityLabel={t('workout.pastWorkoutDate')}
           />
-          <Button title="Start Past Workout" onPress={handleStartPastWorkout} variant="secondary" disabled={!db || !customDate} />
+          <Button title={t('workout.startPastWorkout')} onPress={handleStartPastWorkout} variant="secondary" disabled={!db || !customDate} />
         </Card>
 
         {recentWorkouts.length > 1 && (
           <View>
-            <SectionHeader title="Recent" subtitle="Completed sessions beyond your latest workout." />
+            <SectionHeader title={t('workout.recent')} subtitle={t('workout.completedSessions')} />
             {recentWorkouts.slice(1).map((workout) => (
               <Card key={workout.id} variant="outlined" style={styles.recentCard}>
                 <View style={styles.recentRow}>
@@ -154,7 +156,7 @@ export function WorkoutStartScreen() {
                     <Text style={styles.recentDate}>{formatDate(workout.date)}</Text>
                     <Text style={styles.recentMeta}>{Math.round((workout.completionRate ?? 0) * 100)}% complete · {Math.round(workout.totalVolume ?? 0).toLocaleString()} kg</Text>
                   </View>
-                  <Button title="Delete" size="sm" variant="secondary" onPress={() => void handleDeleteWorkout(workout)} />
+                  <Button title={t('common.delete')} size="sm" variant="secondary" onPress={() => void handleDeleteWorkout(workout)} />
                 </View>
               </Card>
             ))}

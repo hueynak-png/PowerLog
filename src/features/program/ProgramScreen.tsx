@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
@@ -37,16 +38,16 @@ type IntensityPreference = 'conservative' | 'moderate' | 'aggressive';
 type ProgressionStyle = 'rpe' | 'percentage' | 'double_progression';
 
 const goalTypeOptions: Array<{ label: string; value: GoalType }> = [
-  { label: 'Hypertrophy', value: 'hypertrophy' },
-  { label: 'Strength', value: 'strength' },
-  { label: 'Maintenance', value: 'maintenance' },
-  { label: 'Powerbuilding', value: 'powerbuilding' },
+  { label: 'program.hypertrophy', value: 'hypertrophy' },
+  { label: 'program.strength', value: 'strength' },
+  { label: 'program.maintenance', value: 'maintenance' },
+  { label: 'program.powerbuilding', value: 'powerbuilding' },
 ];
 
 const experienceOptions: Array<{ label: string; value: ExperienceLevel }> = [
-  { label: 'Beginner', value: 'beginner' },
-  { label: 'Intermediate', value: 'intermediate' },
-  { label: 'Advanced', value: 'advanced' },
+  { label: 'program.beginner', value: 'beginner' },
+  { label: 'program.intermediate', value: 'intermediate' },
+  { label: 'program.advanced', value: 'advanced' },
 ];
 
 const volumeOptions: Array<{ label: string; value: VolumeTolerance }> = [
@@ -71,14 +72,14 @@ const weakPointOptions = ['Bench lockout', 'Bench off chest', 'Squat depth', 'Sq
 const equipmentOptions = ['Barbell', 'Dumbbells', 'Cable', 'Machines', 'Bodyweight', 'Bands', 'Full gym', 'Home gym'];
 const limitationOptions = ['No overhead press', 'No low-bar squat', 'No sumo deadlift', 'Knee irritation', 'Shoulder irritation', 'Lower back fatigue', 'Limited time', 'Avoid high-impact work'];
 
-function SelectChips<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: Array<{ label: string; value: T }>; onChange: (value: T) => void }) {
+function SelectChips<T extends string>({ label, value, options, onChange, t }: { label: string; value: T; options: Array<{ label: string; value: T }>; onChange: (value: T) => void; t: (key: string) => string }) {
   return (
     <View style={styles.selectorBlock}>
       <Text style={styles.selectorLabel}>{label}</Text>
       <View style={styles.chipGrid}>
         {options.map((option) => (
           <Pressable key={option.value} onPress={() => onChange(option.value)} style={[styles.chip, value === option.value && styles.chipSelected]}>
-            <Text style={[styles.chipText, value === option.value && styles.chipTextSelected]}>{option.label}</Text>
+            <Text style={[styles.chipText, value === option.value && styles.chipTextSelected]}>{t(option.label)}</Text>
           </Pressable>
         ))}
       </View>
@@ -86,7 +87,7 @@ function SelectChips<T extends string>({ label, value, options, onChange }: { la
   );
 }
 
-function MultiSelectChips({ label, values, options, onChange }: { label: string; values: string[]; options: string[]; onChange: (values: string[]) => void }) {
+function MultiSelectChips({ label, values, options, onChange, t }: { label: string; values: string[]; options: string[]; onChange: (values: string[]) => void; t: (key: string) => string }) {
   const toggle = (option: string) => {
     onChange(values.includes(option) ? values.filter((value) => value !== option) : [...values, option]);
   };
@@ -99,7 +100,7 @@ function MultiSelectChips({ label, values, options, onChange }: { label: string;
           const selected = values.includes(option);
           return (
             <Pressable key={option} onPress={() => toggle(option)} style={[styles.chip, selected && styles.chipSelected]}>
-              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{option}</Text>
+              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{t(option)}</Text>
             </Pressable>
           );
         })}
@@ -109,6 +110,7 @@ function MultiSelectChips({ label, values, options, onChange }: { label: string;
 }
 
 export function ProgramScreen() {
+  const { t } = useTranslation();
   const db = useDatabase();
   const [programs, setPrograms] = useState<Program[]>([]);
   const [cycle, setCycle] = useState<CurrentCycle | null>(null);
@@ -150,11 +152,11 @@ export function ProgramScreen() {
   const handleGenerate = async () => {
     if (!db) return;
     if (!isAIConfigured()) {
-      showAlert('AI Not Configured', 'Please configure AI in Settings first.');
+      showAlert(t('program.aiNotConfiguredProgram'), t('common.aiNotConfiguredSetup'));
       return;
     }
     if (!squatMax || !benchMax || !deadliftMax) {
-      showAlert('Missing Data', 'Please enter your current 1RM values.');
+      showAlert(t('program.missingData'), t('program.missing1RMData'));
       return;
     }
 
@@ -232,11 +234,11 @@ export function ProgramScreen() {
       }
 
       setShowForm(false);
-      showAlert('Success', `Program "${program.name}" created!`);
+      showAlert(t('common.success'), t('Program "{{name}}" created!', { name: program.name }));
       await refresh();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
-      showAlert('Generation Failed', msg);
+      showAlert(t('program.generationFailed'), msg);
     } finally {
       setGenerating(false);
     }
@@ -244,7 +246,7 @@ export function ProgramScreen() {
 
   const handleSetActive = (program: Program) => {
     if (!db) return;
-    confirmAction('Set Active', `Start "${program.name}" as your current cycle?`, async () => {
+    confirmAction(t('program.setActive'), t('Start "{{name}}" as your current cycle?', { name: program.name }), async () => {
       await setCurrentCycle(db, {
         programId: program.id,
         goal: program.goal,
@@ -260,7 +262,7 @@ export function ProgramScreen() {
 
   const handleDelete = (program: Program) => {
     if (!db) return;
-    confirmAction('Delete Program', `Delete "${program.name}"? This cannot be undone.`, async () => {
+    confirmAction(t('program.deleteProgram'), t('Delete "{{name}}"? This cannot be undone.', { name: program.name }), async () => {
       await deleteProgram(db, program.id);
       await refresh();
     });
@@ -268,7 +270,7 @@ export function ProgramScreen() {
 
   const handleDeactivate = () => {
     if (!db) return;
-    confirmAction('End Cycle', 'Deactivate the current training cycle?', async () => {
+    confirmAction(t('program.endCycle'), t('Deactivate the current training cycle?'), async () => {
       await deactivateCurrentCycle(db);
       await refresh();
     });
@@ -279,7 +281,7 @@ export function ProgramScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={styles.loadingText}>Loading programs…</Text>
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -289,41 +291,41 @@ export function ProgramScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>Program builder</Text>
-          <Text style={styles.title}>Program</Text>
-          <Text style={styles.subtitle}>Generate, store, and activate structured training cycles from one place.</Text>
+          <Text style={styles.eyebrow}>{t('program.programBuilder')}</Text>
+          <Text style={styles.title}>{t('nav.program')}</Text>
+          <Text style={styles.subtitle}>{t('Generate, store, and activate structured training cycles from one place.')}</Text>
         </View>
 
         {/* Current Cycle */}
-        <SectionHeader title="Current Cycle" subtitle="What PowerLog should treat as your active training block." />
+        <SectionHeader title={t('home.currentCycle')} subtitle={t('What PowerLog should treat as your active training block.')} />
         {cycle ? (
           <Card variant="elevated" style={styles.card}>
             <View style={styles.cardTopRow}>
-              <Text style={styles.cardKicker}>Active block</Text>
-              <Text style={styles.statusPill}>Week {cycle.currentWeek}</Text>
+              <Text style={styles.cardKicker}>{t('Active block')}</Text>
+              <Text style={styles.statusPill}>{t('Week')} {cycle.currentWeek}</Text>
             </View>
             <Text style={styles.cycleName}>
-              {programs.find((p) => p.id === cycle.programId)?.name ?? 'Unknown'}
+              {programs.find((p) => p.id === cycle.programId)?.name ?? t('Unknown')}
             </Text>
             <Text style={styles.cycleDetail}>
-              Week {cycle.currentWeek} • Phase: {cycle.currentPhase}
+              {t('Week')} {cycle.currentWeek} • {t('Phase')}: {cycle.currentPhase}
             </Text>
             <View style={styles.cycleActions}>
-              <Button title="Stop Active Plan" onPress={handleDeactivate} variant="danger" size="md" fullWidth />
+              <Button title={t('program.stopActivePlan')} onPress={handleDeactivate} variant="danger" size="md" fullWidth />
             </View>
           </Card>
         ) : (
           <Card variant="tonal" style={styles.card}>
-            <Text style={styles.emptyText}>No active program</Text>
+            <Text style={styles.emptyText}>{t('home.noActiveProgram')}</Text>
           </Card>
         )}
 
         {/* Generate Button */}
-        <SectionHeader title="AI Program Generator" subtitle="Create a new cycle from your goal, maxes, and schedule." />
+        <SectionHeader title={t('program.aiProgramGenerator')} subtitle={t('Create a new cycle from your goal, maxes, and schedule.')} />
         <Card variant="coach" style={styles.card}>
-          <Text style={styles.programDesc}>AI can draft a structured block with weeks, training days, main lifts, and accessory work.</Text>
+          <Text style={styles.programDesc}>{t('AI can draft a structured block with weeks, training days, main lifts, and accessory work.')}</Text>
           <Button
-            title="Generate AI Program"
+            title={t('program.generateAIProgram')}
             onPress={() => setShowForm(true)}
             variant="primary"
             fullWidth
@@ -331,10 +333,10 @@ export function ProgramScreen() {
         </Card>
 
         {/* Program Library */}
-        <SectionHeader title="Program Library" subtitle={`${programs.length} saved program${programs.length === 1 ? '' : 's'}`} />
+        <SectionHeader title={t('program.programLibrary')} subtitle={`${programs.length} ${t('saved program')}${programs.length === 1 ? '' : 's'}`} />
         {programs.length === 0 ? (
           <Card variant="outlined" style={styles.card}>
-            <Text style={styles.emptyText}>No saved programs</Text>
+            <Text style={styles.emptyText}>{t('No saved programs')}</Text>
           </Card>
         ) : (
           programs.map((program) => (
@@ -353,14 +355,14 @@ export function ProgramScreen() {
               <View style={styles.programActions}>
                 {!cycle && (
                   <Button
-                    title="Set Active"
+                    title={t('program.setActive')}
                     onPress={() => handleSetActive(program)}
                     variant="secondary"
                     size="sm"
                   />
                 )}
                 <Button
-                  title="Delete"
+                    title={t('common.delete')}
                   onPress={() => handleDelete(program)}
                   variant="ghost"
                   size="sm"
@@ -377,48 +379,48 @@ export function ProgramScreen() {
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.modalKicker}>AI Program Generator</Text>
-                <Text style={styles.modalTitle}>Generate Program</Text>
+                <Text style={styles.modalKicker}>{t('program.aiProgramGenerator')}</Text>
+                <Text style={styles.modalTitle}>{t('program.generateProgram')}</Text>
               </View>
               <Pressable onPress={() => setShowForm(false)} accessibilityRole="button">
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
               </Pressable>
             </View>
 
             <Card variant="elevated" style={styles.card}>
-              <SelectChips label="Goal" value={goalType} options={goalTypeOptions} onChange={setGoalType} />
-              <SelectChips label="Experience" value={experienceLevel} options={experienceOptions} onChange={setExperienceLevel} />
-              <NumberField label="Days per week" value={daysPerWeek} onChangeValue={setDaysPerWeek} step={1} min={2} max={6} />
-              <NumberField label="Session duration" value={sessionDuration} onChangeValue={setSessionDuration} step={5} min={45} max={150} unit="min" />
-              <NumberField label="Program weeks" value={durationWeeks} onChangeValue={setDurationWeeks} step={1} min={3} max={16} />
-              <MultiSelectChips label="Weak points / priorities" values={weakPoints} options={weakPointOptions} onChange={setWeakPoints} />
-              <MultiSelectChips label="Available equipment" values={availableEquipment} options={equipmentOptions} onChange={setAvailableEquipment} />
-              <MultiSelectChips label="Limitations / avoid" values={limitations} options={limitationOptions} onChange={setLimitations} />
-              <SelectChips label="Volume tolerance" value={volumeTolerance} options={volumeOptions} onChange={setVolumeTolerance} />
-              <SelectChips label="Intensity preference" value={intensityPreference} options={intensityOptions} onChange={setIntensityPreference} />
-              <SelectChips label="Progression style" value={progressionStyle} options={progressionOptions} onChange={setProgressionStyle} />
+              <SelectChips label={t('program.goal')} value={goalType} options={goalTypeOptions} onChange={setGoalType} t={t} />
+              <SelectChips label={t('program.experience')} value={experienceLevel} options={experienceOptions} onChange={setExperienceLevel} t={t} />
+              <NumberField label={t('Days per week')} value={daysPerWeek} onChangeValue={setDaysPerWeek} step={1} min={2} max={6} />
+              <NumberField label={t('Session duration')} value={sessionDuration} onChangeValue={setSessionDuration} step={5} min={45} max={150} unit="min" />
+              <NumberField label={t('Program weeks')} value={durationWeeks} onChangeValue={setDurationWeeks} step={1} min={3} max={16} />
+              <MultiSelectChips label={t('program.weakPoints')} values={weakPoints} options={weakPointOptions} onChange={setWeakPoints} t={t} />
+              <MultiSelectChips label={t('program.availableEquipment')} values={availableEquipment} options={equipmentOptions} onChange={setAvailableEquipment} t={t} />
+              <MultiSelectChips label={t('program.limitations')} values={limitations} options={limitationOptions} onChange={setLimitations} t={t} />
+              <SelectChips label={t('program.volume')} value={volumeTolerance} options={volumeOptions} onChange={setVolumeTolerance} t={t} />
+              <SelectChips label={t('program.intensity')} value={intensityPreference} options={intensityOptions} onChange={setIntensityPreference} t={t} />
+              <SelectChips label={t('program.progression')} value={progressionStyle} options={progressionOptions} onChange={setProgressionStyle} t={t} />
               <View style={styles.switchRow}>
-                <Text style={styles.switchLabel}>Include deload week</Text>
+                <Text style={styles.switchLabel}>{t('program.includeDeloadWeek')}</Text>
                 <Switch value={includeDeload} onValueChange={setIncludeDeload} trackColor={{ true: colors.primary }} />
               </View>
             </Card>
 
-            <SectionHeader title="Current 1RM" subtitle="Used to anchor percentages and loading targets." />
+            <SectionHeader title={t('program.current1RM')} subtitle={t('Used to anchor percentages and loading targets.')} />
             <Card style={styles.card}>
-              <NumberField label="Squat" value={squatMax} onChangeValue={setSquatMax} step={2.5} min={0} unit="kg" />
-              <NumberField label="Bench" value={benchMax} onChangeValue={setBenchMax} step={2.5} min={0} unit="kg" />
-              <NumberField label="Deadlift" value={deadliftMax} onChangeValue={setDeadliftMax} step={2.5} min={0} unit="kg" />
+              <NumberField label={t('analytics.squat')} value={squatMax} onChangeValue={setSquatMax} step={2.5} min={0} unit="kg" />
+              <NumberField label={t('analytics.bench')} value={benchMax} onChangeValue={setBenchMax} step={2.5} min={0} unit="kg" />
+              <NumberField label={t('analytics.deadlift')} value={deadliftMax} onChangeValue={setDeadliftMax} step={2.5} min={0} unit="kg" />
             </Card>
 
             <Button
-              title={generating ? 'Generating…' : 'Generate Program'}
+              title={generating ? t('program.generating') : t('program.generateProgram')}
               onPress={() => void handleGenerate()}
               loading={generating}
               disabled={generating}
               fullWidth
             />
             {generating && (
-              <Text style={styles.generatingHint}>This may take up to 2 minutes…</Text>
+              <Text style={styles.generatingHint}>{t('This may take up to 2 minutes…')}</Text>
             )}
           </ScrollView>
         </SafeAreaView>

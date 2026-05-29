@@ -1,4 +1,5 @@
 import type { WorkoutSet } from '@/src/domain/types';
+import i18n from '@/src/i18n';
 
 export interface SetLoadGuidance {
   action: 'add' | 'hold' | 'reduce' | 'stop';
@@ -29,8 +30,8 @@ export const getSetLoadGuidance = (sets: WorkoutSet[]): SetLoadGuidance | null =
     return {
       action: 'stop',
       severity: 'alert',
-      title: 'Stop adding load',
-      message: 'Recent sets are too close to failure. Keep the next set conservative or end this exercise.',
+      title: i18n.t('guidance.stopAddingLoad'),
+      message: i18n.t('guidance.stopAddingLoadMessage', { defaultValue: 'Recent sets are too close to failure. Keep the next set conservative or end this exercise.' }),
       adjustmentPercent: -7.5,
     };
   }
@@ -39,8 +40,8 @@ export const getSetLoadGuidance = (sets: WorkoutSet[]): SetLoadGuidance | null =
     return {
       action: 'reduce',
       severity: 'warning',
-      title: 'Reduce next set',
-      message: 'The last set was harder than target. Drop 2.5–5% to stay in the planned RPE zone.',
+      title: i18n.t('guidance.reduceNextSet'),
+      message: i18n.t('guidance.reduceNextSetMessage', { defaultValue: 'The last set was harder than target. Drop 2.5–5% to stay in the planned RPE zone.' }),
       adjustmentPercent: -5,
     };
   }
@@ -49,8 +50,8 @@ export const getSetLoadGuidance = (sets: WorkoutSet[]): SetLoadGuidance | null =
     return {
       action: 'add',
       severity: 'info',
-      title: 'Add a little weight',
-      message: 'The last set was easier than target. Add 2.5–5% if technique felt solid.',
+      title: i18n.t('guidance.addALittleWeight'),
+      message: i18n.t('guidance.addALittleWeightMessage', { defaultValue: 'The last set was easier than target. Add 2.5–5% if technique felt solid.' }),
       adjustmentPercent: 2.5,
     };
   }
@@ -58,8 +59,8 @@ export const getSetLoadGuidance = (sets: WorkoutSet[]): SetLoadGuidance | null =
   return {
     action: 'hold',
     severity: 'info',
-    title: 'Hold this load',
-    message: 'The last set landed near the target RPE. Keep the same weight for the next set.',
+    title: i18n.t('guidance.holdThisLoad'),
+    message: i18n.t('guidance.holdThisLoadMessage', { defaultValue: 'The last set landed near the target RPE. Keep the same weight for the next set.' }),
     adjustmentPercent: 0,
   };
 };

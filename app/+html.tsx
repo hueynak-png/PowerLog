@@ -8,6 +8,8 @@ import type { ReactNode } from 'react';
 export default function Root({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
+      {/* Note: For full i18n, the lang attribute should be set dynamically based on user preference.
+          This static file runs at build time. The app uses expo-localization for runtime detection. */}
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />

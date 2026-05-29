@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -37,6 +38,7 @@ const formatVolume = (volume?: number) => {
 };
 
 export function HomeDashboard() {
+  const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
   const getMaxForLift = useSettingsStore((state) => state.getMaxForLift);
@@ -162,7 +164,7 @@ export function HomeDashboard() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={styles.loadingText}>Loading dashboard…</Text>
+          <Text style={styles.loadingText}>{t('common.loadingDashboard')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -173,67 +175,67 @@ export function HomeDashboard() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{todayLabel}</Text>
-          <Text style={styles.title}>Training command center</Text>
-          <Text style={styles.subtitle}>Track today’s body signals, launch your workout, and keep the big lifts moving.</Text>
+          <Text style={styles.title}>{t('home.trainingCommandCenter')}</Text>
+          <Text style={styles.subtitle}>{t('home.trackBodySignals')}</Text>
         </View>
 
         <Card variant="elevated" style={styles.heroCard}>
           <View style={styles.cardTopRow}>
-            <Text style={styles.cardKicker}>Primary action</Text>
-            <Text style={styles.statusPill}>Offline ready</Text>
+            <Text style={styles.cardKicker}>{t('home.primaryAction')}</Text>
+            <Text style={styles.statusPill}>{t('common.offlineReady')}</Text>
           </View>
-          <Text style={styles.cardTitle}>Start today’s workout</Text>
-          <Text style={styles.cardText}>Jump into logging with kg, reps, RPE, and post-session coaching.</Text>
-          <Button title="Start Workout" onPress={() => router.push('../workout')} style={styles.cardButton} fullWidth />
+          <Text style={styles.cardTitle}>{t('home.startTodaysWorkout')}</Text>
+          <Text style={styles.cardText}>{t('home.jumpIntoLogging')}</Text>
+          <Button title={t('home.startWorkout')} onPress={() => router.push('../workout')} style={styles.cardButton} fullWidth />
         </Card>
 
         <View style={styles.quickGrid}>
           <Card style={styles.quickCard} variant="coach" padding={spacing.md}>
-            <Text style={styles.quickLabel}>Weekly Review</Text>
-            <Text style={styles.quickCopy}>AI training recap</Text>
-            <Button title="View" onPress={() => router.push('/review')} variant="secondary" size="sm" />
+            <Text style={styles.quickLabel}>{t('home.weeklyReview')}</Text>
+            <Text style={styles.quickCopy}>{t('home.aiTrainingRecap')}</Text>
+            <Button title={t('common.view')} onPress={() => router.push('/review')} variant="secondary" size="sm" />
           </Card>
           <Card style={styles.quickCard} variant="tonal" padding={spacing.md}>
-            <Text style={styles.quickLabel}>Current cycle</Text>
-            <Text style={styles.quickCopy}>No active program</Text>
+            <Text style={styles.quickLabel}>{t('home.currentCycle')}</Text>
+            <Text style={styles.quickCopy}>{t('home.noActiveProgram')}</Text>
           </Card>
         </View>
 
-        <SectionHeader title="Recent Workout" subtitle="Your latest completed session at a glance." />
+        <SectionHeader title={t('home.recentWorkout')} subtitle={t('home.latestCompletedSession')} />
         <Card style={styles.card} variant="outlined">
           {lastWorkout ? (
             <View style={styles.summaryGrid}>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Date</Text>
+                <Text style={styles.summaryLabel}>{t('common.date')}</Text>
                 <Text style={styles.summaryValue}>{formatDate(lastWorkout.date)}</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Duration</Text>
+                <Text style={styles.summaryLabel}>{t('common.duration')}</Text>
                 <Text style={styles.summaryValue}>{formatDuration(lastWorkout.durationSeconds)}</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Volume</Text>
+                <Text style={styles.summaryLabel}>{t('common.volume')}</Text>
                 <Text style={styles.summaryValue}>{formatVolume(lastWorkout.totalVolume)}</Text>
               </View>
             </View>
           ) : (
-            <Text style={styles.emptyText}>No workouts yet</Text>
+            <Text style={styles.emptyText}>{t('common.noWorkouts')}</Text>
           )}
         </Card>
 
-        <SectionHeader title="Estimated 1RM" subtitle="Current max settings for the big three." />
+        <SectionHeader title={t('home.estimated1RM')} subtitle={t('home.currentMaxBigThree')} />
         <View style={styles.metricsRow}>
           {MAIN_LIFTS.map((lift) => {
             const max = getMaxForLift(lift.liftType);
             return (
               <View key={lift.liftType} style={styles.metricWrap}>
-                <MetricCard label={lift.label} value={max ? String(max.oneRm) : '—'} unit={max ? 'kg' : undefined} color={lift.color} />
+                <MetricCard label={t(`analytics.${lift.liftType}`)} value={max ? String(max.oneRm) : '—'} unit={max ? 'kg' : undefined} color={lift.color} />
               </View>
             );
           })}
         </View>
 
-        <SectionHeader title="Today's Nutrition" subtitle="Track meals, macros, and recovery context." />
+        <SectionHeader title={t('home.todaysNutrition')} subtitle={t('home.trackMealsMacros')} />
         <Card style={styles.card}>
           <View style={styles.macroRow}>
             <View style={styles.macroItem}>
@@ -242,15 +244,15 @@ export function HomeDashboard() {
             </View>
             <View style={styles.macroItem}>
               <Text style={[styles.macroValue, { color: colors.primary }]}>{foodTotals.protein}</Text>
-              <Text style={styles.macroLabel}>Protein</Text>
+              <Text style={styles.macroLabel}>{t('home.protein')}</Text>
             </View>
             <View style={styles.macroItem}>
               <Text style={[styles.macroValue, { color: colors.warning }]}>{foodTotals.carbs}</Text>
-              <Text style={styles.macroLabel}>Carbs</Text>
+              <Text style={styles.macroLabel}>{t('home.carbs')}</Text>
             </View>
             <View style={styles.macroItem}>
               <Text style={[styles.macroValue, { color: colors.danger }]}>{foodTotals.fat}</Text>
-              <Text style={styles.macroLabel}>Fat</Text>
+              <Text style={styles.macroLabel}>{t('home.fat')}</Text>
             </View>
           </View>
 
@@ -283,12 +285,12 @@ export function HomeDashboard() {
           )}
 
           <Pressable onPress={() => setShowFoodList(!showFoodList)} style={styles.addFoodBtn}>
-            <Text style={styles.addFoodText}>+ Add Food</Text>
+            <Text style={styles.addFoodText}>{t('home.addFood')}</Text>
           </Pressable>
 
           {showFoodList && (
             <View style={styles.foodPicker}>
-              <TextField label="Search foods" value={foodSearch} onChangeText={setFoodSearch} placeholder="鸡蛋, chicken, protein..." />
+              <TextField label={t('home.searchFoods')} value={foodSearch} onChangeText={setFoodSearch} placeholder={t('home.foodSearchPlaceholder')} />
               <ScrollView style={styles.foodPickerList} nestedScrollEnabled>
                 {filteredFoods.map((food) => (
                   <Pressable key={food.id} onPress={() => addFood(food.id)} style={styles.foodPickerItem}>
@@ -303,7 +305,7 @@ export function HomeDashboard() {
             </View>
           )}
 
-          <Text style={styles.cardText}>Status tags:</Text>
+          <Text style={styles.cardText}>{t('home.statusTags')}</Text>
           <View style={styles.tagsRow}>
             {NUTRITION_STATUS_OPTIONS.map((tag) => (
               <Pressable key={tag} onPress={() => toggleTag(tag)} style={[styles.tag, selectedTags.includes(tag) && styles.tagSelected]}>
@@ -311,14 +313,14 @@ export function HomeDashboard() {
               </Pressable>
             ))}
           </View>
-          <TextField label="Notes" value={nutritionNotes} onChangeText={setNutritionNotes} placeholder="今天吃了什么..." multiline />
+          <TextField label={t('common.notes')} value={nutritionNotes} onChangeText={setNutritionNotes} placeholder={t('home.notesPlaceholder')} multiline />
           {aiTags.length > 0 && (
             <View style={styles.aiTagsRow}>
-              <Text style={styles.aiTagsLabel}>AI Tags:</Text>
+              <Text style={styles.aiTagsLabel}>{t('home.aiTags')}</Text>
               {aiTags.map((t) => <Text key={t} style={styles.aiTag}>{t}</Text>)}
             </View>
           )}
-          <Button title="Save Nutrition" onPress={handleSaveNutrition} loading={isSavingNutrition} size="md" />
+          <Button title={t('home.saveNutrition')} onPress={handleSaveNutrition} loading={isSavingNutrition} size="md" />
         </Card>
       </ScrollView>
     </SafeAreaView>

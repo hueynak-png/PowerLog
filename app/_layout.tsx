@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
+import '@/src/i18n';
 import { useAppStore } from '@/src/stores/useAppStore';
 import { colors } from '@/src/theme';
 
