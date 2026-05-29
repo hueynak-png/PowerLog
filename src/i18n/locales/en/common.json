@@ -454,6 +454,7 @@
     "programDeleteConfirm": "Delete \"{{name}}\"? This cannot be undone.",
     "cycleDeactivateConfirm": "Deactivate the current training cycle?",
     "heroSubtitle": "Generate, store, and activate structured training cycles from one place.",
+    "createNewCycle": "Create a new cycle from your goal, maxes, and schedule.",
     "activeBlockHint": "What PowerLog should treat as your active training block.",
     "activeBlock": "Active block",
     "unknown": "Unknown",
@@ -461,7 +462,8 @@
     "phase": "Phase",
     "savedProgram": "saved program",
     "noSavedPrograms": "No saved programs",
-    "weeks": "weeks"
+    "weeks": "weeks",
+    "createNewCycle": "Create a new cycle from your goal, maxes, and schedule."
   },
   "route": {
     "loadingWorkout": "Loading workout…",
@@ -559,10 +561,16 @@
     "squat1RM": "Squat 1RM",
     "bench1RM": "Bench 1RM",
     "deadlift1RM": "Deadlift 1RM",
+    "tracked": "Tracked",
+    "recoveryKey": "Recovery Key",
+    "backupFailed": "Backup failed",
     "kcal": "kcal",
     "powerLogVersion": "PowerLog v{{version}}",
     "searchExerciseHint": "Search by English, 中文, or family",
     "noExercisesFound": "No exercises found.",
-    "yyyyMMDD": "YYYY-MM-DD"
+    "yyyyMMDD": "YYYY-MM-DD",
+    "tracked": "Tracked",
+    "recoveryKey": "Recovery Key",
+    "backupFailed": "Backup failed"
   }
 }

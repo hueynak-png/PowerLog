@@ -454,6 +454,7 @@
     "programDeleteConfirm": "删除「{{name}}」？此操作不可撤销。",
     "cycleDeactivateConfirm": "结束当前训练周期？",
     "heroSubtitle": "一站式生成、存储并激活结构化训练周期。",
+    "createNewCycle": "根据你的目标、最大重量和日程创建新的训练周期。",
     "activeBlockHint": "PowerLog 应将此视为你的当前训练模块。",
     "activeBlock": "当前模块",
     "unknown": "未知",
@@ -461,7 +462,8 @@
     "phase": "阶段",
     "savedProgram": "个已保存计划",
     "noSavedPrograms": "暂无保存的计划",
-    "weeks": "周"
+    "weeks": "周",
+    "createNewCycle": "根据你的目标、最大重量和日程创建新周期。"
   },
   "route": {
     "loadingWorkout": "加载训练中…",
@@ -559,9 +561,15 @@
     "squat1RM": "深蹲 1RM",
     "bench1RM": "卧推 1RM",
     "deadlift1RM": "硬拉 1RM",
+    "tracked": "已记录",
+    "recoveryKey": "恢复密钥",
+    "backupFailed": "备份失败",
     "kcal": "千卡",
     "searchExerciseHint": "按英文、中文或分类搜索",
     "noExercisesFound": "未找到动作。",
-    "yyyyMMDD": "YYYY-MM-DD"
+    "yyyyMMDD": "YYYY-MM-DD",
+    "tracked": "已记录",
+    "recoveryKey": "恢复密钥",
+    "backupFailed": "备份失败"
   }
 }

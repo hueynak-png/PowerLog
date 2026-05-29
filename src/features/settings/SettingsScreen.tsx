@@ -315,7 +315,7 @@ export function SettingsScreen() {
         <Card style={styles.card}>
           <View style={styles.cardTopRow}>
             <Text style={styles.cardKicker}>{t('settingsExtras.bodyContext')}</Text>
-            <Text style={styles.statusPill}>{latestBodyweight ? t('Tracked') : t('common.noData')}</Text>
+            <Text style={styles.statusPill}>{latestBodyweight ? t('settingsExtras.tracked') : t('common.noData')}</Text>
           </View>
           <Text style={styles.cardText}>
             {t('settingsExtras.latest')}: {latestBodyweight ? `${latestBodyweight.bodyweight} kg · ${new Date(latestBodyweight.date).toLocaleDateString()}` : t('common.noData')}
@@ -368,7 +368,7 @@ export function SettingsScreen() {
             <>
               <Text style={styles.cardText}>{t('settingsExtras.cloudSyncHint')}</Text>
               <TextField label={t('settingsExtras.backendUrl')} value={syncBaseUrl} onChangeText={setSyncBaseUrl} placeholder="https://your-worker.workers.dev" />
-              <TextField label={t('Recovery Key')} value={syncRecoveryKey} onChangeText={setSyncRecoveryKey} placeholder={t('settingsExtras.recoveryKeyPlaceholder')} />
+              <TextField label={t('settingsExtras.recoveryKey')} value={syncRecoveryKey} onChangeText={setSyncRecoveryKey} placeholder={t('settingsExtras.recoveryKeyPlaceholder')} />
               <View style={styles.buttonRow}>
                 <Button title={t('settings.create')} onPress={handleCreateRecoveryKey} loading={syncBusy} size="sm" style={styles.rowButton} />
                 <Button title={t('common.save')} onPress={saveSyncConfig} variant="secondary" disabled={!syncBaseUrl || !syncRecoveryKey} size="sm" style={styles.rowButton} />
@@ -417,7 +417,7 @@ export function SettingsScreen() {
             <Text style={styles.cardText}>{t('settingsExtras.fileBackupWebOnly')}</Text>
           )}
           {backupMessage ? <Text style={styles.savedText}>{backupMessage}</Text> : null}
-          {backupError ? <Text style={styles.errorText}>{t('Backup failed')}: {backupError}</Text> : null}
+          {backupError ? <Text style={styles.errorText}>{t('settingsExtras.backupFailed')}: {backupError}</Text> : null}
         </Card>
 
         <SectionHeader title={t('settings.appVersion')} subtitle={t('settingsExtras.pwaUpdateStatus')} />

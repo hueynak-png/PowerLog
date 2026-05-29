@@ -321,7 +321,7 @@ export function ProgramScreen() {
         )}
 
         {/* Generate Button */}
-        <SectionHeader title={t('program.aiProgramGenerator')} subtitle={t('Create a new cycle from your goal, maxes, and schedule.')} />
+        <SectionHeader title={t('program.aiProgramGenerator')} subtitle={t('programOpts.createNewCycle')} />
         <Card variant="coach" style={styles.card}>
           <Text style={styles.programDesc}>{t('AI can draft a structured block with weeks, training days, main lifts, and accessory work.')}</Text>
           <Button
