@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingBottom: spacing.dockBottomInset, gap: spacing.md },
   backBtn: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
   backBtnText: { ...typography.callout, color: colors.primary, fontWeight: '600' },
-  hero: { paddingTop: spacing.sm, paddingBottom: spacing.sm },
+  hero: { paddingTop: spacing.lg, paddingBottom: spacing.sm },
   eyebrow: { ...typography.footnote, color: colors.success, fontWeight: '700', textTransform: 'uppercase' },
   title: { ...typography.title2, color: colors.textPrimary, marginTop: spacing.sm },
   subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm, lineHeight: 22 },

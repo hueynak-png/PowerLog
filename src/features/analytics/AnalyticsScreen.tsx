@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingBottom: spacing.dockBottomInset, gap: spacing.md },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   loadingText: { ...typography.subhead, color: colors.textSecondary },
-  hero: { paddingTop: spacing.xxl, paddingBottom: spacing.sm },
+  hero: { paddingTop: spacing.lg, paddingBottom: spacing.sm },
   eyebrow: { ...typography.overline, color: colors.primary, marginBottom: spacing.xs },
   pageTitle: { ...typography.largeTitle, color: colors.textPrimary },
   subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.xs, lineHeight: 22 },

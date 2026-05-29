@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     ...typography.subhead,
     color: colors.textSecondary,
   },
-  hero: { paddingTop: spacing.xxl, paddingBottom: spacing.sm },
+  hero: { paddingTop: spacing.lg, paddingBottom: spacing.sm },
   eyebrow: { ...typography.overline, color: colors.primary, marginBottom: spacing.xs },
   title: {
     ...typography.largeTitle,

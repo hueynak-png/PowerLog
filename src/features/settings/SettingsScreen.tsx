@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   hero: {
-    paddingTop: spacing.xxl,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
   },
   eyebrow: {

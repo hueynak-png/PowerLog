@@ -198,7 +198,7 @@ export function CalendarScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: spacing.dockBottomInset, gap: spacing.md },
-  hero: { paddingTop: spacing.xxl, paddingBottom: spacing.sm },
+  hero: { paddingTop: spacing.lg, paddingBottom: spacing.sm },
   eyebrow: { ...typography.overline, color: colors.primary, marginBottom: spacing.xs },
   title: { ...typography.largeTitle, color: colors.textPrimary },
   subtitle: { ...typography.body, color: colors.textSecondary, marginTop: spacing.xs, lineHeight: 22 },

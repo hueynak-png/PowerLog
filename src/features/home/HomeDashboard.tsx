@@ -348,7 +348,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   hero: {
-    marginBottom: spacing.sm,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   eyebrow: {
     ...typography.overline,
