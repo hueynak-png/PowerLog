@@ -4,6 +4,11 @@ export const getAppVersion = (): string => Constants.expoConfig?.version ?? '1.0
 
 export const releaseNotes = [
   {
+    version: '1.4.0',
+    date: '2026-05-29',
+    highlights: ['全面汉化：界面支持简体中文，根据设备语言自动切换', '中英文手动切换按钮（设置页标题右侧）', '训练引导、错误提示、AI 周报等全部支持中英双语'],
+  },
+  {
     version: '1.3.0',
     date: '2026-05-28',
     highlights: ['营养追踪升级：食物数据库 + 宏量计算 + 板块移至1RM下方'],

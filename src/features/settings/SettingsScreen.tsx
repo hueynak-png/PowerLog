@@ -29,7 +29,7 @@ import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { colors, radius, spacing, typography } from '@/src/theme';
 
 export function SettingsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const db = useDatabase();
   const profile = useSettingsStore((state) => state.profile);
   const getMaxForLift = useSettingsStore((state) => state.getMaxForLift);
@@ -274,7 +274,16 @@ export function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{t('settings.controlRoom')}</Text>
-          <Text style={styles.title}>{t('nav.settings')}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{t('nav.settings')}</Text>
+            <Pressable
+              style={styles.langToggle}
+              onPress={() => i18n.changeLanguage(i18n.language === 'zh-CN' ? 'en' : 'zh-CN')}
+              accessibilityLabel={t('Switch language')}
+            >
+              <Text style={styles.langToggleText}>{i18n.language === 'zh-CN' ? 'EN' : '中'}</Text>
+            </Pressable>
+          </View>
           <Text style={styles.subtitle}>{t('Tune your maxes, bodyweight context, session defaults, and AI connection.')}</Text>
         </View>
 
@@ -474,6 +483,25 @@ const styles = StyleSheet.create({
   title: {
     ...typography.largeTitle,
     color: colors.textPrimary,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  langToggle: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+  },
+  langToggleText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '800',
+    fontSize: 12,
   },
   subtitle: {
     ...typography.body,
