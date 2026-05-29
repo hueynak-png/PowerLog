@@ -193,7 +193,7 @@ export function SettingsScreen() {
     saveSyncConfig();
     const meta = await getLatestSnapshotMeta();
     setRemoteSnapshot(meta);
-    return meta ? `${t('settingsExtras.cloudSnapshotFoundFrom')} ${new Date(meta.createdAt).toLocaleString()}.` : t('settings.noSnapshot');
+    return meta ? `${t('settingsExtras.cloudSnapshotFoundFrom')} ${new Date(meta.createdAt).toLocaleString(i18n.language)}.` : t('settings.noSnapshot');
   });
 
   const handleUploadSnapshot = () => runSyncAction(async () => {
@@ -201,7 +201,7 @@ export function SettingsScreen() {
     const { bytes, meta: localMeta } = await createSnapshotUploadPayload();
     const meta = await uploadSnapshot(bytes, localMeta);
     setRemoteSnapshot(meta);
-    return t('settingsExtras.uploadedBackup', { size: formatSnapshotSize(meta.sizeBytes), date: new Date(meta.createdAt).toLocaleString() });
+    return t('settingsExtras.uploadedBackup', { size: formatSnapshotSize(meta.sizeBytes), date: new Date(meta.createdAt).toLocaleString(i18n.language) });
   });
 
   const restoreLatestSnapshot = () => runSyncAction(async () => {
@@ -318,7 +318,7 @@ export function SettingsScreen() {
             <Text style={styles.statusPill}>{latestBodyweight ? t('settingsExtras.tracked') : t('common.noData')}</Text>
           </View>
           <Text style={styles.cardText}>
-            {t('settingsExtras.latest')}: {latestBodyweight ? `${latestBodyweight.bodyweight} kg · ${new Date(latestBodyweight.date).toLocaleDateString()}` : t('common.noData')}
+            {t('settingsExtras.latest')}: {latestBodyweight ? `${latestBodyweight.bodyweight} kg · ${new Date(latestBodyweight.date).toLocaleDateString(i18n.language)}` : t('common.noData')}
           </Text>
           <NumberField label={t('settings.bodyweight')} value={bodyweightValue} onChangeValue={setBodyweightValue} step={0.5} min={20} unit="kg" />
           <Button
@@ -382,12 +382,12 @@ export function SettingsScreen() {
           )}
           {remoteSnapshot ? (
             <Text style={styles.cardText}>
-              {t('settingsExtras.cloudBackup')}: {new Date(remoteSnapshot.createdAt).toLocaleString()} · {formatSnapshotSize(remoteSnapshot.sizeBytes)} · {remoteSnapshot.sha256.slice(0, 8)}…
+              {t('settingsExtras.cloudBackup')}: {new Date(remoteSnapshot.createdAt).toLocaleString(i18n.language)} · {formatSnapshotSize(remoteSnapshot.sizeBytes)} · {remoteSnapshot.sha256.slice(0, 8)}…
             </Text>
           ) : null}
-          {syncStatusMeta.lastManualUploadAt ? <Text style={styles.cardText}>{t('settingsExtras.lastManualUpload')}: {new Date(syncStatusMeta.lastManualUploadAt).toLocaleString()}</Text> : null}
-          {syncStatusMeta.lastAutoUploadAt ? <Text style={styles.cardText}>{t('settingsExtras.lastAutoUpload')}: {new Date(syncStatusMeta.lastAutoUploadAt).toLocaleString()}</Text> : null}
-          {syncStatusMeta.lastRestoreAt ? <Text style={styles.cardText}>{t('settingsExtras.lastRestore')}: {new Date(syncStatusMeta.lastRestoreAt).toLocaleString()}</Text> : null}
+          {syncStatusMeta.lastManualUploadAt ? <Text style={styles.cardText}>{t('settingsExtras.lastManualUpload')}: {new Date(syncStatusMeta.lastManualUploadAt).toLocaleString(i18n.language)}</Text> : null}
+          {syncStatusMeta.lastAutoUploadAt ? <Text style={styles.cardText}>{t('settingsExtras.lastAutoUpload')}: {new Date(syncStatusMeta.lastAutoUploadAt).toLocaleString(i18n.language)}</Text> : null}
+          {syncStatusMeta.lastRestoreAt ? <Text style={styles.cardText}>{t('settingsExtras.lastRestore')}: {new Date(syncStatusMeta.lastRestoreAt).toLocaleString(i18n.language)}</Text> : null}
           {syncMessage ? <Text style={styles.savedText}>{syncMessage}</Text> : null}
           {syncError ? <Text style={styles.errorText}>{t('settingsExtras.cloudSyncFailed')}: {syncError}</Text> : null}
         </Card>
@@ -444,7 +444,7 @@ export function SettingsScreen() {
         </Card>
 
         <Button title={t('settings.saveSettings')} onPress={handleSave} loading={isSaving} fullWidth />
-        {lastSavedAt ? <Text style={styles.savedText}>{t('settings.lastSaved', { date: new Date(lastSavedAt).toLocaleString() })}</Text> : null}
+        {lastSavedAt ? <Text style={styles.savedText}>{t('settings.lastSaved', { date: new Date(lastSavedAt).toLocaleString(i18n.language) })}</Text> : null}
         {saveError ? <Text style={styles.errorText}>{t('settings.saveFailed')}: {saveError}</Text> : null}
       </ScrollView>
     </SafeAreaView>

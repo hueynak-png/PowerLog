@@ -28,6 +28,8 @@
     "rpe": "RPE",
     "weight": "Weight",
     "search": "Search",
+    "min": "min",
+    "durationMinutes": "{{minutes}} min",
     "noData": "No data",
     "error": "Error",
     "success": "Success",
@@ -380,6 +382,26 @@
   },
   "releaseNotes": {
     "title": "What's new in v{{version}}"
+  },
+  "muscleGroups": {
+    "Chest": "Chest",
+    "Back": "Back",
+    "Shoulders": "Shoulders",
+    "Legs": "Legs",
+    "Arms": "Arms",
+    "Triceps": "Triceps",
+    "Biceps": "Biceps",
+    "Core": "Core",
+    "Glutes": "Glutes",
+    "Calves": "Calves",
+    "Forearms": "Forearms",
+    "Traps": "Traps",
+    "Lats": "Lats",
+    "Quads": "Quads",
+    "Hamstrings": "Hamstrings",
+    "Lower Back": "Lower Back",
+    "Upper Back": "Upper Back",
+    "Full Body": "Full Body"
   },
   "seedPrograms": {
     "seed-program-brad-full-cycle": {

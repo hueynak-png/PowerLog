@@ -28,6 +28,8 @@
     "rpe": "RPE",
     "weight": "重量",
     "search": "搜索",
+    "min": "分钟",
+    "durationMinutes": "{{minutes}} 分钟",
     "noData": "暂无数据",
     "error": "错误",
     "success": "成功",
@@ -380,6 +382,26 @@
   },
   "releaseNotes": {
     "title": "v{{version}} 更新内容"
+  },
+  "muscleGroups": {
+    "Chest": "胸",
+    "Back": "背",
+    "Shoulders": "肩",
+    "Legs": "腿",
+    "Arms": "手臂",
+    "Triceps": "三头",
+    "Biceps": "二头",
+    "Core": "核心",
+    "Glutes": "臀",
+    "Calves": "小腿",
+    "Forearms": "前臂",
+    "Traps": "斜方",
+    "Lats": "背阔",
+    "Quads": "股四",
+    "Hamstrings": "腘绳",
+    "Lower Back": "下背",
+    "Upper Back": "上背",
+    "Full Body": "全身"
   },
   "seedPrograms": {
     "seed-program-brad-full-cycle": {

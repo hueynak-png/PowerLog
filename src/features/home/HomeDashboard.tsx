@@ -30,7 +30,7 @@ const formatDuration = (seconds?: number) => {
   if (!seconds) return '—';
 
   const minutes = Math.round(seconds / 60);
-  return `${minutes} min`;
+  return i18n.t('common.durationMinutes', { minutes });
 };
 
 const formatVolume = (volume?: number) => {
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   summaryValue: {
-    ...typography.headline,
+    ...typography.callout,
     color: colors.textPrimary,
     flexShrink: 1,
   },

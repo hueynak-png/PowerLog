@@ -189,7 +189,7 @@ export function AnalyticsScreen() {
         <Card style={styles.card}>
           <BarChart
             title={t('analytics.volumeByMuscleGroup')}
-            data={muscleVolume.slice(0, 8).map((d) => ({ label: d.muscleGroup, value: Math.round(d.volume) }))}
+            data={muscleVolume.slice(0, 8).map((d) => ({ label: t(`muscleGroups.${d.muscleGroup}`), value: Math.round(d.volume) }))}
           />
         </Card>
 
@@ -220,7 +220,7 @@ export function AnalyticsScreen() {
 
               return (
                 <View key={item.muscleGroup} style={[styles.heatmapPill, { backgroundColor }]}>
-                  <Text style={[styles.heatmapPillText, { color: textColor }]}>{item.muscleGroup}</Text>
+                  <Text style={[styles.heatmapPillText, { color: textColor }]}>{t(`muscleGroups.${item.muscleGroup}`)}</Text>
                   <Text style={[styles.heatmapPillVolume, { color: textColor }]}>
                     {item.volume > 0 ? formattedVolume + ' kg' : '0 kg'}
                   </Text>
