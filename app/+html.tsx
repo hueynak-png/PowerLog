@@ -85,13 +85,17 @@ const initialColorSchemeScript = `
 const runtimeScripts = `
 var colorSchemeQuery = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
 if (colorSchemeQuery) {
-  var reloadForColorSchemeChange = function() {
-    window.location.reload();
+  var syncColorSchemeClass = function(event) {
+    var isDark = event && typeof event.matches === 'boolean' ? event.matches : colorSchemeQuery.matches;
+    document.documentElement.classList.toggle('powerlog-dark', isDark);
+    document.documentElement.style.backgroundColor = isDark ? '#05070B' : '#F4F6FA';
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
   };
+  syncColorSchemeClass();
   if (colorSchemeQuery.addEventListener) {
-    colorSchemeQuery.addEventListener('change', reloadForColorSchemeChange);
+    colorSchemeQuery.addEventListener('change', syncColorSchemeClass);
   } else if (colorSchemeQuery.addListener) {
-    colorSchemeQuery.addListener(reloadForColorSchemeChange);
+    colorSchemeQuery.addListener(syncColorSchemeClass);
   }
 }
 

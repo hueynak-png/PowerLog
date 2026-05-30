@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { useColorScheme } from '@/components/useColorScheme';
@@ -34,9 +34,13 @@ export default function TabLayout() {
   const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const themeColors = colorScheme === 'dark' ? darkColors : lightColors;
+  const webDarkTabBarStyle = Platform.OS === 'web' && colorScheme === 'dark'
+    ? ({ backgroundColor: darkColors.tabBar, borderColor: darkColors.tabBarBorder } as const)
+    : null;
 
   return (
     <Tabs
+      key={colorScheme}
       screenOptions={{
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.textTertiary,
@@ -59,6 +63,7 @@ export default function TabLayout() {
           shadowOpacity: 0.9,
           shadowRadius: 24,
           elevation: 12,
+          ...(webDarkTabBarStyle ?? {}),
         },
         tabBarItemStyle: {
           borderRadius: radius.xl,
