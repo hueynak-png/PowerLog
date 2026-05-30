@@ -174,7 +174,7 @@ export function HomeDashboard() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{todayLabel}</Text>
           <Text style={styles.title}>{t('home.trainingCommandCenter')}</Text>
@@ -331,6 +331,10 @@ export function HomeDashboard() {
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollView: {
     flex: 1,
     backgroundColor: colors.background,
   },
