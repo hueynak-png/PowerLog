@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
-import { Text, useColorScheme, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { useColorScheme } from '@/components/useColorScheme';
 import { darkColors, lightColors } from '@/src/theme/colors';
 import { radius, spacing } from '@/src/theme';
 
@@ -31,8 +32,8 @@ function DockIcon({ name, color, focused, activeBackground }: { name: keyof type
 
 export default function TabLayout() {
   const { t } = useTranslation();
-  const systemScheme = useColorScheme();
-  const themeColors = systemScheme === 'dark' ? darkColors : lightColors;
+  const colorScheme = useColorScheme();
+  const themeColors = colorScheme === 'dark' ? darkColors : lightColors;
 
   return (
     <Tabs

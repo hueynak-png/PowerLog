@@ -3,12 +3,13 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import 'react-native-reanimated';
 
+import { useColorScheme } from '@/components/useColorScheme';
 import '@/src/i18n';
 import { useAppStore } from '@/src/stores/useAppStore';
-import { colors } from '@/src/theme';
+import { darkColors, lightColors } from '@/src/theme/colors';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -52,12 +53,15 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
+  const colorScheme = useColorScheme();
+  const themeColors = colorScheme === 'dark' ? darkColors : lightColors;
+
   return (
-    <View style={styles.root}>
+    <View style={{ flex: 1, backgroundColor: themeColors.background }}>
       <StatusBar style="auto" />
       <Stack
         screenOptions={{
-          contentStyle: { backgroundColor: colors.background },
+          contentStyle: { backgroundColor: themeColors.background },
           headerShadowVisible: false,
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -68,10 +72,3 @@ function RootLayoutNav() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-});
