@@ -40,7 +40,6 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      key={colorScheme}
       screenOptions={{
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.textTertiary,
