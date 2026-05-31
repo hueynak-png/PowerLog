@@ -15,7 +15,16 @@ export const authMiddleware = async (c: Context<{ Bindings: Env }>, next: Next) 
 
   const token = authHeader.slice(7);
 
-  if (token !== c.env.AUTH_TOKEN) {
+  const a = new TextEncoder().encode(token);
+  const b = new TextEncoder().encode(c.env.AUTH_TOKEN);
+  if (a.byteLength !== b.byteLength) {
+    return c.json({ error: 'Invalid token' }, 401);
+  }
+  let diff = 0;
+  for (let i = 0; i < a.byteLength; i++) {
+    diff |= a[i] ^ b[i];
+  }
+  if (diff !== 0) {
     return c.json({ error: 'Invalid token' }, 401);
   }
 

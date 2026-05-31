@@ -16,9 +16,11 @@ export interface Env {
 
 const app = new Hono<{ Bindings: Env }>();
 
-// CORS for frontend
+// CORS for frontend — reflect request origin instead of wildcard.
+// For production deployment, restrict to the known web domain:
+//   origin: c.env.ENVIRONMENT === 'production' ? 'https://your-domain.com' : '*'
 app.use('*', cors({
-  origin: '*',
+  origin: (origin) => origin,
   allowMethods: ['GET', 'POST', 'OPTIONS'],
   allowHeaders: [
     'Content-Type',

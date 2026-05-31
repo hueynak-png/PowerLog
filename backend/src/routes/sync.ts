@@ -7,7 +7,7 @@ export const syncRoutes = new Hono<{ Bindings: Env }>();
 
 const uploadHeadersSchema = z.object({
   schemaVersion: z.coerce.number().int().positive(),
-  sha256: z.string().regex(/^[a-f0-9]{64}$/i),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/),
   appVersion: z.string().max(64).optional(),
   platform: z.string().max(32).optional(),
   clientId: z.string().max(128).optional(),
