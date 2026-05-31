@@ -102,10 +102,11 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
     }
 
     const workoutExercises = await getWorkoutExercises(db, sessionId);
+    // Single query for all session sets (fixes N+1: was called once per exercise)
+    const allSets = await getSessionSets(db, sessionId);
     const exercises = await Promise.all(
       workoutExercises.map(async (workoutExercise) => {
         const exercise = await getExerciseById(db, workoutExercise.exerciseId);
-        const sets = await getSessionSets(db, sessionId);
 
         if (!exercise) {
           throw new Error(`Exercise not found: ${workoutExercise.exerciseId}`);
@@ -114,7 +115,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
         return {
           ...workoutExercise,
           exercise,
-          sets: sets.filter((workoutSet) => workoutSet.workoutExerciseId === workoutExercise.id),
+          sets: allSets.filter((workoutSet) => workoutSet.workoutExerciseId === workoutExercise.id),
         };
       }),
     );
