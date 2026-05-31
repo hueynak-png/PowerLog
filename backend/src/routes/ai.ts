@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import type { Env } from '../index';
+import { createAIHandler } from '../lib/aiHandler';
 import { buildDailyStrengthAnalysisPrompt } from '../prompts/dailyStrengthAnalysis';
 import { buildSessionSummaryPrompt } from '../prompts/sessionSummary';
 import { buildWorkoutSuggestionPrompt, buildNutritionTagsPrompt } from '../prompts/workoutSuggestion';
@@ -133,125 +134,61 @@ const weeklyReviewSchema = z.object({
  * Generate AI summary for a completed workout session.
  * Provider: DeepSeek
  */
-aiRoutes.post('/session-summary', async (c) => {
-  const body = await c.req.json();
-  const parsed = sessionSummarySchema.safeParse(body);
+aiRoutes.post('/session-summary', createAIHandler({
+  schema: sessionSummarySchema,
+  createProvider: createDeepSeekProvider,
+  buildPrompt: buildSessionSummaryPrompt,
+  chatOptions: { temperature: 0.6 },
+  envKey: 'DEEPSEEK_API_KEY',
+}));
 
-  if (!parsed.success) {
-    return c.json({ error: 'Invalid request', details: parsed.error.issues }, 400);
-  }
-
-  const provider = createDeepSeekProvider(c.env.DEEPSEEK_API_KEY);
-  const messages = buildSessionSummaryPrompt(parsed.data);
-
-  try {
-    const response = await provider.chat(messages, { temperature: 0.6 });
-    const content = JSON.parse(response.content);
-    return c.json({ success: true, data: content, usage: response.usage });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: 'AI request failed', message }, 500);
-  }
-});
-
-aiRoutes.post('/daily-strength-analysis', async (c) => {
-  const body = await c.req.json();
-  const parsed = dailyStrengthAnalysisSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return c.json({ error: 'Invalid request', details: parsed.error.issues }, 400);
-  }
-
-  const provider = createDeepSeekProvider(c.env.DEEPSEEK_API_KEY);
-  const messages = buildDailyStrengthAnalysisPrompt(parsed.data);
-
-  try {
-    const response = await provider.chat(messages, { temperature: 0.45, maxTokens: 3000 });
-    const content = JSON.parse(response.content);
-    return c.json({ success: true, data: content, usage: response.usage });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: 'AI request failed', message }, 500);
-  }
-});
+aiRoutes.post('/daily-strength-analysis', createAIHandler({
+  schema: dailyStrengthAnalysisSchema,
+  createProvider: createDeepSeekProvider,
+  buildPrompt: buildDailyStrengthAnalysisPrompt,
+  chatOptions: { temperature: 0.45, maxTokens: 3000 },
+  envKey: 'DEEPSEEK_API_KEY',
+}));
 
 /**
  * POST /ai/workout-suggestion
  * Get AI suggestion during workout for next set.
  * Provider: DeepSeek
  */
-aiRoutes.post('/workout-suggestion', async (c) => {
-  const body = await c.req.json();
-  const parsed = workoutSuggestionSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return c.json({ error: 'Invalid request', details: parsed.error.issues }, 400);
-  }
-
-  const provider = createDeepSeekProvider(c.env.DEEPSEEK_API_KEY);
-  const messages = buildWorkoutSuggestionPrompt(parsed.data);
-
-  try {
-    const response = await provider.chat(messages, { temperature: 0.5, maxTokens: 500 });
-    const content = JSON.parse(response.content);
-    return c.json({ success: true, data: content, usage: response.usage });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: 'AI request failed', message }, 500);
-  }
-});
+aiRoutes.post('/workout-suggestion', createAIHandler({
+  schema: workoutSuggestionSchema,
+  createProvider: createDeepSeekProvider,
+  buildPrompt: buildWorkoutSuggestionPrompt,
+  chatOptions: { temperature: 0.5, maxTokens: 500 },
+  envKey: 'DEEPSEEK_API_KEY',
+}));
 
 /**
  * POST /ai/nutrition-tags
  * Generate AI tags for nutrition entry.
  * Provider: DeepSeek
  */
-aiRoutes.post('/nutrition-tags', async (c) => {
-  const body = await c.req.json();
-  const parsed = nutritionTagsSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return c.json({ error: 'Invalid request', details: parsed.error.issues }, 400);
-  }
-
-  const provider = createDeepSeekProvider(c.env.DEEPSEEK_API_KEY);
-  const messages = buildNutritionTagsPrompt(parsed.data);
-
-  try {
-    const response = await provider.chat(messages, { temperature: 0.4, maxTokens: 200 });
-    const tags = JSON.parse(response.content);
-    return c.json({ success: true, data: { tags }, usage: response.usage });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: 'AI request failed', message }, 500);
-  }
-});
+aiRoutes.post('/nutrition-tags', createAIHandler({
+  schema: nutritionTagsSchema,
+  createProvider: createDeepSeekProvider,
+  buildPrompt: buildNutritionTagsPrompt,
+  chatOptions: { temperature: 0.4, maxTokens: 200 },
+  transformResponse: (content) => ({ tags: content }),
+  envKey: 'DEEPSEEK_API_KEY',
+}));
 
 /**
  * POST /ai/weekly-review
  * Generate weekly training review and suggestions.
  * Provider: GPT (advanced coaching)
  */
-aiRoutes.post('/weekly-review', async (c) => {
-  const body = await c.req.json();
-  const parsed = weeklyReviewSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return c.json({ error: 'Invalid request', details: parsed.error.issues }, 400);
-  }
-
-  const provider = createGPTProvider(c.env.GPT_API_KEY);
-  const messages = buildWeeklyReviewPrompt(parsed.data);
-
-  try {
-    const response = await provider.chat(messages, { temperature: 0.7, maxTokens: 3000 });
-    const content = JSON.parse(response.content);
-    return c.json({ success: true, data: content, usage: response.usage });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: 'AI request failed', message }, 500);
-  }
-});
+aiRoutes.post('/weekly-review', createAIHandler({
+  schema: weeklyReviewSchema,
+  createProvider: createGPTProvider,
+  buildPrompt: buildWeeklyReviewPrompt,
+  chatOptions: { temperature: 0.7, maxTokens: 3000 },
+  envKey: 'GPT_API_KEY',
+}));
 
 // --- Plan Generation ---
 
@@ -281,23 +218,10 @@ const planGenerationSchema = z.object({
  * Generate a complete training program using GPT.
  * Provider: GPT (advanced coaching)
  */
-aiRoutes.post('/generate-plan', async (c) => {
-  const body = await c.req.json();
-  const parsed = planGenerationSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return c.json({ error: 'Invalid request', details: parsed.error.issues }, 400);
-  }
-
-  const provider = createGPTProvider(c.env.GPT_API_KEY);
-  const messages = buildPlanGenerationPrompt(parsed.data);
-
-  try {
-    const response = await provider.chat(messages, { temperature: 0.7, maxTokens: 8000 });
-    const content = JSON.parse(response.content);
-    return c.json({ success: true, data: content, usage: response.usage });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return c.json({ error: 'AI request failed', message }, 500);
-  }
-});
+aiRoutes.post('/generate-plan', createAIHandler({
+  schema: planGenerationSchema,
+  createProvider: createGPTProvider,
+  buildPrompt: buildPlanGenerationPrompt,
+  chatOptions: { temperature: 0.7, maxTokens: 8000 },
+  envKey: 'GPT_API_KEY',
+}));
