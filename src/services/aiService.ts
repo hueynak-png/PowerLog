@@ -168,31 +168,47 @@ export interface WeeklyReviewResponse {
   };
 }
 
+// --- Response Cache ---
+
+const summaryCache = new Map<string, SessionSummaryResponse>();
+
 // --- API Functions ---
 
 /**
  * Generate AI summary for a completed workout session.
+ * Results are cached in-memory by sessionId to avoid redundant API calls.
  */
-export const requestSessionSummary = (data: {
-  exercises: Array<{
-    nameEn: string;
-    nameZh: string;
-    role: string;
-    sets: Array<{
-      plannedWeight?: number;
-      actualWeight?: number;
-      plannedReps?: number;
-      actualReps?: number;
-      plannedRpe?: number;
-      actualRpe?: number;
-      completed: boolean;
+export const requestSessionSummary = async (
+  data: {
+    exercises: Array<{
+      nameEn: string;
+      nameZh: string;
+      role: string;
+      sets: Array<{
+        plannedWeight?: number;
+        actualWeight?: number;
+        plannedReps?: number;
+        actualReps?: number;
+        plannedRpe?: number;
+        actualRpe?: number;
+        completed: boolean;
+      }>;
     }>;
-  }>;
-  durationSeconds: number;
-  totalVolume: number;
-  completionRate: number;
-}): Promise<SessionSummaryResponse> =>
-  aiRequest('/session-summary', data);
+    durationSeconds: number;
+    totalVolume: number;
+    completionRate: number;
+  },
+  sessionId?: string,
+): Promise<SessionSummaryResponse> => {
+  if (sessionId && summaryCache.has(sessionId)) {
+    return summaryCache.get(sessionId)!;
+  }
+  const result = await aiRequest<SessionSummaryResponse>('/session-summary', data);
+  if (sessionId) {
+    summaryCache.set(sessionId, result);
+  }
+  return result;
+};
 
 export const requestDailyStrengthAnalysis = (data: {
   session: {
