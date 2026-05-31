@@ -34,6 +34,19 @@ CREATE TABLE IF NOT EXISTS schema_version (
   await ensureColumn(db, 'profile', 'last_settings_saved_at', 'ALTER TABLE profile ADD COLUMN last_settings_saved_at TEXT');
   await ensureColumn(db, 'workout_sessions', 'ai_summary_json', 'ALTER TABLE workout_sessions ADD COLUMN ai_summary_json TEXT');
 
-  await seedExercises(db);
-  await seedProgramSummaries(db);
+  // Performance indexes on frequently-queried FK columns
+  await db.execAsync(`
+    CREATE INDEX IF NOT EXISTS idx_we_session ON workout_exercises(workout_session_id);
+    CREATE INDEX IF NOT EXISTS idx_ws_exercise ON workout_sets(workout_exercise_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_date ON workout_sessions(date);
+    CREATE INDEX IF NOT EXISTS idx_exercises_family ON exercises(lift_family);
+    CREATE INDEX IF NOT EXISTS idx_exercises_role ON exercises(role);
+    CREATE INDEX IF NOT EXISTS idx_bodyweight_date ON bodyweight_entries(date);
+  `);
+
+  // Only seed on fresh install (schema version bump), not every startup
+  if ((current?.version ?? 0) < CURRENT_SCHEMA_VERSION) {
+    await seedExercises(db);
+    await seedProgramSummaries(db);
+  }
 };
