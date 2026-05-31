@@ -65,8 +65,9 @@ export const getE1RMHistory = async (
       AND wset.is_warmup = 0
       AND wset.actual_weight IS NOT NULL
       AND wset.actual_reps IS NOT NULL
-    ORDER BY ws.date DESC`,
-    [liftFamily],
+    ORDER BY ws.date DESC
+    LIMIT ?`,
+    [liftFamily, limit * 50],
   );
 
   const sessionMap = new Map<string, number>();
