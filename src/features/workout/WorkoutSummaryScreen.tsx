@@ -8,6 +8,8 @@ import { Card } from '@/src/components/ui/Card';
 import { MetricCard } from '@/src/components/ui/MetricCard';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
 import { useDatabase } from '@/src/hooks/useDatabase';
+import i18n from '@/src/i18n';
+import { formatDurationLocale } from '@/src/lib/date';
 import { calculateWorkoutSummary } from '@/src/lib/workoutSummary';
 import { getRecentExerciseHistory, updateWorkoutSession } from '@/src/repositories';
 import { isAIConfigured, requestDailyStrengthAnalysis, type DailyStrengthAnalysisResponse } from '@/src/services/aiService';
@@ -17,21 +19,13 @@ import { radius } from '@/src/theme/radius';
 import { spacing } from '@/src/theme/spacing';
 import { typography } from '@/src/theme/typography';
 
-const formatDuration = (seconds: number): string => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
-};
-
 type ScoreItem = { label: string; value: number; tone: 'success' | 'warning' | 'coach' };
 
 export function WorkoutSummaryScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const db = useDatabase();
+  const currentLocale = i18n.language;
   const session = useActiveWorkoutStore((state) => state.session);
   const exercises = useActiveWorkoutStore((state) => state.exercises);
 
@@ -162,7 +156,7 @@ export function WorkoutSummaryScreen() {
         </View>
 
         <View style={styles.metricsRow}>
-          <MetricCard label={t('common.duration')} value={formatDuration(summary.durationSeconds)} color={colors.primary} />
+          <MetricCard label={t('common.duration')} value={formatDurationLocale(summary.durationSeconds, currentLocale)} color={colors.primary} />
           <MetricCard label={t('common.complete')} value={`${Math.round(summary.completionRate * 100)}`} unit="%" color={colors.success} />
           <MetricCard label={t('common.volume')} value={`${Math.round(summary.totalVolume)}`} unit="kg" color={colors.textPrimary} />
         </View>
