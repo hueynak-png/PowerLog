@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/src/i18n';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 
@@ -14,6 +15,7 @@ import { SetInput } from '@/src/components/workout/SetInput';
 import type { WorkoutSet } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { showAlert } from '@/src/lib/alert';
+import { formatDateTimeLocale, formatDurationLocale } from '@/src/lib/date';
 import { calculateWorkoutSummary } from '@/src/lib/workoutSummary';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { colors } from '@/src/theme/colors';
@@ -25,12 +27,6 @@ import { ExercisePickerModal } from './ExercisePickerModal';
 type SetField = 'actualWeight' | 'actualReps' | 'actualRpe' | 'completed';
 
 const isMainLiftRole = (role: string): boolean => role === 'competition' || role === 'variation';
-
-const formatDuration = (seconds: number): string => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-};
 
 const formatValue = (value?: number, unit = ''): string =>
   typeof value === 'number' ? `${value}${unit}` : '—';
@@ -145,12 +141,12 @@ export function WorkoutDetailScreen() {
 
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{t('workout.workoutDetails')}</Text>
-          <Text style={styles.title}>{session ? new Date(session.startedAt).toLocaleString() : t('workoutDetail.completedSession')}</Text>
+          <Text style={styles.title}>{session ? formatDateTimeLocale(session.startedAt, i18n.language) : t('workoutDetail.completedSession')}</Text>
           <Text style={styles.subtitle}>{t('workoutDetail.readonlyHint')}</Text>
         </View>
 
         <View style={styles.metricsRow}>
-          <MetricCard label={t('common.duration')} value={formatDuration(summary.durationSeconds)} color={colors.primary} />
+          <MetricCard label={t('common.duration')} value={formatDurationLocale(summary.durationSeconds, i18n.language)} color={colors.primary} />
           <MetricCard label={t('common.complete')} value={`${Math.round(summary.completionRate * 100)}`} unit="%" color={colors.success} />
           <MetricCard label={t('common.volume')} value={`${Math.round(summary.totalVolume)}`} unit="kg" color={colors.textPrimary} />
         </View>
