@@ -62,12 +62,9 @@ export function WorkoutRecordingScreen() {
 
   const startRestTimer = () => {
     clearRestTimer();
-    setRestSeconds(90);
+    setRestSeconds(0);
     restTimerRef.current = setInterval(() => {
-      setRestSeconds((prev) => {
-        if (prev === null || prev <= 1) { clearRestTimer(); return null; }
-        return prev - 1;
-      });
+      setRestSeconds((prev) => (prev === null ? 0 : prev + 1));
     }, 1000);
   };
 
