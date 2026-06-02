@@ -39,13 +39,19 @@ const addVisibilityListener = (onVisible: () => void): void => {
   removeVisibilityListener();
 
   if (typeof document !== 'undefined' && 'visibilityState' in document) {
-    const handler = () => {
+    const recalc = () => {
       if (document.visibilityState === 'visible') {
         onVisible();
       }
     };
-    document.addEventListener('visibilitychange', handler);
-    _visibilityCleanup = () => document.removeEventListener('visibilitychange', handler);
+    document.addEventListener('visibilitychange', recalc);
+    window.addEventListener('pageshow', recalc);
+    window.addEventListener('focus', recalc);
+    _visibilityCleanup = () => {
+      document.removeEventListener('visibilitychange', recalc);
+      window.removeEventListener('pageshow', recalc);
+      window.removeEventListener('focus', recalc);
+    };
     return;
   }
 

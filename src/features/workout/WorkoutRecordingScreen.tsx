@@ -49,7 +49,8 @@ export function WorkoutRecordingScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
-  const [restSeconds, setRestSeconds] = useState<number | null>(null);
+  const restStartTimeRef = useRef<number | null>(null);
+  const [restElapsed, setRestElapsed] = useState<number | null>(null);
   const restTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const progressLabel = useMemo(() => `${setsCompleted} / ${setsTotal} sets`, [setsCompleted, setsTotal]);
@@ -57,14 +58,19 @@ export function WorkoutRecordingScreen() {
 
   const clearRestTimer = () => {
     if (restTimerRef.current) { clearInterval(restTimerRef.current); restTimerRef.current = null; }
-    setRestSeconds(null);
+    restStartTimeRef.current = null;
+    setRestElapsed(null);
   };
 
   const startRestTimer = () => {
     clearRestTimer();
-    setRestSeconds(0);
+    const now = Date.now();
+    restStartTimeRef.current = now;
+    setRestElapsed(0);
     restTimerRef.current = setInterval(() => {
-      setRestSeconds((prev) => (prev === null ? 0 : prev + 1));
+      if (restStartTimeRef.current) {
+        setRestElapsed(Math.floor((Date.now() - restStartTimeRef.current) / 1000));
+      }
     }, 1000);
   };
 
@@ -195,10 +201,10 @@ export function WorkoutRecordingScreen() {
               <Text style={styles.progressLabel}>{progressLabel}</Text>
             </View>
           </View>
-          {restSeconds !== null ? (
+          {restElapsed !== null ? (
             <View style={styles.restTimerBanner}>
               <Text style={styles.restTimerLabel}>{t('workout.rest')}</Text>
-              <Text style={styles.restTimerValue}>{Math.floor(restSeconds / 60)}:{String(restSeconds % 60).padStart(2, '0')}</Text>
+              <Text style={styles.restTimerValue}>{Math.floor(restElapsed / 60)}:{String(restElapsed % 60).padStart(2, '0')}</Text>
               <Pressable onPress={clearRestTimer} style={styles.restSkipBtn}>
                 <Text style={styles.restSkipText}>{`⚡${t('workout.skip')}`}</Text>
               </Pressable>
