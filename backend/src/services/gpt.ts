@@ -17,6 +17,7 @@ export const createGPTProvider = (apiKey: string): AIProvider => ({
         messages,
         temperature: options.temperature ?? 0.7,
         max_tokens: options.maxTokens ?? 4000,
+        response_format: { type: 'json_object' },
       }),
     });
 

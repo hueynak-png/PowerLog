@@ -30,10 +30,11 @@ export const createDeepSeekProvider = (apiKey: string): AIProvider => ({
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-v4-pro',
+        model: 'deepseek-v4-flash',
         messages,
         temperature: options.temperature ?? 0.7,
         max_tokens: options.maxTokens ?? 2000,
+        response_format: { type: 'json_object' },
       }),
     });
 
