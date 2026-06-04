@@ -20,9 +20,24 @@ const toWeeklyReview = (row: WeeklyReviewRow): WeeklyReview => ({
   reviewJson: row.review_json,
 });
 
+export const getAllWeeklyReviews = async (db: SQLiteDatabase): Promise<WeeklyReview[]> => {
+  const rows = await db.getAllAsync<WeeklyReviewRow>(
+    'SELECT * FROM weekly_reviews ORDER BY generated_at DESC',
+  );
+  return rows.map(toWeeklyReview);
+};
+
 export const getLatestWeeklyReview = async (db: SQLiteDatabase): Promise<WeeklyReview | null> => {
   const row = await db.getFirstAsync<WeeklyReviewRow>(
     'SELECT * FROM weekly_reviews ORDER BY generated_at DESC LIMIT 1',
+  );
+  return row ? toWeeklyReview(row) : null;
+};
+
+export const getWeeklyReviewById = async (db: SQLiteDatabase, id: string): Promise<WeeklyReview | null> => {
+  const row = await db.getFirstAsync<WeeklyReviewRow>(
+    'SELECT * FROM weekly_reviews WHERE id = ? LIMIT 1',
+    [id],
   );
   return row ? toWeeklyReview(row) : null;
 };
@@ -44,4 +59,8 @@ export const saveWeeklyReview = async (
   );
 
   return saved;
+};
+
+export const deleteWeeklyReview = async (db: SQLiteDatabase, id: string): Promise<void> => {
+  await db.runAsync('DELETE FROM weekly_reviews WHERE id = ?', [id]);
 };
