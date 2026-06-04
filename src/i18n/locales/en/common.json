@@ -131,7 +131,14 @@
     "trainingHistory": "Training history",
     "reviewCompletedSessions": "Review completed sessions, jump into workout details, or backfill a training day.",
     "monthView": "Month view",
-    "startWorkoutFor": "Start Workout for {{date}}"
+    "startWorkoutFor": "Start Workout for {{date}}",
+    "selectRange": "Select Range",
+    "cancelRange": "Cancel",
+    "rangeStartHint": "Tap a start date",
+    "rangeEndHint": "Tap an end date",
+    "selectedRange": "{{start}} → {{end}}",
+    "generateReviewForRange": "Generate Review for {{start}} → {{end}}",
+    "clearRange": "Clear"
   },
   "analytics": {
     "trainingIntelligence": "Training intelligence",
@@ -221,7 +228,15 @@
     "stimulus": "Stimulus",
     "fatigue": "Fatigue",
     "structure": "Structure",
-    "error": "Error"
+    "error": "Error",
+    "reportHistory": "Report History",
+    "deleteReport": "Delete",
+    "deleteReportConfirm": "Delete report for {{period}}? This cannot be undone.",
+    "noSavedReports": "No saved reports yet",
+    "viewReport": "View",
+    "backToLatest": "← Back to Latest",
+    "selectFromCalendar": "Select from Calendar",
+    "generateReviewForPeriod": "Generate Review for {{start}} → {{end}}"
   },
   "settings": {
     "controlRoom": "Control room",
@@ -575,7 +590,8 @@
     "aiAnalysisPeriod": "AI analysis for {{start}} → {{end}}",
     "aiPoweredAnalysis": "AI-powered analysis of your training week",
     "savedReview": "Saved review:",
-    "fatigueSigns": "Fatigue Signs"
+    "fatigueSigns": "Fatigue Signs",
+    "noWorkoutsInRange": "No workouts in the selected date range."
   },
   "settingsExtras": {
     "cloudSnapshotFound": "Cloud snapshot found from",

@@ -131,7 +131,14 @@
     "trainingHistory": "训练历史",
     "reviewCompletedSessions": "查看已完成的训练，跳转详情或补录训练日。",
     "monthView": "月视图",
-    "startWorkoutFor": "开始训练 - {{date}}"
+    "startWorkoutFor": "开始训练 - {{date}}",
+    "selectRange": "选择日期范围",
+    "cancelRange": "取消",
+    "rangeStartHint": "点击起始日期",
+    "rangeEndHint": "点击结束日期",
+    "selectedRange": "{{start}} → {{end}}",
+    "generateReviewForRange": "为 {{start}} → {{end}} 生成周报",
+    "clearRange": "清除"
   },
   "analytics": {
     "trainingIntelligence": "训练情报",
@@ -221,7 +228,15 @@
     "stimulus": "刺激度",
     "fatigue": "疲劳度",
     "structure": "结构评估",
-    "error": "错误"
+    "error": "错误",
+    "reportHistory": "周报历史",
+    "deleteReport": "删除",
+    "deleteReportConfirm": "确定要删除 {{period}} 的周报吗？此操作不可撤销。",
+    "noSavedReports": "暂无已保存的周报",
+    "viewReport": "查看",
+    "backToLatest": "← 返回最新",
+    "selectFromCalendar": "从日历选择日期",
+    "generateReviewForPeriod": "为 {{start}} → {{end}} 生成周报"
   },
   "settings": {
     "controlRoom": "控制中心",
@@ -575,7 +590,8 @@
     "aiAnalysisPeriod": "AI 分析 {{start}} → {{end}}",
     "aiPoweredAnalysis": "AI 训练周分析",
     "savedReview": "已保存回顾：",
-    "fatigueSigns": "疲劳信号"
+    "fatigueSigns": "疲劳信号",
+    "noWorkoutsInRange": "所选日期范围内无训练记录。"
   },
   "settingsExtras": {
     "cloudSnapshotFound": "云快照找到于",
