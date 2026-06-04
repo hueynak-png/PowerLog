@@ -17,6 +17,7 @@ import { useDatabase } from '@/src/hooks/useDatabase';
 import { showAlert } from '@/src/lib/alert';
 import { formatDateTimeLocale, formatDurationLocale } from '@/src/lib/date';
 import { calculateWorkoutSummary } from '@/src/lib/workoutSummary';
+import { updateWorkoutSession } from '@/src/repositories';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { colors } from '@/src/theme/colors';
 import { radius } from '@/src/theme/radius';
@@ -155,7 +156,13 @@ export function WorkoutDetailScreen() {
           <Button
             title={isEditing ? t('common.done') : t('workout.edit')}
             variant={isEditing ? 'primary' : 'secondary'}
-            onPress={() => {
+            onPress={async () => {
+              if (isEditing && db && session) {
+                await updateWorkoutSession(db, session.id, {
+                  completionRate: summary.completionRate,
+                  totalVolume: summary.totalVolume,
+                });
+              }
               setIsEditing(!isEditing);
               setShowPicker(false);
             }}
