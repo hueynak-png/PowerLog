@@ -3,7 +3,7 @@ import { createTables } from './schema';
 import { seedExercises } from './seedExercises';
 import { seedProgramSummaries } from './seedProgramSummaries';
 
-const CURRENT_SCHEMA_VERSION = 5;
+const CURRENT_SCHEMA_VERSION = 6;
 
 const ensureColumn = async (db: PowerLogDatabase, tableName: string, columnName: string, alterSql: string): Promise<void> => {
   const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${tableName})`);
@@ -48,5 +48,13 @@ CREATE TABLE IF NOT EXISTS schema_version (
   if ((current?.version ?? 0) < CURRENT_SCHEMA_VERSION) {
     await seedExercises(db);
     await seedProgramSummaries(db);
+  }
+
+  // Data migration: fix workout mis-dated due to UTC timezone (v5 → v6)
+  if ((current?.version ?? 0) === 5) {
+    await db.runAsync(
+      `UPDATE workout_sessions SET date = '2026-06-04'
+       WHERE date = '2026-05-28' AND started_at LIKE '%T19:17%'`,
+    );
   }
 };
