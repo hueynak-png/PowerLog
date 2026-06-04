@@ -49,6 +49,11 @@ export function CalendarScreen() {
   const [monthWorkouts, setMonthWorkouts] = useState<WorkoutSession[]>([]);
   const [dayWorkouts, setDayWorkouts] = useState<WorkoutSession[]>([]);
 
+  // Range selection state
+  const [isRangeMode, setIsRangeMode] = useState(false);
+  const [rangeStart, setRangeStart] = useState<string | null>(null);
+  const [rangeEnd, setRangeEnd] = useState<string | null>(null);
+
   // Load workouts for current month
   useEffect(() => {
     if (!db) return;
@@ -73,6 +78,48 @@ export function CalendarScreen() {
     if (month === 12) { setYear(year + 1); setMonth(1); }
     else setMonth(month + 1);
   };
+
+  const handleDatePress = (dateStr: string) => {
+    if (!isRangeMode) {
+      setSelectedDate(dateStr);
+      return;
+    }
+    // Range mode tap logic
+    if (!rangeStart) {
+      setRangeStart(dateStr);
+    } else if (!rangeEnd) {
+      if (dateStr < rangeStart) {
+        setRangeEnd(rangeStart);
+        setRangeStart(dateStr);
+      } else {
+        setRangeEnd(dateStr);
+      }
+    } else {
+      setRangeStart(dateStr);
+      setRangeEnd(null);
+    }
+  };
+
+  const handleCancelRange = () => {
+    setIsRangeMode(false);
+    setRangeStart(null);
+    setRangeEnd(null);
+  };
+
+  const handleGenerateReview = () => {
+    if (!rangeStart || !rangeEnd) return;
+    const start = rangeStart < rangeEnd ? rangeStart : rangeEnd;
+    const end = rangeStart < rangeEnd ? rangeEnd : rangeStart;
+    router.push({
+      pathname: '/review',
+      params: { startDate: start, endDate: end },
+    } as Href);
+  };
+
+  const isInRange = (date: string, start: string | null, end: string | null): boolean =>
+    start !== null && end !== null && date > start && date < end;
+
+  const rangeComplete = rangeStart !== null && rangeEnd !== null;
 
   const handleStartWorkout = useCallback(async (date: string) => {
     if (!db) return;
@@ -139,23 +186,80 @@ export function CalendarScreen() {
               return (
                 <Pressable
                   key={dateStr}
-                  style={[styles.dayCell, isToday && styles.dayCellToday, isSelected && styles.dayCellSelected]}
-                  onPress={() => setSelectedDate(dateStr)}
+                  style={[
+                    styles.dayCell,
+                    isRangeMode && (rangeStart === dateStr || rangeEnd === dateStr) && styles.dayCellSelected,
+                    isRangeMode && isInRange(dateStr, rangeStart, rangeEnd) && styles.dayCellInRange,
+                    !isRangeMode && isToday && styles.dayCellToday,
+                    !isRangeMode && isSelected && styles.dayCellSelected,
+                  ]}
+                  onPress={() => handleDatePress(dateStr)}
                 >
                   <Text style={[
                     styles.dayText,
-                    isToday && styles.dayTextToday,
-                    isSelected && styles.dayTextSelected,
+                    isRangeMode && (rangeStart === dateStr || rangeEnd === dateStr) && styles.dayTextSelected,
+                    !isRangeMode && isToday && !isSelected && styles.dayTextToday,
+                    !isRangeMode && isSelected && styles.dayTextSelected,
                   ]}>{day}</Text>
-                  {hasWorkout && <View style={[styles.dot, isSelected && styles.dotSelected]} />}
+                  {hasWorkout && (
+                    <View style={[
+                      styles.dot,
+                      (isRangeMode && (rangeStart === dateStr || rangeEnd === dateStr)) && styles.dotSelected,
+                      (!isRangeMode && isSelected) && styles.dotSelected,
+                    ]} />
+                  )}
                 </Pressable>
               );
             })}
           </View>
         </Card>
 
-        {/* Selected date detail */}
-        <SectionHeader title={selectedDate === today ? t('common.today') : selectedDate} subtitle={`${dayWorkouts.length} ${dayWorkouts.length === 1 ? t('common.session') : t('common.sessions')} ${t('common.logged')}`} />
+        {/* Range mode toggle */}
+        <View style={styles.rangeToggleRow}>
+          {isRangeMode ? (
+            <Button title={t('calendar.cancelRange')} onPress={handleCancelRange} variant="secondary" size="sm" />
+          ) : (
+            <Button title={t('calendar.selectRange')} onPress={() => setIsRangeMode(true)} variant="secondary" size="sm" />
+          )}
+        </View>
+
+        {/* Range mode info */}
+        {isRangeMode && !rangeComplete && (
+          <Card variant="tonal" style={styles.rangeInfoCard}>
+            <Text style={styles.rangeHint}>
+              {!rangeStart ? t('calendar.rangeStartHint') : t('calendar.rangeEndHint')}
+            </Text>
+            {rangeStart && (
+              <Text style={styles.rangeText}>{rangeStart} → ...</Text>
+            )}
+          </Card>
+        )}
+
+        {/* Range complete: show generate button */}
+        {rangeComplete && (
+          <View style={{ gap: spacing.sm }}>
+            <Card variant="tonal" style={styles.rangeInfoCard}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rangeText}>
+                  {t('calendar.selectedRange', { start: rangeStart, end: rangeEnd })}
+                </Text>
+              </View>
+              <Pressable onPress={handleCancelRange}>
+                <Text style={styles.clearRangeText}>{t('calendar.clearRange')}</Text>
+              </Pressable>
+            </Card>
+            <Button
+              title={t('calendar.generateReviewForRange', { start: rangeStart, end: rangeEnd })}
+              onPress={handleGenerateReview}
+              fullWidth
+            />
+          </View>
+        )}
+
+        {/* Selected date detail — hide in range mode */}
+        {!isRangeMode && (
+          <>
+            <SectionHeader title={selectedDate === today ? t('common.today') : selectedDate} subtitle={`${dayWorkouts.length} ${dayWorkouts.length === 1 ? t('common.session') : t('common.sessions')} ${t('common.logged')}`} />
         {dayWorkouts.length > 0 ? (
           dayWorkouts.map((workout) => (
             <Card key={workout.id} variant="outlined" style={styles.workoutCard}>
@@ -191,6 +295,8 @@ export function CalendarScreen() {
           disabled={!db}
           fullWidth
         />
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -227,4 +333,11 @@ const styles = StyleSheet.create({
   workoutMeta: { ...typography.footnote, color: colors.textSecondary, marginTop: spacing.xs },
   workoutActions: { flexDirection: 'row', gap: spacing.xs },
   emptyText: { ...typography.callout, color: colors.textSecondary, lineHeight: 20 },
+  // Range mode styles
+  rangeToggleRow: { alignItems: 'flex-start' },
+  rangeInfoCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
+  rangeHint: { ...typography.callout, color: colors.textSecondary },
+  rangeText: { ...typography.callout, color: colors.textPrimary, fontWeight: '600' },
+  clearRangeText: { ...typography.footnote, color: colors.primary, fontWeight: '600' },
+  dayCellInRange: { backgroundColor: colors.primary, opacity: 0.25 },
 });

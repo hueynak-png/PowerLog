@@ -1,26 +1,60 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, type Href } from 'expo-router';
 
 import { Button, Card, SectionHeader } from '@/src/components/ui';
 import { useDatabase } from '@/src/hooks/useDatabase';
-import { showAlert } from '@/src/lib/alert';
-import { getLatestWeeklyReview, getRecentWorkouts, getWorkoutExercises, getWorkoutSets, saveWeeklyReview } from '@/src/repositories';
-import { getBodyweightTrend } from '@/src/repositories/analyticsRepository';
+import { confirmAction, showAlert } from '@/src/lib/alert';
+import {
+  getAllWeeklyReviews,
+  getLatestWeeklyReview,
+  saveWeeklyReview,
+  deleteWeeklyReview,
+} from '@/src/repositories';
+import { getWorkoutsByDateRange } from '@/src/repositories/workoutRepository';
+import { getBodyweightByDateRange } from '@/src/repositories/analyticsRepository';
+import { getWorkoutExercises, getWorkoutSets } from '@/src/repositories';
 import { isAIConfigured, requestWeeklyReview, type WeeklyReviewResponse } from '@/src/services/aiService';
+import type { WeeklyReview } from '@/src/domain/types';
 import { colors, spacing, typography } from '@/src/theme';
 
-export function WeeklyReviewScreen() {
+interface Props {
+  initialPeriod?: { start: string; end: string };
+}
+
+export function WeeklyReviewScreen({ initialPeriod }: Props) {
   const { t } = useTranslation();
+  const router = useRouter();
   const db = useDatabase();
   const [isLoading, setIsLoading] = useState(false);
   const [review, setReview] = useState<WeeklyReviewResponse['data'] | null>(null);
   const [period, setPeriod] = useState<{ start: string; end: string } | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [savedReviews, setSavedReviews] = useState<WeeklyReview[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
 
+  const getDefaultPeriod = (): { start: string; end: string } => {
+    const now = new Date();
+    const end = now.toISOString().slice(0, 10);
+    const startDate = new Date(now);
+    startDate.setDate(now.getDate() - 6);
+    return { start: startDate.toISOString().slice(0, 10), end };
+  };
+
+  const activePeriod = initialPeriod || period || getDefaultPeriod();
+
+  // Load saved reviews list
   useEffect(() => {
     if (!db) return;
+    getAllWeeklyReviews(db).then(setSavedReviews);
+  }, [db]);
+
+  // Load latest review on mount (only when no initialPeriod)
+  useEffect(() => {
+    if (!db || initialPeriod) return;
     let mounted = true;
     getLatestWeeklyReview(db).then((saved) => {
       if (!mounted || !saved) return;
@@ -29,11 +63,11 @@ export function WeeklyReviewScreen() {
         setPeriod({ start: saved.periodStart, end: saved.periodEnd });
         setGeneratedAt(saved.generatedAt);
       } catch {
-        return;
+        // Skip malformed review
       }
     });
     return () => { mounted = false; };
-  }, [db]);
+  }, [db, initialPeriod]);
 
   const handleGenerateReview = useCallback(async () => {
     if (!db) return;
@@ -44,25 +78,18 @@ export function WeeklyReviewScreen() {
 
     setIsLoading(true);
     try {
-      const workouts = await getRecentWorkouts(db, 7);
-      const now = new Date();
-      const periodEnd = now.toISOString().slice(0, 10);
-      const periodStartDate = new Date(now);
-      periodStartDate.setDate(now.getDate() - 6);
-      const periodStart = periodStartDate.toISOString().slice(0, 10);
-      const thisWeek = workouts.filter((w) => {
-        const d = new Date(w.date);
-        const diff = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
-        return diff <= 7;
-      });
+      const periodStart = activePeriod.start;
+      const periodEnd = activePeriod.end;
 
-      if (thisWeek.length === 0) {
-        showAlert(t('review.noData'), t('reviewExtras.noWorkoutsToReview'));
+      const workouts = await getWorkoutsByDateRange(db, periodStart, periodEnd);
+
+      if (workouts.length === 0) {
+        showAlert(t('review.noData'), t('reviewExtras.noWorkoutsInRange'));
         setIsLoading(false);
         return;
       }
 
-      const sessions = await Promise.all(thisWeek.map(async (w) => {
+      const sessions = await Promise.all(workouts.map(async (w) => {
         const exercises = await getWorkoutExercises(db, w.id);
         const mainLifts: Array<{ nameEn: string; nameZh: string; topWeight: number; topReps: number; avgRpe: number }> = [];
 
@@ -88,7 +115,7 @@ export function WeeklyReviewScreen() {
         };
       }));
 
-      const bw = await getBodyweightTrend(db, 7);
+      const bw = await getBodyweightByDateRange(db, periodStart, periodEnd);
       const bodyweightEntries = bw.map((e) => ({ date: e.date, bodyweight: e.bodyweight }));
 
       const res = await requestWeeklyReview({ sessions, bodyweightEntries });
@@ -101,12 +128,97 @@ export function WeeklyReviewScreen() {
         reviewJson: JSON.stringify(res.data),
       });
       setGeneratedAt(saved.generatedAt);
+      setViewingHistoryId(null);
+      // Refresh history list
+      getAllWeeklyReviews(db).then(setSavedReviews);
     } catch (err) {
       showAlert(t('common.error'), err instanceof Error ? err.message : t('reviewExtras.failedToGenerate'));
     } finally {
       setIsLoading(false);
     }
+  }, [db, activePeriod, t]);
+
+  const handleViewHistoryReview = useCallback(async (id: string) => {
+    if (!db) return;
+    const saved = await getLatestWeeklyReview(db); // We use this via DB for the specific id
+    // Need to get by id
+    const all = await getAllWeeklyReviews(db);
+    const found = all.find((r) => r.id === id);
+    if (!found) return;
+    try {
+      const data = JSON.parse(found.reviewJson) as WeeklyReviewResponse['data'];
+      setReview(data);
+      setPeriod({ start: found.periodStart, end: found.periodEnd });
+      setGeneratedAt(found.generatedAt);
+      setViewingHistoryId(id);
+      setShowHistory(false);
+    } catch {
+      // Skip malformed
+    }
   }, [db]);
+
+  const handleDeleteReview = useCallback(async (reviewItem: WeeklyReview) => {
+    if (!db) return;
+    const periodLabel = `${reviewItem.periodStart} → ${reviewItem.periodEnd}`;
+    confirmAction(
+      t('review.deleteReport'),
+      t('review.deleteReportConfirm', { period: periodLabel }),
+      async () => {
+        await deleteWeeklyReview(db, reviewItem.id);
+        const updated = savedReviews.filter((r) => r.id !== reviewItem.id);
+        setSavedReviews(updated);
+        // If deleting the currently-viewed review, clear it and load latest
+        if (viewingHistoryId === reviewItem.id || (!viewingHistoryId && review && period?.start === reviewItem.periodStart)) {
+          const latest = updated.length > 0 ? updated[0] : null;
+          if (latest) {
+            try {
+              setReview(JSON.parse(latest.reviewJson) as WeeklyReviewResponse['data']);
+              setPeriod({ start: latest.periodStart, end: latest.periodEnd });
+              setGeneratedAt(latest.generatedAt);
+            } catch {
+              setReview(null);
+              setPeriod(null);
+              setGeneratedAt(null);
+            }
+          } else {
+            setReview(null);
+            setPeriod(null);
+            setGeneratedAt(null);
+          }
+          setViewingHistoryId(null);
+        }
+      },
+    );
+  }, [db, savedReviews, viewingHistoryId, review, period, t]);
+
+  const handleBackToLatest = useCallback(async () => {
+    if (!db) return;
+    const latest = await getLatestWeeklyReview(db);
+    if (latest) {
+      try {
+        setReview(JSON.parse(latest.reviewJson) as WeeklyReviewResponse['data']);
+        setPeriod({ start: latest.periodStart, end: latest.periodEnd });
+        setGeneratedAt(latest.generatedAt);
+      } catch {
+        setReview(null);
+        setPeriod(null);
+        setGeneratedAt(null);
+      }
+    } else {
+      setReview(null);
+      setPeriod(null);
+      setGeneratedAt(null);
+    }
+    setViewingHistoryId(null);
+  }, [db]);
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleString();
+    } catch {
+      return dateStr;
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -117,8 +229,30 @@ export function WeeklyReviewScreen() {
         </Text>
         {generatedAt ? <Text style={styles.generatedText}>{t('reviewExtras.savedReview')} {new Date(generatedAt).toLocaleString()}</Text> : null}
 
-        {!review && !isLoading && (
-          <Button title={t('review.generateWeeklyReview')} onPress={handleGenerateReview} disabled={!db} />
+        {/* Back to Latest button when viewing historical report */}
+        {viewingHistoryId && (
+          <Button title={t('review.backToLatest')} onPress={handleBackToLatest} variant="secondary" size="sm" />
+        )}
+
+        {/* Generate button when no review loaded or in custom period mode */}
+        {(!review || initialPeriod) && !isLoading && (
+          <Button
+            title={initialPeriod ? t('review.generateReviewForPeriod', { start: activePeriod.start, end: activePeriod.end }) : t('review.generateWeeklyReview')}
+            onPress={handleGenerateReview}
+            disabled={!db}
+          />
+        )}
+
+        {/* Select from Calendar button */}
+        {!isLoading && (
+          <View style={{ marginTop: spacing.sm }}>
+            <Button
+              title={t('review.selectFromCalendar')}
+              onPress={() => router.push('/(tabs)/calendar' as Href)}
+              variant="secondary"
+              size="sm"
+            />
+          </View>
         )}
 
         {isLoading && (
@@ -183,6 +317,65 @@ export function WeeklyReviewScreen() {
             <Button title={t('review.generateNewReview')} onPress={handleGenerateReview} variant="secondary" />
           </>
         )}
+
+        {/* Report History Section */}
+        <View style={{ marginTop: spacing.xl }}>
+          <View style={styles.segmentRow}>
+            <Pressable
+              style={[styles.segment, !showHistory && styles.segmentActive]}
+              onPress={() => setShowHistory(false)}
+            >
+              <Text style={[styles.segmentText, !showHistory && styles.segmentTextActive]}>
+                {t('review.weeklyReview')}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.segment, showHistory && styles.segmentActive]}
+              onPress={() => setShowHistory(true)}
+            >
+              <Text style={[styles.segmentText, showHistory && styles.segmentTextActive]}>
+                {t('review.reportHistory')}
+              </Text>
+            </Pressable>
+          </View>
+
+          {showHistory && (
+            <View style={{ marginTop: spacing.md }}>
+              {savedReviews.length === 0 ? (
+                <Card variant="tonal" style={styles.card}>
+                  <Text style={styles.emptyText}>{t('review.noSavedReports')}</Text>
+                </Card>
+              ) : (
+                savedReviews.map((item) => (
+                  <Card key={item.id} variant="outlined" style={styles.historyCard}>
+                    <View style={styles.historyRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.historyPeriod}>
+                          {item.periodStart} → {item.periodEnd}
+                        </Text>
+                        <Text style={styles.historyDate}>{formatDate(item.generatedAt)}</Text>
+                      </View>
+                      <View style={styles.historyActions}>
+                        <Button
+                          title={t('review.viewReport')}
+                          size="sm"
+                          variant="secondary"
+                          onPress={() => handleViewHistoryReview(item.id)}
+                        />
+                        <Button
+                          title={t('review.deleteReport')}
+                          size="sm"
+                          variant="secondary"
+                          onPress={() => handleDeleteReview(item)}
+                        />
+                      </View>
+                    </View>
+                  </Card>
+                ))
+              )}
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -207,4 +400,16 @@ const styles = StyleSheet.create({
   suggestionType: { ...typography.caption, color: colors.primary, fontWeight: '700', textTransform: 'uppercase', marginBottom: 2 },
   deloadStatus: { ...typography.headline, color: colors.success, marginBottom: spacing.xs },
   deloadNeeded: { color: colors.warning },
+  // History section styles
+  segmentRow: { flexDirection: 'row', backgroundColor: colors.surfaceSecondary, borderRadius: 10, padding: 3 },
+  segment: { flex: 1, paddingVertical: spacing.sm, alignItems: 'center', borderRadius: 8 },
+  segmentActive: { backgroundColor: colors.primary },
+  segmentText: { ...typography.footnote, color: colors.textSecondary, fontWeight: '600' },
+  segmentTextActive: { color: '#fff' },
+  emptyText: { ...typography.callout, color: colors.textSecondary, lineHeight: 20 },
+  historyCard: { marginBottom: spacing.sm },
+  historyRow: { flexDirection: 'row', alignItems: 'center' },
+  historyPeriod: { ...typography.headline, color: colors.textPrimary },
+  historyDate: { ...typography.footnote, color: colors.textTertiary, marginTop: 2 },
+  historyActions: { flexDirection: 'row', gap: spacing.xs },
 });
