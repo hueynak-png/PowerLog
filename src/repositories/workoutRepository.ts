@@ -453,17 +453,27 @@ export const getSessionSets = async (db: SQLiteDatabase, sessionId: string): Pro
 };
 
 export const deleteWorkoutSession = async (db: SQLiteDatabase, sessionId: string): Promise<void> => {
-  // Delete sets first (foreign key constraint)
   await db.runAsync(
     `DELETE FROM workout_sets WHERE workout_exercise_id IN (
       SELECT id FROM workout_exercises WHERE workout_session_id = ?
     )`,
     [sessionId],
   );
-  // Delete exercises
   await db.runAsync('DELETE FROM workout_exercises WHERE workout_session_id = ?', [sessionId]);
-  // Delete session
   await db.runAsync('DELETE FROM workout_sessions WHERE id = ?', [sessionId]);
+};
+
+export const getWorkoutsByDateRange = async (
+  db: SQLiteDatabase,
+  startDate: string,
+  endDate: string,
+): Promise<WorkoutSession[]> => {
+  const rows = await db.getAllAsync<WorkoutSessionRow>(
+    'SELECT * FROM workout_sessions WHERE date >= ? AND date <= ? ORDER BY date ASC, started_at ASC',
+    [startDate, endDate],
+  );
+
+  return rows.map(toWorkoutSession);
 };
 
 export const getWorkoutsByMonth = async (db: SQLiteDatabase, year: number, month: number): Promise<WorkoutSession[]> => {

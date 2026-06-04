@@ -151,6 +151,21 @@ export const getBodyweightTrend = async (
   return rows;
 };
 
+export const getBodyweightByDateRange = async (
+  db: SQLiteDatabase,
+  startDate: string,
+  endDate: string,
+): Promise<{ date: string; bodyweight: number }[]> => {
+  const rows = await db.getAllAsync<BodyweightRow>(
+    `SELECT date, bodyweight
+    FROM bodyweight_entries
+    WHERE date >= ? AND date <= ?
+    ORDER BY date ASC`,
+    [startDate, endDate],
+  );
+  return rows;
+};
+
 export const getMuscleGroupVolume = async (
   db: SQLiteDatabase,
   days: number,
@@ -230,3 +245,4 @@ export const getWeeklyMuscleHeatmap = async (
     .map(([muscleGroup, volume]) => ({ muscleGroup, volume }))
     .sort((a, b) => b.volume - a.volume);
 };
+
