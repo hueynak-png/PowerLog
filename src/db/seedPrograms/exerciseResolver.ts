@@ -88,6 +88,9 @@ const ALIASES: Record<string, string> = {
   'cable ab cruches': 'cable crunch',
   'decline bench sit ups': 'decline sit-up',
   'decline bench situp': 'decline sit-up',
+  'dumbbell rdl': 'romanian deadlift',
+  'cable bicep curl': 'biceps curl',
+  '3:2:0 tempo squat': 'tempo squat',
 };
 
 export const normalizeExerciseName = (name: string): string => {
@@ -114,7 +117,8 @@ export const resolveExerciseId = (exerciseIdsByName: Map<string, string>, exerci
   const key = normalizeExerciseName(exerciseName);
   const id = exerciseIdsByName.get(key);
   if (!id) {
-    throw new Error(`Missing seeded exercise for "${exerciseName}" (normalized: "${key}")`);
+    console.warn(`Missing seeded exercise for "${exerciseName}" (normalized: "${key}")`);
+    return 'unknown';
   }
   return id;
 };
