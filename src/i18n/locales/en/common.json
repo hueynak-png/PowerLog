@@ -651,6 +651,23 @@
     "defaultsHint": "Defaults used when creating future sessions.",
     "aiConnectionHint": "Connection used for weekly review and workout analysis.",
     "cloudSyncSubtitle": "Manual Recovery Key backup and restore for Safari, PWA, and other browsers.",
-    "dataBackupSubtitle": "Download or import a local database backup file on web."
+    "dataBackupSubtitle": "Download or import a local database backup file on web.",
+    "localBackupRecovery": "Local Backup Recovery",
+    "localBackupRecoveryHint": "View and restore automatically saved local snapshots.",
+    "localBackupRecoveryDesc": "When you restore from cloud or import a file, PowerLog saves the current local database before overwriting it. Use this to recover earlier data.",
+    "viewLocalBackups": "View Local Backups",
+    "currentDatabase": "Current Database",
+    "hasTrainingRecords": "Has training records",
+    "noTrainingRecords": "No training records",
+    "savedBackups": "Saved Backups",
+    "restoredBackup": "Backup restored. Reload the app to see your data.",
+    "restoreLocalBackup": "Restore Backup",
+    "restoreLocalBackupConfirm": "Restore this backup? Your current database will be saved as a new backup first.",
+    "noLocalBackups": "No local backups found.",
+    "noLocalBackupsHint": "Backups are created automatically before cloud restore or file import.",
+    "backupCreatedAt": "Created",
+    "backupSize": "Size",
+    "hasRecords": "Has records",
+    "emptyBackup": "Empty"
   }
 }

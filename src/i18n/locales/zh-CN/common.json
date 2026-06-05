@@ -650,6 +650,23 @@
     "defaultsHint": "创建新训练时的默认设置。",
     "aiConnectionHint": "用于周报和训练分析的 AI 连接。",
     "cloudSyncSubtitle": "Safari、PWA 等浏览器的恢复密钥备份与恢复。",
-    "dataBackupSubtitle": "在网页上下载或导入本地数据库备份文件。"
+    "dataBackupSubtitle": "在网页上下载或导入本地数据库备份文件。",
+    "localBackupRecovery": "本地备份恢复",
+    "localBackupRecoveryHint": "查看和恢复自动保存的本地快照。",
+    "localBackupRecoveryDesc": "从云端恢复或导入文件时，PowerLog 会在覆盖前自动保存当前本地数据。可在此恢复之前的数据。",
+    "viewLocalBackups": "查看本地备份",
+    "currentDatabase": "当前数据库",
+    "hasTrainingRecords": "包含训练记录",
+    "noTrainingRecords": "无训练记录",
+    "savedBackups": "已保存的备份",
+    "restoredBackup": "备份已恢复。刷新应用以查看数据。",
+    "restoreLocalBackup": "恢复备份",
+    "restoreLocalBackupConfirm": "确认恢复此备份？当前数据库会先被保存为新备份。",
+    "noLocalBackups": "未找到本地备份。",
+    "noLocalBackupsHint": "从云端恢复或导入文件时会自动创建备份。",
+    "backupCreatedAt": "创建时间",
+    "backupSize": "大小",
+    "hasRecords": "含记录",
+    "emptyBackup": "空"
   }
 }

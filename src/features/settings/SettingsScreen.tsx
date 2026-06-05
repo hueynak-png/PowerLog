@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { type Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -30,6 +31,7 @@ import { colors, radius, spacing, typography } from '@/src/theme';
 
 export function SettingsScreen() {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const db = useDatabase();
   const profile = useSettingsStore((state) => state.profile);
   const getMaxForLift = useSettingsStore((state) => state.getMaxForLift);
@@ -418,6 +420,18 @@ export function SettingsScreen() {
           )}
           {backupMessage ? <Text style={styles.savedText}>{backupMessage}</Text> : null}
           {backupError ? <Text style={styles.errorText}>{t('settingsExtras.backupFailed')}: {backupError}</Text> : null}
+        </Card>
+
+        <SectionHeader title={t('settingsExtras.localBackupRecovery')} subtitle={t('settingsExtras.localBackupRecoveryHint')} />
+        <Card variant="tonal" style={styles.card}>
+          <Text style={styles.cardText}>{t('settingsExtras.localBackupRecoveryDesc')}</Text>
+          <Button
+            title={t('settingsExtras.viewLocalBackups')}
+            onPress={() => router.push('/recovery' as Href)}
+            variant="secondary"
+            size="md"
+            fullWidth
+          />
         </Card>
 
         <SectionHeader title={t('settings.appVersion')} subtitle={t('settingsExtras.pwaUpdateStatus')} />
