@@ -88,9 +88,6 @@ const ALIASES: Record<string, string> = {
   'cable ab cruches': 'cable crunch',
   'decline bench sit ups': 'decline sit-up',
   'decline bench situp': 'decline sit-up',
-  'dumbbell rdl': 'romanian deadlift',
-  'cable bicep curl': 'biceps curl',
-  '3:2:0 tempo squat': 'tempo squat',
 };
 
 export const normalizeExerciseName = (name: string): string => {
