@@ -541,7 +541,7 @@
     "aiDraftHint": "AI 可以生成包含周数、训练日、主项和辅助动作的结构化训练模块。",
     "pickStartingDay": "选择起始训练日",
     "pickDayHint": "选择「{{name}}」从哪个训练日开始",
-    "noDaysFound": "第1周未找到训练日，计划可能不完整。"
+    "noDaysFound": "未找到训练日数据。请重新安装应用加载完整数据，或用 AI 生成新计划。"
   },
   "route": {
     "loadingWorkout": "加载训练中…",

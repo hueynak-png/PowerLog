@@ -1,9 +1,10 @@
 import type { PowerLogDatabase } from './types';
+import { seedPrograms } from './seedPrograms';
 import { createTables } from './schema';
 import { seedExercises } from './seedExercises';
 import { seedProgramSummaries } from './seedProgramSummaries';
 
-const CURRENT_SCHEMA_VERSION = 8;
+const CURRENT_SCHEMA_VERSION = 9;
 
 const ensureColumn = async (db: PowerLogDatabase, tableName: string, columnName: string, alterSql: string): Promise<void> => {
   const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${tableName})`);
@@ -49,6 +50,7 @@ CREATE TABLE IF NOT EXISTS schema_version (
   if ((current?.version ?? 0) < CURRENT_SCHEMA_VERSION) {
     await seedExercises(db);
     await seedProgramSummaries(db);
+    await seedPrograms(db);
   }
 
   // Data migration v5→v6: attempted fix for UTC-misdated workout (ran with wrong time pattern)
