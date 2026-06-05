@@ -63,6 +63,7 @@ interface CurrentCycleRow {
   program_id: string;
   goal: string;
   current_week: number;
+  current_day: number;
   current_phase: string;
   training_days_per_week: number;
   started_at: string;
@@ -121,6 +122,7 @@ const toCurrentCycle = (row: CurrentCycleRow): CurrentCycle => ({
   programId: row.program_id,
   goal: row.goal,
   currentWeek: row.current_week,
+  currentDay: row.current_day,
   currentPhase: row.current_phase as CyclePhase,
   trainingDaysPerWeek: row.training_days_per_week,
   startedAt: row.started_at,
@@ -338,14 +340,15 @@ export const setCurrentCycle = async (
 
   await db.runAsync(
     `INSERT INTO current_cycle (
-      id, program_id, goal, current_week, current_phase,
+      id, program_id, goal, current_week, current_day, current_phase,
       training_days_per_week, started_at, is_active
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       cycle.programId,
       cycle.goal,
       cycle.currentWeek,
+      cycle.currentDay,
       cycle.currentPhase,
       cycle.trainingDaysPerWeek,
       cycle.startedAt,
@@ -371,6 +374,10 @@ export const updateCurrentCycle = async (
   if (updates.currentWeek !== undefined) {
     fields.push('current_week = ?');
     values.push(updates.currentWeek);
+  }
+  if (updates.currentDay !== undefined) {
+    fields.push('current_day = ?');
+    values.push(updates.currentDay);
   }
   if (updates.currentPhase !== undefined) {
     fields.push('current_phase = ?');
@@ -398,4 +405,78 @@ export const deactivateCurrentCycle = async (
   db: SQLiteDatabase,
 ): Promise<void> => {
   await db.runAsync('UPDATE current_cycle SET is_active = 0 WHERE is_active = 1');
+};
+
+// --- Cycle Day Navigation ---
+
+export const getProgramWeek = async (
+  db: SQLiteDatabase,
+  programId: string,
+  weekNumber: number,
+): Promise<ProgramWeek | null> => {
+  const row = await db.getFirstAsync<ProgramWeekRow>(
+    'SELECT * FROM program_weeks WHERE program_id = ? AND week_number = ? LIMIT 1',
+    [programId, weekNumber],
+  );
+  return row ? toProgramWeek(row) : null;
+};
+
+export const getProgramDayByWeekDay = async (
+  db: SQLiteDatabase,
+  programId: string,
+  weekNumber: number,
+  dayNumber: number,
+): Promise<ProgramDay | null> => {
+  const row = await db.getFirstAsync<ProgramDayRow>(
+    `SELECT pd.* FROM program_days pd
+     JOIN program_weeks pw ON pw.id = pd.program_week_id
+     WHERE pw.program_id = ? AND pw.week_number = ? AND pd.day_number = ?
+     LIMIT 1`,
+    [programId, weekNumber, dayNumber],
+  );
+  return row ? toProgramDay(row) : null;
+};
+
+export const getProgramDaysForWeek = async (
+  db: SQLiteDatabase,
+  programId: string,
+  weekNumber: number,
+): Promise<ProgramDay[]> => {
+  const rows = await db.getAllAsync<ProgramDayRow>(
+    `SELECT pd.* FROM program_days pd
+     JOIN program_weeks pw ON pw.id = pd.program_week_id
+     WHERE pw.program_id = ? AND pw.week_number = ?
+     ORDER BY pd.day_number`,
+    [programId, weekNumber],
+  );
+  return rows.map(toProgramDay);
+};
+
+export const advanceCycleDay = async (
+  db: SQLiteDatabase,
+): Promise<void> => {
+  const cycle = await getCurrentCycle(db);
+  if (!cycle) return;
+
+  // Try next day in current week
+  const nextDay = await getProgramDayByWeekDay(db, cycle.programId, cycle.currentWeek, cycle.currentDay + 1);
+  if (nextDay) {
+    await updateCurrentCycle(db, cycle.id, { currentDay: cycle.currentDay + 1 });
+    return;
+  }
+
+  // Try first day of next week
+  const nextWeekDay = await getProgramDayByWeekDay(db, cycle.programId, cycle.currentWeek + 1, 1);
+  if (nextWeekDay) {
+    const nextWeek = await getProgramWeek(db, cycle.programId, cycle.currentWeek + 1);
+    await updateCurrentCycle(db, cycle.id, {
+      currentWeek: cycle.currentWeek + 1,
+      currentDay: 1,
+      currentPhase: nextWeek?.phase ?? cycle.currentPhase,
+    });
+    return;
+  }
+
+  // Program complete — no more days
+  await deactivateCurrentCycle(db);
 };

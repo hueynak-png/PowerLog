@@ -153,6 +153,7 @@ CREATE TABLE IF NOT EXISTS current_cycle (
   program_id TEXT NOT NULL,
   goal TEXT NOT NULL,
   current_week INTEGER NOT NULL DEFAULT 1,
+  current_day INTEGER NOT NULL DEFAULT 1,
   current_phase TEXT NOT NULL DEFAULT 'entry',
   training_days_per_week INTEGER NOT NULL DEFAULT 4,
   started_at TEXT NOT NULL,

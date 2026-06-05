@@ -5,10 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarChart } from '@/src/components/charts/BarChart';
 import { LineChart } from '@/src/components/charts/LineChart';
 import { Card, MetricCard, SectionHeader } from '@/src/components/ui';
-import type { LiftType } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import {
   getBodyweightTrend,
+  getCurrentE1rmForLift,
   getE1RMHistory,
   getMuscleGroupVolume,
   getRPEDistribution,
@@ -16,7 +16,6 @@ import {
   getWeeklyMuscleHeatmap,
   getWeeklyVolume,
 } from '@/src/repositories';
-import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { useTranslation } from 'react-i18next';
 
 import { colors, spacing, typography } from '@/src/theme';
@@ -29,10 +28,10 @@ const MAIN_LIFTS: Array<{ liftFamily: string; label: string; color: string }> = 
 
 export function AnalyticsScreen() {
   const db = useDatabase();
-  const getMaxForLift = useSettingsStore((state) => state.getMaxForLift);
   const { t } = useTranslation();
 
   const [e1rmData, setE1rmData] = useState<Record<string, { date: string; e1rm: number }[]>>({});
+  const [currentE1rm, setCurrentE1rm] = useState<Record<string, number | null>>({});
   const [weeklyVolume, setWeeklyVolume] = useState<{ weekStart: string; totalVolume: number }[]>([]);
   const [rpe, setRpe] = useState<{ low: number; medium: number; high: number }>({ low: 0, medium: 0, high: 0 });
   const [completionRate, setCompletionRate] = useState<{ weekStart: string; rate: number }[]>([]);
@@ -46,7 +45,7 @@ export function AnalyticsScreen() {
 
     const load = async () => {
       setIsLoading(true);
-      const [vol, sqE1rm, bnE1rm, dlE1rm, rpeD, comp, bw, mv, hm] = await Promise.all([
+      const [vol, sqE1rm, bnE1rm, dlE1rm, rpeD, comp, bw, mv, hm, sqCur, bnCur, dlCur] = await Promise.all([
         getWeeklyVolume(db, 12),
         getE1RMHistory(db, 'squat', 20),
         getE1RMHistory(db, 'bench', 20),
@@ -56,9 +55,13 @@ export function AnalyticsScreen() {
         getBodyweightTrend(db, 90),
         getMuscleGroupVolume(db, 30),
         getWeeklyMuscleHeatmap(db, 7),
+        getCurrentE1rmForLift(db, 'squat'),
+        getCurrentE1rmForLift(db, 'bench'),
+        getCurrentE1rmForLift(db, 'deadlift'),
       ]);
       setWeeklyVolume(vol);
       setE1rmData({ squat: sqE1rm, bench: bnE1rm, deadlift: dlE1rm });
+      setCurrentE1rm({ squat: sqCur, bench: bnCur, deadlift: dlCur });
       setRpe(rpeD);
       setCompletionRate(comp);
       setBodyweight(bw);
@@ -112,10 +115,10 @@ export function AnalyticsScreen() {
         <Card variant="elevated" style={styles.card}>
           <View style={styles.metricsRowCompact}>
             {MAIN_LIFTS.map((lift) => {
-              const max = getMaxForLift(lift.liftFamily as LiftType);
+              const value = currentE1rm[lift.liftFamily];
               return (
                 <View key={lift.liftFamily} style={styles.metricWrap}>
-                  <MetricCard label={t(`analytics.${lift.liftFamily}`)} value={max ? String(max.oneRm) : '—'} unit={max ? 'kg' : undefined} color={lift.color} />
+                  <MetricCard label={t(`analytics.${lift.liftFamily}`)} value={value != null ? String(value) : '—'} unit={value != null ? 'kg' : undefined} color={lift.color} />
                 </View>
               );
             })}

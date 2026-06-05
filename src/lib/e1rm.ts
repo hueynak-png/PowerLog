@@ -26,6 +26,20 @@ export const calculateE1rmBrzycki = (weight: number, reps: number): number => {
   return weight * (36 / (37 - reps));
 };
 
+export const calculateE1rmRpe = (weight: number, reps: number, rpe: number | null): number => {
+  if (!isValidWeight(weight) || !isValidReps(reps)) {
+    return 0;
+  }
+
+  if (reps === 1) {
+    return weight;
+  }
+
+  const rir = rpe != null ? Math.max(0, 10 - rpe) : 0;
+
+  return weight * (1 + (reps + rir) / 30);
+};
+
 export default function calculateE1rm(weight: number, reps: number): number {
   return calculateE1rmEpley(weight, reps);
 }

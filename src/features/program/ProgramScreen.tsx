@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
-import type { CyclePhase, CurrentCycle, Program } from '@/src/domain/types';
+import type { CyclePhase, CurrentCycle, Program, ProgramDay } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { confirmAction, showAlert } from '@/src/lib/alert';
 import {
@@ -27,6 +27,7 @@ import {
   setCurrentCycle,
   deactivateCurrentCycle,
   getAllExercises,
+  getProgramDaysForWeek,
 } from '@/src/repositories';
 import { requestPlanGeneration, isAIConfigured } from '@/src/services/aiService';
 import { colors, radius, spacing, typography } from '@/src/theme';
@@ -117,6 +118,10 @@ export function ProgramScreen() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showDayPicker, setShowDayPicker] = useState(false);
+  const [activatingProgram, setActivatingProgram] = useState<Program | null>(null);
+  const [weekOneDays, setWeekOneDays] = useState<ProgramDay[]>([]);
+  const [pickingDayProgram, setPickingDayProgram] = useState<Program | null>(null);
 
   // Form state
   const [goalType, setGoalType] = useState<GoalType>('strength');
@@ -244,20 +249,12 @@ export function ProgramScreen() {
     }
   };
 
-  const handleSetActive = (program: Program) => {
+  const handleSetActive = async (program: Program) => {
     if (!db) return;
-    confirmAction(t('program.setActive'), t('programOpts.programStartConfirm', { name: program.name }), async () => {
-      await setCurrentCycle(db, {
-        programId: program.id,
-        goal: program.goal,
-        currentWeek: 1,
-        currentPhase: 'entry',
-        trainingDaysPerWeek: daysPerWeek ?? 4,
-        startedAt: new Date().toISOString(),
-        isActive: true,
-      });
-      await refresh();
-    });
+    const days = await getProgramDaysForWeek(db, program.id, 1);
+    setWeekOneDays(days);
+    setPickingDayProgram(program);
+    setShowDayPicker(true);
   };
 
   const handleDelete = (program: Program) => {
@@ -266,6 +263,23 @@ export function ProgramScreen() {
       await deleteProgram(db, program.id);
       await refresh();
     });
+  };
+
+  const handleConfirmDay = async (dayNumber: number) => {
+    if (!db || !pickingDayProgram) return;
+    setShowDayPicker(false);
+    setPickingDayProgram(null);
+    await setCurrentCycle(db, {
+      programId: pickingDayProgram.id,
+      goal: pickingDayProgram.goal,
+      currentWeek: 1,
+      currentDay: dayNumber,
+      currentPhase: 'entry',
+      trainingDaysPerWeek: daysPerWeek ?? 4,
+      startedAt: new Date().toISOString(),
+      isActive: true,
+    });
+    await refresh();
   };
 
   const handleDeactivate = () => {
@@ -428,6 +442,37 @@ export function ProgramScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* Day Picker Modal */}
+      <Modal visible={showDayPicker} animationType="slide" presentationStyle="pageSheet" transparent>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.content}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalKicker}>{t('program.setActive')}</Text>
+                <Text style={styles.modalTitle}>{t('programOpts.pickStartingDay')}</Text>
+              </View>
+              <Pressable onPress={() => { setShowDayPicker(false); setPickingDayProgram(null); }} accessibilityRole="button">
+                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.pickDayHint}>{t('programOpts.pickDayHint', { name: pickingDayProgram?.name ?? '' })}</Text>
+            {weekOneDays.map((day) => (
+              <Pressable
+                key={day.id}
+                onPress={() => void handleConfirmDay(day.dayNumber)}
+                style={styles.dayCard}
+              >
+                <Text style={styles.dayCardTitle}>Day {day.dayNumber}: {day.title}</Text>
+                {day.mainFocus && <Text style={styles.dayCardFocus}>{day.mainFocus}</Text>}
+                {day.estimatedDuration && (
+                  <Text style={styles.dayCardDuration}>~{day.estimatedDuration} min</Text>
+                )}
+              </Pressable>
+            ))}
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -547,5 +592,33 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: spacing.md,
+  },
+  pickDayHint: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    lineHeight: 22,
+  },
+  dayCard: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  dayCardTitle: {
+    ...typography.headline,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  dayCardFocus: {
+    ...typography.subhead,
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  dayCardDuration: {
+    ...typography.footnote,
+    color: colors.textTertiary,
   },
 });

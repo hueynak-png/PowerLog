@@ -1,4 +1,5 @@
 import type { PowerLogDatabase as SQLiteDatabase } from '@/src/db/types';
+import { calculateE1rmRpe } from '@/src/lib/e1rm';
 
 interface WeeklyVolumeRow {
   weekStart: string;
@@ -9,6 +10,7 @@ interface E1RMRow {
   date: string;
   actual_weight: number;
   actual_reps: number;
+  actual_rpe: number | null;
 }
 
 interface RPERow {
@@ -55,12 +57,13 @@ export const getE1RMHistory = async (
   limit: number,
 ): Promise<{ date: string; e1rm: number }[]> => {
   const rows = await db.getAllAsync<E1RMRow>(
-    `SELECT ws.date, wset.actual_weight, wset.actual_reps
+    `SELECT ws.date, wset.actual_weight, wset.actual_reps, wset.actual_rpe
     FROM workout_sets wset
     JOIN workout_exercises we ON we.id = wset.workout_exercise_id
     JOIN exercises e ON e.id = we.exercise_id
     JOIN workout_sessions ws ON ws.id = we.workout_session_id
     WHERE e.lift_family = ?
+      AND e.role = 'competition'
       AND wset.completed = 1
       AND wset.is_warmup = 0
       AND wset.actual_weight IS NOT NULL
@@ -72,7 +75,7 @@ export const getE1RMHistory = async (
 
   const sessionMap = new Map<string, number>();
   for (const row of rows) {
-    const e1rm = row.actual_weight * (1 + row.actual_reps / 30);
+    const e1rm = calculateE1rmRpe(row.actual_weight, row.actual_reps, row.actual_rpe);
     const current = sessionMap.get(row.date) ?? 0;
     if (e1rm > current) {
       sessionMap.set(row.date, e1rm);
@@ -83,6 +86,39 @@ export const getE1RMHistory = async (
     .map(([date, e1rm]) => ({ date, e1rm: Math.round(e1rm * 10) / 10 }))
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(-limit);
+};
+
+export const getCurrentE1rmForLift = async (
+  db: SQLiteDatabase,
+  liftFamily: string,
+  daysBack: number = 90,
+): Promise<number | null> => {
+  const rows = await db.getAllAsync<{ actual_weight: number; actual_reps: number; actual_rpe: number | null }>(
+    `SELECT wset.actual_weight, wset.actual_reps, wset.actual_rpe
+    FROM workout_sets wset
+    JOIN workout_exercises we ON we.id = wset.workout_exercise_id
+    JOIN exercises e ON e.id = we.exercise_id
+    JOIN workout_sessions ws ON ws.id = we.workout_session_id
+    WHERE e.lift_family = ?
+      AND e.role = 'competition'
+      AND ws.date >= date('now', ? || ' days')
+      AND wset.completed = 1
+      AND wset.is_warmup = 0
+      AND wset.actual_weight IS NOT NULL
+      AND wset.actual_reps IS NOT NULL
+    ORDER BY wset.actual_weight DESC`,
+    [liftFamily, String(-daysBack)],
+  );
+
+  let bestE1rm = 0;
+  for (const row of rows) {
+    const e1rm = calculateE1rmRpe(row.actual_weight, row.actual_reps, row.actual_rpe);
+    if (e1rm > bestE1rm) {
+      bestE1rm = e1rm;
+    }
+  }
+
+  return bestE1rm > 0 ? Math.round(bestE1rm * 10) / 10 : null;
 };
 
 export const getRPEDistribution = async (

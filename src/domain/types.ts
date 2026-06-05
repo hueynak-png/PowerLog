@@ -188,6 +188,7 @@ export interface CurrentCycle {
   programId: string;
   goal: string;
   currentWeek: number;
+  currentDay: number;
   currentPhase: CyclePhase;
   trainingDaysPerWeek: number;
   startedAt: string;

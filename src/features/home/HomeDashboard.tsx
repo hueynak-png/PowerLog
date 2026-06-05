@@ -1,17 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import type { Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import i18n from '@/src/i18n';
 
 import { Button, Card, MetricCard, SectionHeader, TextField } from '@/src/components/ui';
-import type { BodyweightEntry, LiftType, NutritionEntry, WorkoutSession } from '@/src/domain/types';
+import type { BodyweightEntry, CurrentCycle, LiftType, NutritionEntry, ProgramDay, WorkoutSession } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
-import { addNutritionEntry, getLatestBodyweight, getNutritionByDate, getRecentWorkouts, updateNutritionEntry } from '@/src/repositories';
+import {
+  addNutritionEntry,
+  getCurrentE1rmForLift,
+  getLatestBodyweight,
+  getNutritionByDate,
+  getRecentWorkouts,
+  updateNutritionEntry,
+} from '@/src/repositories';
+import { getCurrentCycle, getProgramDayByWeekDay } from '@/src/repositories/programRepository';
 import { isAIConfigured, requestNutritionTags } from '@/src/services/aiService';
-import { useSettingsStore } from '@/src/stores/useSettingsStore';
+import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
+import { confirmAction } from '@/src/lib/alert';
 import { colors, radius, spacing, typography } from '@/src/theme';
 import { commonFoods, type FoodItem } from '@/src/data/foodDatabase';
 
@@ -43,11 +53,16 @@ export function HomeDashboard() {
   const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
-  const getMaxForLift = useSettingsStore((state) => state.getMaxForLift);
+  const startWorkoutFromProgram = useActiveWorkoutStore((state) => state.startWorkoutFromProgram);
+  const startWorkout = useActiveWorkoutStore((state) => state.startWorkout);
 
   const [recentWorkouts, setRecentWorkouts] = useState<WorkoutSession[]>([]);
   const [latestBodyweight, setLatestBodyweight] = useState<BodyweightEntry | null>(null);
+  const [currentE1rm, setCurrentE1rm] = useState<Record<string, number | null>>({});
+  const [cycle, setCycle] = useState<CurrentCycle | null>(null);
+  const [todayProgramDay, setTodayProgramDay] = useState<ProgramDay | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStarting, setIsStarting] = useState(false);
 
   // Nutrition state
   const [todayNutrition, setTodayNutrition] = useState<NutritionEntry | null>(null);
@@ -71,13 +86,26 @@ export function HomeDashboard() {
 
     setIsLoading(true);
     const todayStr = new Date().toISOString().slice(0, 10);
-    const [workouts, bodyweight, nutrition] = await Promise.all([
+    const [workouts, bodyweight, nutrition, sqCur, bnCur, dlCur, activeCycle] = await Promise.all([
       getRecentWorkouts(db, 1),
       getLatestBodyweight(db),
       getNutritionByDate(db, todayStr),
+      getCurrentE1rmForLift(db, 'squat'),
+      getCurrentE1rmForLift(db, 'bench'),
+      getCurrentE1rmForLift(db, 'deadlift'),
+      getCurrentCycle(db),
     ]);
     setRecentWorkouts(workouts);
     setLatestBodyweight(bodyweight);
+    setCurrentE1rm({ squat: sqCur, bench: bnCur, deadlift: dlCur });
+    setCycle(activeCycle);
+
+    if (activeCycle) {
+      const day = await getProgramDayByWeekDay(db, activeCycle.programId, activeCycle.currentWeek, activeCycle.currentDay);
+      setTodayProgramDay(day);
+    } else {
+      setTodayProgramDay(null);
+    }
     setTodayNutrition(nutrition);
     if (nutrition) {
       setNutritionNotes(nutrition.notes ?? '');
@@ -159,6 +187,42 @@ export function HomeDashboard() {
     setIsSavingNutrition(false);
   };
 
+  const handleStartProgramWorkout = useCallback(async () => {
+    if (!db || !todayProgramDay) return;
+    setIsStarting(true);
+    try {
+      await startWorkoutFromProgram(db, todayProgramDay.id);
+      const sessionId = useActiveWorkoutStore.getState().session?.id;
+      if (sessionId) {
+        router.push(`/workout/${sessionId}` as Href);
+      }
+    } finally {
+      setIsStarting(false);
+    }
+  }, [db, todayProgramDay, router, startWorkoutFromProgram]);
+
+  const handleStartFreeWorkout = useCallback(async (date?: string) => {
+    if (!db) return;
+    setIsStarting(true);
+    try {
+      await startWorkout(db, date);
+      const sessionId = useActiveWorkoutStore.getState().session?.id;
+      if (sessionId) {
+        router.push(`/workout/${sessionId}` as Href);
+      }
+    } finally {
+      setIsStarting(false);
+    }
+  }, [db, router, startWorkout]);
+
+  const handleRestDay = () => {
+    confirmAction(
+      t('home.restDay'),
+      t('home.restDayConfirm'),
+      () => {},
+    );
+  };
+
   const lastWorkout = recentWorkouts[0];
 
   if (!db || isLoading) {
@@ -186,9 +250,41 @@ export function HomeDashboard() {
             <Text style={styles.cardKicker}>{t('home.primaryAction')}</Text>
             <Text style={styles.statusPill}>{t('common.offlineReady')}</Text>
           </View>
-          <Text style={styles.cardTitle}>{t('home.startTodaysWorkout')}</Text>
-          <Text style={styles.cardText}>{t('home.jumpIntoLogging')}</Text>
-          <Button title={t('home.startWorkout')} onPress={() => router.push('../workout')} style={styles.cardButton} fullWidth />
+          {todayProgramDay ? (
+            <>
+              <Text style={styles.cardTitle}>
+                {t('home.programDayTitle', { week: cycle?.currentWeek ?? 1, day: cycle?.currentDay ?? 1 })}
+              </Text>
+              <Text style={styles.cardText}>{todayProgramDay.title}</Text>
+              <Text style={styles.programDayExtra}>
+                {todayProgramDay.mainFocus && `${todayProgramDay.mainFocus} • `}
+                {todayProgramDay.estimatedDuration && `~${todayProgramDay.estimatedDuration} min`}
+              </Text>
+              <View style={styles.programActions}>
+                <Button
+                  title={t('home.startProgramDay')}
+                  onPress={() => void handleStartProgramWorkout()}
+                  loading={isStarting}
+                  disabled={isStarting}
+                  style={styles.programButton}
+                  fullWidth
+                />
+                <Button
+                  title={t('home.restDay')}
+                  onPress={handleRestDay}
+                  variant="ghost"
+                  size="sm"
+                  style={styles.restDayButton}
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.cardTitle}>{t('home.startTodaysWorkout')}</Text>
+              <Text style={styles.cardText}>{t('home.jumpIntoLogging')}</Text>
+              <Button title={t('home.startWorkout')} onPress={() => router.push('../workout')} style={styles.cardButton} fullWidth />
+            </>
+          )}
         </Card>
 
         <View style={styles.quickGrid}>
@@ -199,7 +295,13 @@ export function HomeDashboard() {
           </Card>
           <Card style={styles.quickCard} variant="tonal" padding={spacing.md}>
             <Text style={styles.quickLabel}>{t('home.currentCycle')}</Text>
-            <Text style={styles.quickCopy}>{t('home.noActiveProgram')}</Text>
+            {cycle ? (
+              <Text style={styles.quickCopy}>
+                {t('programOpts.week')} {cycle.currentWeek} • Day {cycle.currentDay} • {cycle.currentPhase}
+              </Text>
+            ) : (
+              <Text style={styles.quickCopy}>{t('home.noActiveProgram')}</Text>
+            )}
           </Card>
         </View>
 
@@ -228,10 +330,10 @@ export function HomeDashboard() {
         <SectionHeader title={t('home.estimated1RM')} subtitle={t('home.currentMaxBigThree')} />
         <View style={styles.metricsRow}>
           {MAIN_LIFTS.map((lift) => {
-            const max = getMaxForLift(lift.liftType);
+            const value = currentE1rm[lift.liftType];
             return (
               <View key={lift.liftType} style={styles.metricWrap}>
-                <MetricCard label={t(`analytics.${lift.liftType}`)} value={max ? String(max.oneRm) : '—'} unit={max ? 'kg' : undefined} color={lift.color} />
+                <MetricCard label={t(`analytics.${lift.liftType}`)} value={value != null ? String(value) : '—'} unit={value != null ? 'kg' : undefined} color={lift.color} />
               </View>
             );
           })}
@@ -391,6 +493,20 @@ const styles = StyleSheet.create({
   },
   cardButton: {
     marginTop: spacing.xs,
+  },
+  programDayExtra: {
+    ...typography.footnote,
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+  programActions: {
+    gap: spacing.xs,
+  },
+  programButton: {
+    marginTop: spacing.xs,
+  },
+  restDayButton: {
+    alignSelf: 'center',
   },
   emptyText: {
     ...typography.body,

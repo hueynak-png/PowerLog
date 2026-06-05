@@ -17,6 +17,7 @@ import {
   getWorkoutSession,
   updateWorkoutSet,
 } from '@/src/repositories';
+import { advanceCycleDay, getPlannedExercises } from '@/src/repositories/programRepository';
 
 type ActiveWorkoutExercise = WorkoutExercise & { exercise: Exercise; sets: WorkoutSet[] };
 
@@ -25,6 +26,7 @@ interface ActiveWorkoutState {
   exercises: ActiveWorkoutExercise[];
   isActive: boolean;
   startWorkout: (db: SQLiteDatabase, date?: string) => Promise<void>;
+  startWorkoutFromProgram: (db: SQLiteDatabase, programDayId: string) => Promise<void>;
   loadWorkout: (db: SQLiteDatabase, sessionId: string) => Promise<void>;
   addExercise: (db: SQLiteDatabase, exerciseId: string) => Promise<void>;
   removeExercise: (db: SQLiteDatabase, workoutExerciseId: string) => Promise<void>;
@@ -90,6 +92,52 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
     });
 
     set({ session, exercises: [], isActive: true });
+    persistActiveSession(session.id);
+  },
+
+  startWorkoutFromProgram: async (db, programDayId) => {
+    const now = new Date().toISOString();
+    const workoutDate = now.slice(0, 10);
+    const session = await createWorkoutSession(db, {
+      programDayId,
+      date: workoutDate,
+      startedAt: now,
+      aiSummaryStatus: 'not_requested',
+    });
+
+    const plannedExercises = await getPlannedExercises(db, programDayId);
+    const exercises: ActiveWorkoutExercise[] = [];
+
+    for (const pe of plannedExercises) {
+      const exercise = await getExerciseById(db, pe.exerciseId);
+      if (!exercise) continue;
+
+      const workoutExercise = await addWorkoutExercise(db, {
+        workoutSessionId: session.id,
+        exerciseId: pe.exerciseId,
+        plannedExerciseId: pe.id,
+        orderIndex: pe.orderIndex,
+      });
+
+      const sets: WorkoutSet[] = [];
+      const targetSets = pe.targetSets ?? 1;
+      for (let i = 0; i < targetSets; i++) {
+        const set = await addWorkoutSet(db, {
+          workoutExerciseId: workoutExercise.id,
+          setNumber: i + 1,
+          plannedWeight: pe.targetLoad ?? undefined,
+          plannedReps: pe.targetReps ?? undefined,
+          plannedRpe: pe.targetRpe ?? undefined,
+          completed: false,
+          isWarmup: false,
+        });
+        sets.push(set);
+      }
+
+      exercises.push({ ...workoutExercise, exercise, sets });
+    }
+
+    set({ session, exercises, isActive: true });
     persistActiveSession(session.id);
   },
 
@@ -250,6 +298,10 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
 
     set({ session: completedSession, isActive: false });
     persistActiveSession(null);
+
+    if (session.programDayId) {
+      await advanceCycleDay(db);
+    }
 
     return completedSession;
   },

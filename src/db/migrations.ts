@@ -3,7 +3,7 @@ import { createTables } from './schema';
 import { seedExercises } from './seedExercises';
 import { seedProgramSummaries } from './seedProgramSummaries';
 
-const CURRENT_SCHEMA_VERSION = 7;
+const CURRENT_SCHEMA_VERSION = 8;
 
 const ensureColumn = async (db: PowerLogDatabase, tableName: string, columnName: string, alterSql: string): Promise<void> => {
   const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${tableName})`);
@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS schema_version (
 
   await ensureColumn(db, 'profile', 'last_settings_saved_at', 'ALTER TABLE profile ADD COLUMN last_settings_saved_at TEXT');
   await ensureColumn(db, 'workout_sessions', 'ai_summary_json', 'ALTER TABLE workout_sessions ADD COLUMN ai_summary_json TEXT');
+  await ensureColumn(db, 'current_cycle', 'current_day', 'ALTER TABLE current_cycle ADD COLUMN current_day INTEGER NOT NULL DEFAULT 1');
 
   // Performance indexes on frequently-queried FK columns
   await db.execAsync(`
