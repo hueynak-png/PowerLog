@@ -501,3 +501,37 @@ export const advanceCycleDay = async (
   // Program complete — no more days
   await deactivateCurrentCycle(db);
 };
+
+// --- Week + Day grouping for day picker ---
+
+export interface WeekWithDays {
+  weekNumber: number;
+  phase: string;
+  focus?: string;
+  days: ProgramDay[];
+}
+
+export const getProgramWeeksWithDays = async (
+  db: SQLiteDatabase,
+  programId: string,
+): Promise<WeekWithDays[]> => {
+  const weeks = await db.getAllAsync<ProgramWeekRow>(
+    'SELECT * FROM program_weeks WHERE program_id = ? ORDER BY week_number',
+    [programId],
+  );
+
+  const result: WeekWithDays[] = [];
+  for (const w of weeks) {
+    const dayRows = await db.getAllAsync<ProgramDayRow>(
+      'SELECT * FROM program_days WHERE program_week_id = ? ORDER BY day_number',
+      [w.id],
+    );
+    result.push({
+      weekNumber: w.week_number,
+      phase: w.phase,
+      focus: w.focus ?? undefined,
+      days: dayRows.map(toProgramDay),
+    });
+  }
+  return result;
+};

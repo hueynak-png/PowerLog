@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
-import type { CyclePhase, CurrentCycle, Program, ProgramDay } from '@/src/domain/types';
+import type { CyclePhase, CurrentCycle, Program } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { confirmAction, showAlert } from '@/src/lib/alert';
 import {
@@ -27,7 +27,8 @@ import {
   setCurrentCycle,
   deactivateCurrentCycle,
   getAllExercises,
-  getFirstProgramDays,
+  getProgramWeeksWithDays,
+  type WeekWithDays,
 } from '@/src/repositories';
 import { requestPlanGeneration, isAIConfigured } from '@/src/services/aiService';
 import { colors, radius, spacing, typography } from '@/src/theme';
@@ -119,9 +120,7 @@ export function ProgramScreen() {
   const [generating, setGenerating] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showDayPicker, setShowDayPicker] = useState(false);
-  const [activatingProgram, setActivatingProgram] = useState<Program | null>(null);
-  const [weekOneDays, setWeekOneDays] = useState<ProgramDay[]>([]);
-  const [firstWeekNumber, setFirstWeekNumber] = useState(1);
+  const [weeksWithDays, setWeeksWithDays] = useState<WeekWithDays[]>([]);
   const [pickingDayProgram, setPickingDayProgram] = useState<Program | null>(null);
   const [loadingDays, setLoadingDays] = useState(false);
 
@@ -257,9 +256,8 @@ export function ProgramScreen() {
     setShowDayPicker(true);
     setLoadingDays(true);
     try {
-      const result = await getFirstProgramDays(db, program.id);
-      setWeekOneDays(result.days);
-      setFirstWeekNumber(result.weekNumber);
+      const result = await getProgramWeeksWithDays(db, program.id);
+      setWeeksWithDays(result);
     } finally {
       setLoadingDays(false);
     }
@@ -273,16 +271,18 @@ export function ProgramScreen() {
     });
   };
 
-  const handleConfirmDay = async (dayNumber: number) => {
+  const handleConfirmDay = async (weekNumber: number, dayNumber: number) => {
     if (!db || !pickingDayProgram) return;
     setShowDayPicker(false);
     setPickingDayProgram(null);
+
+    const week = weeksWithDays.find((w) => w.weekNumber === weekNumber);
     await setCurrentCycle(db, {
       programId: pickingDayProgram.id,
       goal: pickingDayProgram.goal,
-      currentWeek: firstWeekNumber,
+      currentWeek: weekNumber,
       currentDay: dayNumber,
-      currentPhase: 'entry',
+      currentPhase: (week?.phase as CyclePhase) ?? 'entry',
       trainingDaysPerWeek: daysPerWeek ?? 4,
       startedAt: new Date().toISOString(),
       isActive: true,
@@ -470,23 +470,31 @@ export function ProgramScreen() {
                 <ActivityIndicator color={colors.primary} />
                 <Text style={styles.loadingText}>{t('common.loading')}</Text>
               </View>
-            ) : weekOneDays.length === 0 ? (
+            ) : weeksWithDays.length === 0 ? (
               <Card variant="tonal" style={styles.card}>
                 <Text style={styles.emptyText}>{t('programOpts.noDaysFound')}</Text>
               </Card>
             ) : (
-              weekOneDays.map((day) => (
-                <Pressable
-                  key={day.id}
-                  onPress={() => void handleConfirmDay(day.dayNumber)}
-                  style={styles.dayCard}
-                >
-                  <Text style={styles.dayCardTitle}>Day {day.dayNumber}: {day.title}</Text>
-                  {day.mainFocus && <Text style={styles.dayCardFocus}>{day.mainFocus}</Text>}
-                  {day.estimatedDuration && (
-                    <Text style={styles.dayCardDuration}>~{day.estimatedDuration} min</Text>
-                  )}
-                </Pressable>
+              weeksWithDays.map((week) => (
+                <View key={week.weekNumber}>
+                  <Text style={styles.weekHeader}>
+                    {t('programOpts.week')} {week.weekNumber} — {week.phase}
+                    {week.focus ? ` · ${week.focus}` : ''}
+                  </Text>
+                  {week.days.map((day) => (
+                    <Pressable
+                      key={day.id}
+                      onPress={() => void handleConfirmDay(week.weekNumber, day.dayNumber)}
+                      style={styles.dayCard}
+                    >
+                      <Text style={styles.dayCardTitle}>Day {day.dayNumber}: {day.title}</Text>
+                      {day.mainFocus && <Text style={styles.dayCardFocus}>{day.mainFocus}</Text>}
+                      {day.estimatedDuration && (
+                        <Text style={styles.dayCardDuration}>~{day.estimatedDuration} min</Text>
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
               ))
             )}
           </ScrollView>
@@ -617,6 +625,13 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.lg,
     lineHeight: 22,
+  },
+  weekHeader: {
+    ...typography.headline,
+    color: colors.primary,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    fontWeight: '800',
   },
   dayCard: {
     backgroundColor: colors.surfaceMuted,
