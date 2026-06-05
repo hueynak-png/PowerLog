@@ -50,8 +50,10 @@ CREATE TABLE IF NOT EXISTS schema_version (
   if ((current?.version ?? 0) < CURRENT_SCHEMA_VERSION) {
     await seedExercises(db);
     await seedProgramSummaries(db);
-    await seedPrograms(db);
   }
+
+  // Always attempt — skips internally if already complete
+  await seedPrograms(db);
 
   // Data migration v5→v6: attempted fix for UTC-misdated workout (ran with wrong time pattern)
   // v6→v7: corrected — matches by most recent workout on the wrong date
