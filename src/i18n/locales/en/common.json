@@ -669,5 +669,9 @@
     "backupSize": "Size",
     "hasRecords": "Has records",
     "emptyBackup": "Empty"
+  },
+  "backupRecovery": {
+    "noCompletedWorkouts": "Cannot upload: no completed workouts in local database.",
+    "cloudSnapshotSize": "Cloud snapshot size"
   }
 }

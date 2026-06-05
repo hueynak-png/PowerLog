@@ -24,6 +24,7 @@ import {
 import { createPreRestoreBackup, replaceLocalSnapshot, sha256Hex } from '@/src/db/snapshot';
 import { exportBackupFile, importBackupFile } from '@/src/services/localBackupFileService';
 import { createSnapshotUploadPayload, formatSnapshotSize } from '@/src/services/snapshotBackupService';
+import { countCompletedWorkouts } from '@/src/services/backupRecoveryService';
 import { getAppVersion, releaseNotes } from '@/src/services/versionService';
 import { hasPwaUpdateAvailable, reloadForPwaUpdate, subscribeToPwaUpdates } from '@/src/services/pwaUpdateService';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
@@ -200,6 +201,10 @@ export function SettingsScreen() {
 
   const handleUploadSnapshot = () => runSyncAction(async () => {
     saveSyncConfig();
+    const completedCount = await countCompletedWorkouts();
+    if (completedCount === 0) {
+      throw new Error(t('backupRecovery.noCompletedWorkouts'));
+    }
     const { bytes, meta: localMeta } = await createSnapshotUploadPayload();
     const meta = await uploadSnapshot(bytes, localMeta);
     setRemoteSnapshot(meta);
@@ -244,7 +249,10 @@ export function SettingsScreen() {
 
   const handleRestoreSnapshot = () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.confirm === 'function') {
-      const confirmed = window.confirm(t('settingsExtras.restoreConfirm'));
+      const sizeInfo = remoteSnapshot
+        ? `\n\n${t('backupRecovery.cloudSnapshotSize')}: ${formatSnapshotSize(remoteSnapshot.sizeBytes)}`
+        : '';
+      const confirmed = window.confirm(t('settingsExtras.restoreConfirm') + sizeInfo);
       if (!confirmed) return;
       restoreLatestSnapshot();
       return;

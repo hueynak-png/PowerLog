@@ -113,6 +113,23 @@ export async function restoreFromBackup(
   return { preRestoreBackupId: backupId };
 }
 
+export async function countCompletedWorkouts(): Promise<number> {
+  if (Platform.OS !== 'web') return 0;
+  const bytes = await loadFromIndexedDB(CURRENT_DB_KEY);
+  if (!bytes) return 0;
+
+  const SQL = await initSqlJs({
+    locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
+  });
+  const db = new SQL.Database(bytes);
+  const result = db.exec(
+    'SELECT COUNT(*) as cnt FROM workout_sessions WHERE ended_at IS NOT NULL',
+  );
+  const count = (result[0]?.values[0]?.[0] as number | undefined) ?? 0;
+  db.close();
+  return count;
+}
+
 export async function getCurrentDbMeta(): Promise<{
   sizeBytes: number;
   hasWorkoutSessions: boolean;

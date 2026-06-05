@@ -668,5 +668,9 @@
     "backupSize": "大小",
     "hasRecords": "含记录",
     "emptyBackup": "空"
+  },
+  "backupRecovery": {
+    "noCompletedWorkouts": "无法上传：本地数据库中没有已完成的训练记录。",
+    "cloudSnapshotSize": "云端快照大小"
   }
 }
