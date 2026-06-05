@@ -27,7 +27,7 @@ import {
   setCurrentCycle,
   deactivateCurrentCycle,
   getAllExercises,
-  getProgramDaysForWeek,
+  getFirstProgramDays,
 } from '@/src/repositories';
 import { requestPlanGeneration, isAIConfigured } from '@/src/services/aiService';
 import { colors, radius, spacing, typography } from '@/src/theme';
@@ -121,6 +121,7 @@ export function ProgramScreen() {
   const [showDayPicker, setShowDayPicker] = useState(false);
   const [activatingProgram, setActivatingProgram] = useState<Program | null>(null);
   const [weekOneDays, setWeekOneDays] = useState<ProgramDay[]>([]);
+  const [firstWeekNumber, setFirstWeekNumber] = useState(1);
   const [pickingDayProgram, setPickingDayProgram] = useState<Program | null>(null);
   const [loadingDays, setLoadingDays] = useState(false);
 
@@ -256,8 +257,9 @@ export function ProgramScreen() {
     setShowDayPicker(true);
     setLoadingDays(true);
     try {
-      const days = await getProgramDaysForWeek(db, program.id, 1);
-      setWeekOneDays(days);
+      const result = await getFirstProgramDays(db, program.id);
+      setWeekOneDays(result.days);
+      setFirstWeekNumber(result.weekNumber);
     } finally {
       setLoadingDays(false);
     }
@@ -278,7 +280,7 @@ export function ProgramScreen() {
     await setCurrentCycle(db, {
       programId: pickingDayProgram.id,
       goal: pickingDayProgram.goal,
-      currentWeek: 1,
+      currentWeek: firstWeekNumber,
       currentDay: dayNumber,
       currentPhase: 'entry',
       trainingDaysPerWeek: daysPerWeek ?? 4,

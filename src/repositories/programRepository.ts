@@ -452,6 +452,27 @@ export const getProgramDaysForWeek = async (
   return rows.map(toProgramDay);
 };
 
+export const getFirstProgramDays = async (
+  db: SQLiteDatabase,
+  programId: string,
+): Promise<{ days: ProgramDay[]; weekNumber: number }> => {
+  const weekRow = await db.getFirstAsync<{ week_number: number }>(
+    'SELECT week_number FROM program_weeks WHERE program_id = ? ORDER BY week_number LIMIT 1',
+    [programId],
+  );
+  const weekNumber = weekRow?.week_number ?? 1;
+
+  const rows = await db.getAllAsync<ProgramDayRow>(
+    `SELECT pd.* FROM program_days pd
+     JOIN program_weeks pw ON pw.id = pd.program_week_id
+     WHERE pw.program_id = ?
+       AND pw.week_number = (SELECT MIN(week_number) FROM program_weeks WHERE program_id = ?)
+     ORDER BY pd.day_number`,
+    [programId, programId],
+  );
+  return { days: rows.map(toProgramDay), weekNumber };
+};
+
 export const advanceCycleDay = async (
   db: SQLiteDatabase,
 ): Promise<void> => {
