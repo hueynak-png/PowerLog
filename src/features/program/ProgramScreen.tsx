@@ -122,6 +122,7 @@ export function ProgramScreen() {
   const [activatingProgram, setActivatingProgram] = useState<Program | null>(null);
   const [weekOneDays, setWeekOneDays] = useState<ProgramDay[]>([]);
   const [pickingDayProgram, setPickingDayProgram] = useState<Program | null>(null);
+  const [loadingDays, setLoadingDays] = useState(false);
 
   // Form state
   const [goalType, setGoalType] = useState<GoalType>('strength');
@@ -251,10 +252,15 @@ export function ProgramScreen() {
 
   const handleSetActive = async (program: Program) => {
     if (!db) return;
-    const days = await getProgramDaysForWeek(db, program.id, 1);
-    setWeekOneDays(days);
     setPickingDayProgram(program);
     setShowDayPicker(true);
+    setLoadingDays(true);
+    try {
+      const days = await getProgramDaysForWeek(db, program.id, 1);
+      setWeekOneDays(days);
+    } finally {
+      setLoadingDays(false);
+    }
   };
 
   const handleDelete = (program: Program) => {
@@ -444,9 +450,9 @@ export function ProgramScreen() {
       </Modal>
 
       {/* Day Picker Modal */}
-      <Modal visible={showDayPicker} animationType="slide" presentationStyle="pageSheet" transparent>
+      <Modal visible={showDayPicker} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.safeArea}>
-          <View style={styles.content}>
+          <ScrollView contentContainerStyle={styles.content}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.modalKicker}>{t('program.setActive')}</Text>
@@ -457,20 +463,31 @@ export function ProgramScreen() {
               </Pressable>
             </View>
             <Text style={styles.pickDayHint}>{t('programOpts.pickDayHint', { name: pickingDayProgram?.name ?? '' })}</Text>
-            {weekOneDays.map((day) => (
-              <Pressable
-                key={day.id}
-                onPress={() => void handleConfirmDay(day.dayNumber)}
-                style={styles.dayCard}
-              >
-                <Text style={styles.dayCardTitle}>Day {day.dayNumber}: {day.title}</Text>
-                {day.mainFocus && <Text style={styles.dayCardFocus}>{day.mainFocus}</Text>}
-                {day.estimatedDuration && (
-                  <Text style={styles.dayCardDuration}>~{day.estimatedDuration} min</Text>
-                )}
-              </Pressable>
-            ))}
-          </View>
+            {loadingDays ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator color={colors.primary} />
+                <Text style={styles.loadingText}>{t('common.loading')}</Text>
+              </View>
+            ) : weekOneDays.length === 0 ? (
+              <Card variant="tonal" style={styles.card}>
+                <Text style={styles.emptyText}>{t('programOpts.noDaysFound')}</Text>
+              </Card>
+            ) : (
+              weekOneDays.map((day) => (
+                <Pressable
+                  key={day.id}
+                  onPress={() => void handleConfirmDay(day.dayNumber)}
+                  style={styles.dayCard}
+                >
+                  <Text style={styles.dayCardTitle}>Day {day.dayNumber}: {day.title}</Text>
+                  {day.mainFocus && <Text style={styles.dayCardFocus}>{day.mainFocus}</Text>}
+                  {day.estimatedDuration && (
+                    <Text style={styles.dayCardDuration}>~{day.estimatedDuration} min</Text>
+                  )}
+                </Pressable>
+              ))
+            )}
+          </ScrollView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>

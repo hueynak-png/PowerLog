@@ -540,7 +540,8 @@
     "createNewCycle": "Create a new cycle from your goal, maxes, and schedule.",
     "aiDraftHint": "AI can draft a structured block with weeks, training days, main lifts, and accessory work.",
     "pickStartingDay": "Pick Starting Day",
-    "pickDayHint": "Choose which training day to start from in {{name}}"
+    "pickDayHint": "Choose which training day to start from in {{name}}",
+    "noDaysFound": "No training days found for Week 1. The program may be incomplete."
   },
   "route": {
     "loadingWorkout": "Loading workout…",
