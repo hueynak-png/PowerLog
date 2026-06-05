@@ -66,6 +66,10 @@
     "aiTrainingRecap": "AI 训练回顾",
     "currentCycle": "当前周期",
     "noActiveProgram": "暂无激活计划",
+    "programDayTitle": "第{{week}}周 第{{day}}天",
+    "startProgramDay": "开始计划训练",
+    "restDay": "休息日",
+    "restDayConfirm": "休息一天？今天的训练将顺延到明天。",
     "recentWorkout": "最近训练",
     "latestCompletedSession": "最近完成的训练概览。",
     "estimated1RM": "预估 1RM",
@@ -534,7 +538,9 @@
     "noSavedPrograms": "暂无保存的计划",
     "weeks": "周",
     "createNewCycle": "根据你的目标、最大重量和日程创建新周期。",
-    "aiDraftHint": "AI 可以生成包含周数、训练日、主项和辅助动作的结构化训练模块。"
+    "aiDraftHint": "AI 可以生成包含周数、训练日、主项和辅助动作的结构化训练模块。",
+    "pickStartingDay": "选择起始训练日",
+    "pickDayHint": "选择「{{name}}」从哪个训练日开始"
   },
   "route": {
     "loadingWorkout": "加载训练中…",
