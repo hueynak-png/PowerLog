@@ -155,6 +155,8 @@ export const seedPrograms = async (db: PowerLogDatabase): Promise<void> => {
         );
 
         for (const exercise of day.exercises) {
+          const resolvedId = resolveExerciseId(exerciseMap, exercise.exerciseName);
+          if (!resolvedId) continue;
           await db.runAsync(
             `INSERT INTO planned_exercises (
               id, program_day_id, exercise_id, order_index, target_sets, target_reps,
@@ -163,7 +165,7 @@ export const seedPrograms = async (db: PowerLogDatabase): Promise<void> => {
             [
               exerciseId(program.id, week.weekNumber, day.dayNumber, exercise.orderIndex),
               savedDayId,
-              resolveExerciseId(exerciseMap, exercise.exerciseName),
+              resolvedId,
               exercise.orderIndex,
               exercise.targetSets ?? null,
               exercise.targetReps ?? null,

@@ -115,12 +115,12 @@ export const getExerciseIdMap = async (db: PowerLogDatabase): Promise<Map<string
   return map;
 };
 
-export const resolveExerciseId = (exerciseIdsByName: Map<string, string>, exerciseName: string): string => {
+export const resolveExerciseId = (exerciseIdsByName: Map<string, string>, exerciseName: string): string | null => {
   const key = normalizeExerciseName(exerciseName);
   const id = exerciseIdsByName.get(key);
   if (!id) {
     console.warn(`Missing seeded exercise for "${exerciseName}" (normalized: "${key}")`);
-    return 'unknown';
+    return null;
   }
   return id;
 };

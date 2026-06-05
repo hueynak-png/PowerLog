@@ -53,7 +53,11 @@ CREATE TABLE IF NOT EXISTS schema_version (
   }
 
   // Always attempt — skips internally if already complete
-  await seedPrograms(db);
+  try {
+    await seedPrograms(db);
+  } catch (e) {
+    console.warn('seedPrograms failed:', e);
+  }
 
   // Data migration v5→v6: attempted fix for UTC-misdated workout (ran with wrong time pattern)
   // v6→v7: corrected — matches by most recent workout on the wrong date
