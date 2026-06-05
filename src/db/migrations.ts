@@ -1,5 +1,4 @@
 import type { PowerLogDatabase } from './types';
-import { seedPrograms } from './seedPrograms';
 import { createTables } from './schema';
 import { seedExercises } from './seedExercises';
 import { seedProgramSummaries } from './seedProgramSummaries';
@@ -50,13 +49,6 @@ CREATE TABLE IF NOT EXISTS schema_version (
   if ((current?.version ?? 0) < CURRENT_SCHEMA_VERSION) {
     await seedExercises(db);
     await seedProgramSummaries(db);
-  }
-
-  // Always attempt — skips internally if already complete
-  try {
-    await seedPrograms(db);
-  } catch (e) {
-    console.warn('seedPrograms failed:', e);
   }
 
   // Data migration v5→v6: attempted fix for UTC-misdated workout (ran with wrong time pattern)
