@@ -66,10 +66,6 @@
     "aiTrainingRecap": "AI training recap",
     "currentCycle": "Current cycle",
     "noActiveProgram": "No active program",
-    "programDayTitle": "Week {{week}} Day {{day}}",
-    "startProgramDay": "Start Program Day",
-    "restDay": "Rest Day",
-    "restDayConfirm": "Take a rest day? Today's session will be postponed to tomorrow.",
     "recentWorkout": "Recent Workout",
     "latestCompletedSession": "Your latest completed session at a glance.",
     "estimated1RM": "Estimated 1RM",
@@ -538,10 +534,7 @@
     "noSavedPrograms": "No saved programs",
     "weeks": "weeks",
     "createNewCycle": "Create a new cycle from your goal, maxes, and schedule.",
-    "aiDraftHint": "AI can draft a structured block with weeks, training days, main lifts, and accessory work.",
-    "pickStartingDay": "Pick Starting Day",
-    "pickDayHint": "Choose which training day to start from in {{name}}",
-    "noDaysFound": "No training days found. Reinstall the app to load program data, or generate a new program with AI."
+    "aiDraftHint": "AI can draft a structured block with weeks, training days, main lifts, and accessory work."
   },
   "route": {
     "loadingWorkout": "Loading workout…",

@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
-import type { CyclePhase, CurrentCycle, Program } from '@/src/domain/types';
+import type { CyclePhase, CurrentCycle, Program, ProgramDay } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { confirmAction, showAlert } from '@/src/lib/alert';
 import {
@@ -27,8 +27,7 @@ import {
   setCurrentCycle,
   deactivateCurrentCycle,
   getAllExercises,
-  getProgramWeeksWithDays,
-  type WeekWithDays,
+  getProgramDaysForWeek,
 } from '@/src/repositories';
 import { requestPlanGeneration, isAIConfigured } from '@/src/services/aiService';
 import { colors, radius, spacing, typography } from '@/src/theme';
@@ -120,9 +119,9 @@ export function ProgramScreen() {
   const [generating, setGenerating] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showDayPicker, setShowDayPicker] = useState(false);
-  const [weeksWithDays, setWeeksWithDays] = useState<WeekWithDays[]>([]);
+  const [activatingProgram, setActivatingProgram] = useState<Program | null>(null);
+  const [weekOneDays, setWeekOneDays] = useState<ProgramDay[]>([]);
   const [pickingDayProgram, setPickingDayProgram] = useState<Program | null>(null);
-  const [loadingDays, setLoadingDays] = useState(false);
 
   // Form state
   const [goalType, setGoalType] = useState<GoalType>('strength');
@@ -252,15 +251,10 @@ export function ProgramScreen() {
 
   const handleSetActive = async (program: Program) => {
     if (!db) return;
+    const days = await getProgramDaysForWeek(db, program.id, 1);
+    setWeekOneDays(days);
     setPickingDayProgram(program);
     setShowDayPicker(true);
-    setLoadingDays(true);
-    try {
-      const result = await getProgramWeeksWithDays(db, program.id);
-      setWeeksWithDays(result);
-    } finally {
-      setLoadingDays(false);
-    }
   };
 
   const handleDelete = (program: Program) => {
@@ -271,18 +265,16 @@ export function ProgramScreen() {
     });
   };
 
-  const handleConfirmDay = async (weekNumber: number, dayNumber: number) => {
+  const handleConfirmDay = async (dayNumber: number) => {
     if (!db || !pickingDayProgram) return;
     setShowDayPicker(false);
     setPickingDayProgram(null);
-
-    const week = weeksWithDays.find((w) => w.weekNumber === weekNumber);
     await setCurrentCycle(db, {
       programId: pickingDayProgram.id,
       goal: pickingDayProgram.goal,
-      currentWeek: weekNumber,
+      currentWeek: 1,
       currentDay: dayNumber,
-      currentPhase: (week?.phase as CyclePhase) ?? 'entry',
+      currentPhase: 'entry',
       trainingDaysPerWeek: daysPerWeek ?? 4,
       startedAt: new Date().toISOString(),
       isActive: true,
@@ -452,9 +444,9 @@ export function ProgramScreen() {
       </Modal>
 
       {/* Day Picker Modal */}
-      <Modal visible={showDayPicker} animationType="slide" presentationStyle="pageSheet">
+      <Modal visible={showDayPicker} animationType="slide" presentationStyle="pageSheet" transparent>
         <SafeAreaView style={styles.safeArea}>
-          <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.content}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.modalKicker}>{t('program.setActive')}</Text>
@@ -465,39 +457,20 @@ export function ProgramScreen() {
               </Pressable>
             </View>
             <Text style={styles.pickDayHint}>{t('programOpts.pickDayHint', { name: pickingDayProgram?.name ?? '' })}</Text>
-            {loadingDays ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator color={colors.primary} />
-                <Text style={styles.loadingText}>{t('common.loading')}</Text>
-              </View>
-            ) : weeksWithDays.length === 0 ? (
-              <Card variant="tonal" style={styles.card}>
-                <Text style={styles.emptyText}>{t('programOpts.noDaysFound')}</Text>
-              </Card>
-            ) : (
-              weeksWithDays.map((week) => (
-                <View key={week.weekNumber}>
-                  <Text style={styles.weekHeader}>
-                    {t('programOpts.week')} {week.weekNumber} — {week.phase}
-                    {week.focus ? ` · ${week.focus}` : ''}
-                  </Text>
-                  {week.days.map((day) => (
-                    <Pressable
-                      key={day.id}
-                      onPress={() => void handleConfirmDay(week.weekNumber, day.dayNumber)}
-                      style={styles.dayCard}
-                    >
-                      <Text style={styles.dayCardTitle}>Day {day.dayNumber}: {day.title}</Text>
-                      {day.mainFocus && <Text style={styles.dayCardFocus}>{day.mainFocus}</Text>}
-                      {day.estimatedDuration && (
-                        <Text style={styles.dayCardDuration}>~{day.estimatedDuration} min</Text>
-                      )}
-                    </Pressable>
-                  ))}
-                </View>
-              ))
-            )}
-          </ScrollView>
+            {weekOneDays.map((day) => (
+              <Pressable
+                key={day.id}
+                onPress={() => void handleConfirmDay(day.dayNumber)}
+                style={styles.dayCard}
+              >
+                <Text style={styles.dayCardTitle}>Day {day.dayNumber}: {day.title}</Text>
+                {day.mainFocus && <Text style={styles.dayCardFocus}>{day.mainFocus}</Text>}
+                {day.estimatedDuration && (
+                  <Text style={styles.dayCardDuration}>~{day.estimatedDuration} min</Text>
+                )}
+              </Pressable>
+            ))}
+          </View>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -625,13 +598,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.lg,
     lineHeight: 22,
-  },
-  weekHeader: {
-    ...typography.headline,
-    color: colors.primary,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-    fontWeight: '800',
   },
   dayCard: {
     backgroundColor: colors.surfaceMuted,

@@ -98,9 +98,7 @@ export const normalizeExerciseName = (name: string): string => {
     .replace(/[()]/g, '')
     .trim();
 
-  const aliased = ALIASES[normalized];
-  if (!aliased) return normalized;
-  return aliased.replace(/[-–—]/g, ' ').replace(/\s+/g, ' ').trim();
+  return ALIASES[normalized] ?? normalized;
 };
 
 export const getExerciseIdMap = async (db: PowerLogDatabase): Promise<Map<string, string>> => {
@@ -112,12 +110,11 @@ export const getExerciseIdMap = async (db: PowerLogDatabase): Promise<Map<string
   return map;
 };
 
-export const resolveExerciseId = (exerciseIdsByName: Map<string, string>, exerciseName: string): string | null => {
+export const resolveExerciseId = (exerciseIdsByName: Map<string, string>, exerciseName: string): string => {
   const key = normalizeExerciseName(exerciseName);
   const id = exerciseIdsByName.get(key);
   if (!id) {
-    console.warn(`Missing seeded exercise for "${exerciseName}" (normalized: "${key}")`);
-    return null;
+    throw new Error(`Missing seeded exercise for "${exerciseName}" (normalized: "${key}")`);
   }
   return id;
 };

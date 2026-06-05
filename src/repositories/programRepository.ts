@@ -452,27 +452,6 @@ export const getProgramDaysForWeek = async (
   return rows.map(toProgramDay);
 };
 
-export const getFirstProgramDays = async (
-  db: SQLiteDatabase,
-  programId: string,
-): Promise<{ days: ProgramDay[]; weekNumber: number }> => {
-  const weekRow = await db.getFirstAsync<{ week_number: number }>(
-    'SELECT week_number FROM program_weeks WHERE program_id = ? ORDER BY week_number LIMIT 1',
-    [programId],
-  );
-  const weekNumber = weekRow?.week_number ?? 1;
-
-  const rows = await db.getAllAsync<ProgramDayRow>(
-    `SELECT pd.* FROM program_days pd
-     JOIN program_weeks pw ON pw.id = pd.program_week_id
-     WHERE pw.program_id = ?
-       AND pw.week_number = (SELECT MIN(week_number) FROM program_weeks WHERE program_id = ?)
-     ORDER BY pd.day_number`,
-    [programId, programId],
-  );
-  return { days: rows.map(toProgramDay), weekNumber };
-};
-
 export const advanceCycleDay = async (
   db: SQLiteDatabase,
 ): Promise<void> => {
@@ -500,38 +479,4 @@ export const advanceCycleDay = async (
 
   // Program complete — no more days
   await deactivateCurrentCycle(db);
-};
-
-// --- Week + Day grouping for day picker ---
-
-export interface WeekWithDays {
-  weekNumber: number;
-  phase: string;
-  focus?: string;
-  days: ProgramDay[];
-}
-
-export const getProgramWeeksWithDays = async (
-  db: SQLiteDatabase,
-  programId: string,
-): Promise<WeekWithDays[]> => {
-  const weeks = await db.getAllAsync<ProgramWeekRow>(
-    'SELECT * FROM program_weeks WHERE program_id = ? ORDER BY week_number',
-    [programId],
-  );
-
-  const result: WeekWithDays[] = [];
-  for (const w of weeks) {
-    const dayRows = await db.getAllAsync<ProgramDayRow>(
-      'SELECT * FROM program_days WHERE program_week_id = ? ORDER BY day_number',
-      [w.id],
-    );
-    result.push({
-      weekNumber: w.week_number,
-      phase: w.phase,
-      focus: w.focus ?? undefined,
-      days: dayRows.map(toProgramDay),
-    });
-  }
-  return result;
 };
