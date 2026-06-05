@@ -51,29 +51,6 @@ const isExistingSeedComplete = async (db: PowerLogDatabase, program: ProgramSeed
   return weekCount === program.weeks.length && dayCount === expectedDayCount(program) && exerciseCount === expectedExerciseCount(program);
 };
 
-const deleteSeedProgramRows = async (db: PowerLogDatabase, programId: string): Promise<void> => {
-  await db.runAsync(
-    `DELETE FROM planned_exercises
-     WHERE program_day_id IN (
-       SELECT pd.id
-       FROM program_days pd
-       INNER JOIN program_weeks pw ON pw.id = pd.program_week_id
-       WHERE pw.program_id = ?
-     )`,
-    [programId],
-  );
-
-  await db.runAsync(
-    `DELETE FROM program_days
-     WHERE program_week_id IN (
-       SELECT id FROM program_weeks WHERE program_id = ?
-     )`,
-    [programId],
-  );
-
-  await db.runAsync('DELETE FROM program_weeks WHERE program_id = ?', [programId]);
-  await db.runAsync('DELETE FROM programs WHERE id = ?', [programId]);
-};
 
 const validateDay = (program: ProgramSeed, week: ProgramWeekSeed, day: ProgramDaySeed) => {
   if (day.exercises.length === 0) {
@@ -119,24 +96,57 @@ export const seedPrograms = async (db: PowerLogDatabase): Promise<void> => {
     const existing = await db.getFirstAsync<{ id: string }>('SELECT id FROM programs WHERE id = ? LIMIT 1', [program.id]);
     if (existing) {
       if (await isExistingSeedComplete(db, program)) continue;
-      await deleteSeedProgramRows(db, program.id);
+      // Only delete child data (weeks/days/exercises), NOT the program row itself
+      // The program row may be referenced by current_cycle FK
+      await db.runAsync(
+        `DELETE FROM planned_exercises
+         WHERE program_day_id IN (
+           SELECT pd.id
+           FROM program_days pd
+           INNER JOIN program_weeks pw ON pw.id = pd.program_week_id
+           WHERE pw.program_id = ?
+         )`,
+        [program.id],
+      );
+      await db.runAsync(
+        `DELETE FROM program_days
+         WHERE program_week_id IN (
+           SELECT id FROM program_weeks WHERE program_id = ?
+         )`,
+        [program.id],
+      );
+      await db.runAsync('DELETE FROM program_weeks WHERE program_id = ?', [program.id]);
+      // Update the program row in place
+      await db.runAsync(
+        `UPDATE programs SET name=?, type=?, goal=?, source=?, duration_weeks=?, includes_deload=?, description=? WHERE id=?`,
+        [
+          program.name,
+          program.type,
+          program.goal,
+          program.source,
+          program.durationWeeks,
+          program.includesDeload ? 1 : 0,
+          program.description,
+          program.id,
+        ],
+      );
+    } else {
+      await db.runAsync(
+        `INSERT INTO programs (id, name, type, goal, source, duration_weeks, includes_deload, description, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          program.id,
+          program.name,
+          program.type,
+          program.goal,
+          program.source,
+          program.durationWeeks,
+          program.includesDeload ? 1 : 0,
+          program.description,
+          program.createdAt,
+        ],
+      );
     }
-
-    await db.runAsync(
-      `INSERT INTO programs (id, name, type, goal, source, duration_weeks, includes_deload, description, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        program.id,
-        program.name,
-        program.type,
-        program.goal,
-        program.source,
-        program.durationWeeks,
-        program.includesDeload ? 1 : 0,
-        program.description,
-        program.createdAt,
-      ],
-    );
 
     for (const week of program.weeks) {
       const savedWeekId = weekId(program.id, week.weekNumber);
