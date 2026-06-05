@@ -101,7 +101,9 @@ export const normalizeExerciseName = (name: string): string => {
     .replace(/[()]/g, '')
     .trim();
 
-  return ALIASES[normalized] ?? normalized;
+  const aliased = ALIASES[normalized];
+  if (!aliased) return normalized;
+  return aliased.replace(/[-–—]/g, ' ').replace(/\s+/g, ' ').trim();
 };
 
 export const getExerciseIdMap = async (db: PowerLogDatabase): Promise<Map<string, string>> => {

@@ -4,7 +4,7 @@ import { createTables } from './schema';
 import { seedExercises } from './seedExercises';
 import { seedProgramSummaries } from './seedProgramSummaries';
 
-const CURRENT_SCHEMA_VERSION = 10;
+const CURRENT_SCHEMA_VERSION = 11;
 
 const ensureColumn = async (db: PowerLogDatabase, tableName: string, columnName: string, alterSql: string): Promise<void> => {
   const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${tableName})`);
