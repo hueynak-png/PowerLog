@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import i18n from '@/src/i18n';
@@ -53,6 +53,7 @@ export function HomeDashboard() {
   const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const startWorkoutFromProgram = useActiveWorkoutStore((state) => state.startWorkoutFromProgram);
   const startWorkout = useActiveWorkoutStore((state) => state.startWorkout);
 
@@ -227,7 +228,7 @@ export function HomeDashboard() {
 
   if (!db || isLoading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['right', 'bottom', 'left']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={colors.primary} />
           <Text style={styles.loadingText}>{t('common.loadingDashboard')}</Text>
@@ -237,8 +238,8 @@ export function HomeDashboard() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safeArea} edges={['right', 'bottom', 'left']}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg }]} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{todayLabel}</Text>
           <Text style={styles.title}>{t('home.trainingCommandCenter')}</Text>
