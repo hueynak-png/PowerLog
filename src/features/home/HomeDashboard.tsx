@@ -28,6 +28,7 @@ import { commonFoods, type FoodItem } from '@/src/data/foodDatabase';
 
 const lightBg = require('../../../assets/power-log-light.png');
 const darkBg = require('../../../assets/power-log-dark.png');
+const DEBUG_RED = { uri: 'https://placehold.co/600x400/ff0000/ffffff?text=BG' };
 
 const MAIN_LIFTS: Array<{ liftType: LiftType; label: string; color: string }> = [
   { liftType: 'squat', label: 'Squat', color: colors.primary },
@@ -57,8 +58,6 @@ export function HomeDashboard() {
   const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const bgImage = colorScheme === 'dark' ? darkBg : lightBg;
   const colorScheme = useColorScheme();
   const bgImage = colorScheme === 'dark' ? darkBg : lightBg;
   const startWorkoutFromProgram = useActiveWorkoutStore((state) => state.startWorkoutFromProgram);
@@ -250,6 +249,8 @@ export function HomeDashboard() {
   return (
     <View style={{ flex: 1, position: 'relative' }}>
         <ImageBackground source={bgImage} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+        {/* DEBUG: if you see red bg, the layer works but ImageBackground/image isn't loading */}
+        {/* <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'red' }} /> */}
       <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
