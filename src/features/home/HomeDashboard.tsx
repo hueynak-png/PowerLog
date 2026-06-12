@@ -239,8 +239,8 @@ export function HomeDashboard() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['right', 'bottom', 'left']}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={[styles.hero, { paddingTop: insets.top + spacing.lg }]}>
           <Text style={styles.eyebrow}>{todayLabel}</Text>
           <Text style={styles.title}>{t('home.trainingCommandCenter')}</Text>
           <Text style={styles.subtitle}>{t('home.trackBodySignals')}</Text>
@@ -435,7 +435,7 @@ export function HomeDashboard() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,
