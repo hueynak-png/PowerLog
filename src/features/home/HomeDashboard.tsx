@@ -245,7 +245,7 @@ export function HomeDashboard() {
           <Text style={styles.subtitle}>{t('home.trackBodySignals')}</Text>
         </View>
 
-        <Card variant="elevated" style={styles.heroCard}>
+        <Card variant="glass" style={styles.heroCard}>
           <View style={styles.cardTopRow}>
             <Text style={styles.cardKicker}>{t('home.primaryAction')}</Text>
             <Text style={styles.statusPill}>{t('common.offlineReady')}</Text>

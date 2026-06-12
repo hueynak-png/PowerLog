@@ -43,6 +43,8 @@ export const lightColors = {
   shadow: 'rgba(15,23,42,0.08)',
   shadowMedium: 'rgba(15,23,42,0.14)',
   overlay: 'rgba(0,0,0,0.3)',
+  glassSurface: 'rgba(255,255,255,0.18)',
+  glassBorder: 'rgba(255,255,255,0.22)',
 } as const;
 
 type ColorPalette = { [K in keyof typeof lightColors]: string };
@@ -90,6 +92,8 @@ export const darkColors: ColorPalette = {
   shadow: 'rgba(0,0,0,0.35)',
   shadowMedium: 'rgba(0,0,0,0.55)',
   overlay: 'rgba(0,0,0,0.55)',
+  glassSurface: 'rgba(255,255,255,0.08)',
+  glassBorder: 'rgba(255,255,255,0.12)',
 };
 
 export const colors = Appearance.getColorScheme() === 'dark' ? darkColors : lightColors;

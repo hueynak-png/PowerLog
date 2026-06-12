@@ -4,3 +4,4 @@ export { MetricCard } from './MetricCard';
 export { SectionHeader } from './SectionHeader';
 export { TextField } from './TextField';
 export { NumberField } from './NumberField';
+export { GlassView } from './GlassView';

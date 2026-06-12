@@ -3,15 +3,24 @@ import { View, StyleSheet, ViewStyle } from 'react-native';
 import { colors } from '@/src/theme/colors';
 import { spacing } from '@/src/theme/spacing';
 import { radius } from '@/src/theme/radius';
+import { GlassView } from './GlassView';
 
 interface CardProps {
   children: React.ReactNode;
   style?: ViewStyle;
   padding?: number;
-  variant?: 'default' | 'outlined' | 'elevated' | 'coach' | 'tonal';
+  variant?: 'default' | 'outlined' | 'elevated' | 'coach' | 'tonal' | 'glass';
 }
 
 export function Card({ children, style, padding = spacing.lg, variant = 'default' }: CardProps) {
+  if (variant === 'glass') {
+    return (
+      <GlassView style={style}>
+        <View style={{ padding }}>{children}</View>
+      </GlassView>
+    );
+  }
+
   return (
     <View style={[styles.card, styles[variant], { padding }, style]}>
       {children}
