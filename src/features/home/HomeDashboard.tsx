@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ImageBackground, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,10 +20,14 @@ import {
 } from '@/src/repositories';
 import { getCurrentCycle, getProgramDayByWeekDay } from '@/src/repositories/programRepository';
 import { isAIConfigured, requestNutritionTags } from '@/src/services/aiService';
+import { useColorScheme } from '@/components/useColorScheme';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { confirmAction } from '@/src/lib/alert';
 import { colors, radius, spacing, typography } from '@/src/theme';
 import { commonFoods, type FoodItem } from '@/src/data/foodDatabase';
+
+const lightBg = require('@/assets/power-log-light.png');
+const darkBg = require('@/assets/power-log-dark.png');
 
 const MAIN_LIFTS: Array<{ liftType: LiftType; label: string; color: string }> = [
   { liftType: 'squat', label: 'Squat', color: colors.primary },
@@ -53,6 +57,10 @@ export function HomeDashboard() {
   const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const bgImage = colorScheme === 'dark' ? darkBg : lightBg;
+  const colorScheme = useColorScheme();
+  const bgImage = colorScheme === 'dark' ? darkBg : lightBg;
   const startWorkoutFromProgram = useActiveWorkoutStore((state) => state.startWorkoutFromProgram);
   const startWorkout = useActiveWorkoutStore((state) => state.startWorkout);
 
@@ -227,17 +235,22 @@ export function HomeDashboard() {
 
   if (!db || isLoading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <View style={{ flex: 1 }}>
+        <ImageBackground source={bgImage} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={colors.primary} />
           <Text style={styles.loadingText}>{t('common.loadingDashboard')}</Text>
         </View>
       </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={{ flex: 1 }}>
+      <ImageBackground source={bgImage} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{todayLabel}</Text>
@@ -431,6 +444,7 @@ export function HomeDashboard() {
         </Card>
       </ScrollView>
     </SafeAreaView>
+      </View>
   );
 }
 
