@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import i18n from '@/src/i18n';
@@ -53,7 +53,6 @@ export function HomeDashboard() {
   const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const startWorkoutFromProgram = useActiveWorkoutStore((state) => state.startWorkoutFromProgram);
   const startWorkout = useActiveWorkoutStore((state) => state.startWorkout);
 
@@ -228,7 +227,7 @@ export function HomeDashboard() {
 
   if (!db || isLoading) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['right', 'bottom', 'left']}>
+      <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={colors.primary} />
           <Text style={styles.loadingText}>{t('common.loadingDashboard')}</Text>
@@ -238,9 +237,9 @@ export function HomeDashboard() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['right', 'bottom', 'left']}>
+    <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.hero, { paddingTop: Math.max(insets.top, spacing.lg) }]}>
+        <View style={[styles.hero, { paddingTop: spacing.xs }]}>
           <Text style={styles.eyebrow}>{todayLabel}</Text>
           <Text style={styles.title}>{t('home.trainingCommandCenter')}</Text>
           <Text style={styles.subtitle}>{t('home.trackBodySignals')}</Text>
@@ -457,7 +456,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   hero: {
-    paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
   },
   eyebrow: {
