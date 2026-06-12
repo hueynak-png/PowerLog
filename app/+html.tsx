@@ -40,30 +40,29 @@ export default function Root({ children }: { children: ReactNode }) {
 const responsiveBackground = `
 html,
 body {
-  background-color: transparent;
+  margin: 0;
+  padding: 0;
   color-scheme: light dark;
 }
 html,
 body,
 #root {
   min-height: 100%;
+  height: 100%;
 }
 #root {
-  background-color: transparent;
-}
-html.powerlog-dark,
-html.powerlog-dark body,
-html.powerlog-dark #root {
-  background-color: transparent;
+  background-image: url('/bg-light.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 @media (prefers-color-scheme: dark) {
-  html,
-  body {
-    background-color: transparent;
-  }
   #root {
-    background-color: transparent;
+    background-image: url('/bg-dark.png');
   }
+}
+html.powerlog-dark #root {
+  background-image: url('/bg-dark.png');
 }`;
 
 const initialColorSchemeScript = `

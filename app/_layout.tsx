@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { ImageBackground } from 'react-native';
+import { ImageBackground, Platform, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
@@ -58,8 +58,8 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const bgImage = colorScheme === 'dark' ? darkBg : lightBg;
 
-  return (
-    <ImageBackground source={bgImage} style={{ flex: 1 }} resizeMode="cover">
+  const content = (
+    <>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
@@ -71,6 +71,16 @@ function RootLayoutNav() {
         <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
         <Stack.Screen name="review" options={{ headerShown: false }} />
       </Stack>
+    </>
+  );
+
+  if (Platform.OS === 'web') {
+    return <View style={{ flex: 1 }}>{content}</View>;
+  }
+
+  return (
+    <ImageBackground source={bgImage} style={{ flex: 1 }} resizeMode="cover">
+      {content}
     </ImageBackground>
   );
 }
