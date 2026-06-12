@@ -240,7 +240,7 @@ export function HomeDashboard() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['right', 'bottom', 'left']}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.hero, { paddingTop: insets.top + spacing.lg }]}>
+        <View style={[styles.hero, { paddingTop: Math.max(insets.top, spacing.lg) }]}>
           <Text style={styles.eyebrow}>{todayLabel}</Text>
           <Text style={styles.title}>{t('home.trainingCommandCenter')}</Text>
           <Text style={styles.subtitle}>{t('home.trackBodySignals')}</Text>
