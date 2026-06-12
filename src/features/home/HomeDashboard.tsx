@@ -60,6 +60,8 @@ export function HomeDashboard() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const bgImage = colorScheme === 'dark' ? darkBg : lightBg;
+  const webBgUrl = Platform.OS === 'web' ? `url('/bg-${colorScheme === 'dark' ? 'dark' : 'light'}.png')` : null;
+
   const startWorkoutFromProgram = useActiveWorkoutStore((state) => state.startWorkoutFromProgram);
   const startWorkout = useActiveWorkoutStore((state) => state.startWorkout);
 
