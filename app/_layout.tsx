@@ -3,13 +3,12 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { ImageBackground, View } from 'react-native';
+import { ImageBackground } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import '@/src/i18n';
 import { useAppStore } from '@/src/stores/useAppStore';
-import { darkColors, lightColors } from '@/src/theme/colors';
 
 const lightBg = require('../assets/power-log-light.png');
 const darkBg = require('../assets/power-log-dark.png');
@@ -57,7 +56,6 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const themeColors = colorScheme === 'dark' ? darkColors : lightColors;
   const bgImage = colorScheme === 'dark' ? darkBg : lightBg;
 
   return (

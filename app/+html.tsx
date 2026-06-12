@@ -40,7 +40,7 @@ export default function Root({ children }: { children: ReactNode }) {
 const responsiveBackground = `
 html,
 body {
-  background-color: #F4F6FA;
+  background-color: transparent;
   color-scheme: light dark;
 }
 html,
@@ -49,25 +49,20 @@ body,
   min-height: 100%;
 }
 #root {
-  background-color: #F4F6FA;
+  background-color: transparent;
 }
 html.powerlog-dark,
 html.powerlog-dark body,
 html.powerlog-dark #root {
-  background-color: #05070B !important;
-}
-html.powerlog-dark [style*="background-color: rgb(244, 246, 250)"],
-html.powerlog-dark [style*="background-color:#F4F6FA"],
-html.powerlog-dark [style*="background-color: #F4F6FA"] {
-  background-color: #05070B !important;
+  background-color: transparent;
 }
 @media (prefers-color-scheme: dark) {
   html,
   body {
-    background-color: #05070B;
+    background-color: transparent;
   }
   #root {
-    background-color: #05070B;
+    background-color: transparent;
   }
 }`;
 
@@ -76,7 +71,6 @@ const initialColorSchemeScript = `
   try {
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       document.documentElement.classList.add('powerlog-dark');
-      document.documentElement.style.backgroundColor = '#05070B';
       document.documentElement.style.colorScheme = 'dark';
     }
   } catch (error) {}
@@ -88,7 +82,6 @@ if (colorSchemeQuery) {
   var syncColorSchemeClass = function(event) {
     var isDark = event && typeof event.matches === 'boolean' ? event.matches : colorSchemeQuery.matches;
     document.documentElement.classList.toggle('powerlog-dark', isDark);
-    document.documentElement.style.backgroundColor = isDark ? '#05070B' : '#F4F6FA';
     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
   };
   syncColorSchemeClass();
