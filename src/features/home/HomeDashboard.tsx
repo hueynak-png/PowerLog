@@ -238,15 +238,15 @@ export function HomeDashboard() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['right', 'bottom', 'left']}>
       <GlassView
         intensity={70}
         tint="default"
         borderRadius={0}
         style={[styles.topGlass, { height: insets.top }]}
       />
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.hero, { paddingTop: spacing.xs }]}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg }]} showsVerticalScrollIndicator={false}>
+        <View style={styles.hero}>
           <Text style={styles.eyebrow}>{todayLabel}</Text>
           <Text style={styles.title}>{t('home.trainingCommandCenter')}</Text>
           <Text style={styles.subtitle}>{t('home.trackBodySignals')}</Text>
