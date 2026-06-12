@@ -3,15 +3,12 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { Image, ImageBackground, Platform, View } from 'react-native';
+import { View } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import '@/src/i18n';
 import { useAppStore } from '@/src/stores/useAppStore';
-
-const lightBg = require('../assets/power-log-light.png');
-const darkBg = require('../assets/power-log-dark.png');
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -32,7 +29,6 @@ export default function RootLayout() {
   });
   const initialize = useAppStore((state) => state.initialize);
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
   }, [error]);
@@ -56,31 +52,9 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const bgSource = Platform.OS === 'web'
-    ? { uri: colorScheme === 'dark' ? '/bg-dark.png' : '/bg-light.png' }
-    : (colorScheme === 'dark' ? darkBg : lightBg);
-
-  if (Platform.OS === 'web') {
-    return (
-      <View style={{ flex: 1 }}>
-        <Image source={bgSource} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-        <Stack
-          screenOptions={{
-            contentStyle: { backgroundColor: 'transparent' },
-            headerShadowVisible: false,
-          }}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
-          <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
-          <Stack.Screen name="review" options={{ headerShown: false }} />
-        </Stack>
-      </View>
-    );
-  }
 
   return (
-    <ImageBackground source={bgSource} style={{ flex: 1 }} resizeMode="cover">
+    <View style={{ flex: 1 }}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
@@ -92,6 +66,6 @@ function RootLayoutNav() {
         <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
         <Stack.Screen name="review" options={{ headerShown: false }} />
       </Stack>
-    </ImageBackground>
+    </View>
   );
 }
