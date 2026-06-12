@@ -259,7 +259,7 @@ export function HomeDashboard() {
 
   const BgLayer = Platform.OS === 'web' ? (
     <View
-      nativeID="powerlog-bg-web"
+      id="powerlog-bg-web"
       style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
     />
   ) : (
