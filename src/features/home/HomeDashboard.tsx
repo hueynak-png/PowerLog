@@ -243,7 +243,7 @@ export function HomeDashboard() {
         intensity={70}
         tint="default"
         borderRadius={0}
-        style={[styles.topGlass, { height: insets.top + 120 }]}
+        style={[styles.topGlass, { height: insets.top }]}
       />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { paddingTop: spacing.xs }]}>
