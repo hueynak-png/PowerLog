@@ -3,13 +3,16 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { ImageBackground, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import '@/src/i18n';
 import { useAppStore } from '@/src/stores/useAppStore';
 import { darkColors, lightColors } from '@/src/theme/colors';
+
+const lightBg = require('../assets/power-log-light.png');
+const darkBg = require('../assets/power-log-dark.png');
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -55,13 +58,14 @@ export default function RootLayout() {
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const themeColors = colorScheme === 'dark' ? darkColors : lightColors;
+  const bgImage = colorScheme === 'dark' ? darkBg : lightBg;
 
   return (
-    <View style={{ flex: 1, backgroundColor: themeColors.background }}>
-      <StatusBar style="auto" />
+    <ImageBackground source={bgImage} style={{ flex: 1 }} resizeMode="cover">
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
-          contentStyle: { backgroundColor: themeColors.background },
+          contentStyle: { backgroundColor: 'transparent' },
           headerShadowVisible: false,
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -69,6 +73,6 @@ function RootLayoutNav() {
         <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
         <Stack.Screen name="review" options={{ headerShown: false }} />
       </Stack>
-    </View>
+    </ImageBackground>
   );
 }
