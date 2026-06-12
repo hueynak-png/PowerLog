@@ -174,7 +174,6 @@ export function WorkoutDetailScreen() {
           title={t('workout.exercises')}
           action={isEditing ? { text: showPicker ? t('common.close') : t('common.add'), onPress: () => setShowPicker((v) => !v) } : undefined}
         />
-        {isEditing && showPicker && <ExercisePickerModal onSelect={() => setShowPicker(false)} />}
 
         {exercises.length > 0 ? (
           exercises.map((workoutExercise) => {
@@ -264,6 +263,7 @@ export function WorkoutDetailScreen() {
             <Text style={styles.empty}>{t('workoutDetail.noExerciseData')}</Text>
           </Card>
         )}
+        {isEditing && showPicker && <ExercisePickerModal onSelect={() => setShowPicker(false)} />}
 
         {session?.notes ? (
           <>

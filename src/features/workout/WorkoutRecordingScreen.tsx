@@ -52,6 +52,7 @@ export function WorkoutRecordingScreen() {
   const restStartTimeRef = useRef<number | null>(null);
   const [restElapsed, setRestElapsed] = useState<number | null>(null);
   const restTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const progressLabel = useMemo(() => `${setsCompleted} / ${setsTotal} sets`, [setsCompleted, setsTotal]);
   const completionPct = setsTotal > 0 ? Math.round((setsCompleted / setsTotal) * 100) : 0;
@@ -75,6 +76,15 @@ export function WorkoutRecordingScreen() {
   };
 
   useEffect(() => () => clearRestTimer(), []);
+
+  useEffect(() => {
+    if (showPicker) {
+      const timer = setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [showPicker]);
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((current) => {
@@ -185,7 +195,7 @@ export function WorkoutRecordingScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Back button */}
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>{`‹ ${t('common.back')}`}</Text>
@@ -225,14 +235,16 @@ export function WorkoutRecordingScreen() {
             </Pressable>
           ) : null}
         />
-        {showPicker && <ExercisePickerModal onSelect={() => setShowPicker(false)} />}
 
         {exercises.length === 0 ? (
-          <Card variant="outlined" style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>{t('workout.buildTheSession')}</Text>
-            <Text style={styles.emptyCopy}>{t('workoutRecording.emptyStateHint')}</Text>
-            <Button title={t('workout.addExercise')} onPress={() => setShowPicker(true)} variant="secondary" />
-          </Card>
+          <>
+            <Card variant="outlined" style={styles.emptyCard}>
+              <Text style={styles.emptyTitle}>{t('workout.buildTheSession')}</Text>
+              <Text style={styles.emptyCopy}>{t('workoutRecording.emptyStateHint')}</Text>
+              <Button title={t('workout.addExercise')} onPress={() => setShowPicker(true)} variant="secondary" />
+            </Card>
+            {showPicker && <ExercisePickerModal onSelect={() => setShowPicker(false)} />}
+          </>
         ) : (
           exercises.map((workoutExercise, index) => {
             const completed = workoutExercise.sets.filter((set) => set.completed).length;
@@ -310,6 +322,7 @@ export function WorkoutRecordingScreen() {
             );
           })
         )}
+        {exercises.length > 0 && showPicker && <ExercisePickerModal onSelect={() => setShowPicker(false)} />}
 
         <View style={styles.footerActions}>
           <Button title={t('workout.addExercise')} onPress={() => setShowPicker(true)} variant="secondary" disabled={!db} fullWidth />
