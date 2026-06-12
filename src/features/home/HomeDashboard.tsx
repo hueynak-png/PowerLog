@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -245,7 +245,9 @@ export function HomeDashboard() {
           <Text style={styles.subtitle}>{t('home.trackBodySignals')}</Text>
         </View>
 
-        <Card variant="glass" style={styles.heroCard}>
+        <View style={styles.glassCardWrapper}>
+          {Platform.OS === 'web' && <View style={styles.glassBlob} />}
+          <Card variant="glass" style={styles.heroCard}>
           <View style={styles.cardTopRow}>
             <Text style={styles.cardKicker}>{t('home.primaryAction')}</Text>
             <Text style={styles.statusPill}>{t('common.offlineReady')}</Text>
@@ -286,6 +288,7 @@ export function HomeDashboard() {
             </>
           )}
         </Card>
+        </View>
 
         <View style={styles.quickGrid}>
           <Card style={styles.quickCard} variant="coach" padding={spacing.md}>
@@ -475,6 +478,19 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   heroCard: { gap: spacing.md, marginBottom: spacing.sm },
+  glassCardWrapper: {
+    position: 'relative',
+  },
+  glassBlob: {
+    position: 'absolute',
+    top: -20,
+    right: -20,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: colors.primarySoft,
+    opacity: 0.5,
+  },
   card: {
     marginBottom: spacing.sm,
   },
