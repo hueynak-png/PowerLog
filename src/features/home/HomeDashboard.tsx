@@ -26,8 +26,8 @@ import { confirmAction } from '@/src/lib/alert';
 import { colors, radius, spacing, typography } from '@/src/theme';
 import { commonFoods, type FoodItem } from '@/src/data/foodDatabase';
 
-const lightBg = require('@/assets/power-log-light.png');
-const darkBg = require('@/assets/power-log-dark.png');
+const lightBg = require('../../../assets/power-log-light.png');
+const darkBg = require('../../../assets/power-log-dark.png');
 
 const MAIN_LIFTS: Array<{ liftType: LiftType; label: string; color: string }> = [
   { liftType: 'squat', label: 'Squat', color: colors.primary },
@@ -235,8 +235,8 @@ export function HomeDashboard() {
 
   if (!db || isLoading) {
     return (
-      <View style={{ flex: 1 }}>
-        <ImageBackground source={bgImage} style={StyleSheet.absoluteFill} resizeMode="cover" />
+    <View style={{ flex: 1, position: 'relative' }}>
+      <ImageBackground source={bgImage} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
         <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={colors.primary} />
@@ -248,8 +248,8 @@ export function HomeDashboard() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <ImageBackground source={bgImage} style={StyleSheet.absoluteFill} resizeMode="cover" />
+    <View style={{ flex: 1, position: 'relative' }}>
+        <ImageBackground source={bgImage} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
       <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
