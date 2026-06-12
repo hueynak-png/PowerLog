@@ -112,7 +112,7 @@ export function AnalyticsScreen() {
 
         {/* Current 1RM */}
         <SectionHeader title={t('analytics.strengthBoard')} subtitle={t('analytics.currentEstimated1RM')} />
-        <Card variant="elevated" style={styles.card}>
+        <Card variant="glass" style={styles.card}>
           <View style={styles.metricsRowCompact}>
             {MAIN_LIFTS.map((lift) => {
               const value = currentE1rm[lift.liftFamily];

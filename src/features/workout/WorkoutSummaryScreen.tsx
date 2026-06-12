@@ -164,7 +164,7 @@ export function WorkoutSummaryScreen() {
         <SectionHeader title={t('workout.mainLifts')} />
         {summary.mainLiftPerformance.length > 0 ? (
           summary.mainLiftPerformance.map((lift) => (
-            <Card key={lift.exerciseId} style={styles.card}>
+            <Card key={lift.exerciseId} variant="glass" style={styles.card}>
               <Text style={styles.cardTitle}>{lift.exerciseNameEn}</Text>
               <Text style={styles.cardSubtitle}>{lift.exerciseNameZh}</Text>
               <View style={styles.liftStats}>
@@ -178,7 +178,7 @@ export function WorkoutSummaryScreen() {
             </Card>
           ))
         ) : (
-          <Card variant="outlined" style={styles.card}>
+          <Card variant="glass" style={styles.card}>
             <Text style={styles.empty}>{t('workoutSummary.noMainLiftData')}</Text>
           </Card>
         )}
@@ -205,7 +205,7 @@ export function WorkoutSummaryScreen() {
         </Card>
 
         <SectionHeader title={t('workout.aiCoach')} eyebrow={t('workoutSummary.postSessionReport')} subtitle={t('workoutSummary.loadedOnce')} />
-        <Card variant="coach" style={styles.card}>
+        <Card variant="glass" style={styles.card}>
           {aiLoading && (
             <View style={styles.aiLoading}>
               <ActivityIndicator size="small" color={colors.primary} />
@@ -231,7 +231,7 @@ export function WorkoutSummaryScreen() {
                   disabled={aiLoading || !db || !session || !isAIConfigured()}
                 />
               </View>
-              <Card variant="elevated" padding={spacing.md} style={styles.aiVerdictCard}>
+              <Card variant="glass" padding={spacing.md} style={styles.aiVerdictCard}>
                 <Text style={styles.aiSummaryText}>{aiAnalysis.oneLineConclusion}</Text>
               </Card>
               <View style={styles.scoreGrid}>
