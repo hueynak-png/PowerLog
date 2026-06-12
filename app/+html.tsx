@@ -42,7 +42,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background-color: transparent;
+  background-color: #F4F6FA;
   color-scheme: light dark;
 }
 html,
@@ -52,7 +52,14 @@ body,
   height: 100%;
 }
 #root {
-  background-color: transparent;
+  background-color: #F4F6FA;
+}
+@media (prefers-color-scheme: dark) {
+  html,
+  body,
+  #root {
+    background-color: #05070B;
+  }
 }`;
 
 const initialColorSchemeScript = `
