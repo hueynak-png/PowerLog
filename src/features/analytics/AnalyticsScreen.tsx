@@ -127,7 +127,7 @@ export function AnalyticsScreen() {
 
         {/* e1RM Curves */}
         <SectionHeader title={t('analytics.estimated1RMTrend')} subtitle={t('analytics.followMainLiftStrength')} />
-        <Card style={styles.card}>
+        <Card variant="glass" style={styles.card}>
           {MAIN_LIFTS.map((lift) => (
             <LineChart
               key={lift.liftFamily}
@@ -141,7 +141,7 @@ export function AnalyticsScreen() {
 
         {/* Weekly Volume */}
         <SectionHeader title={t('analytics.weeklyVolume')} subtitle={t('analytics.tonnageByWeek')} />
-        <Card style={styles.card}>
+        <Card variant="glass" style={styles.card}>
           <LineChart
             title={t('analytics.totalVolumeKg')}
             data={weeklyVolume.map((d) => ({ label: d.weekStart.slice(5), value: d.totalVolume }))}
@@ -152,7 +152,7 @@ export function AnalyticsScreen() {
 
         {/* Completion Rate */}
         <SectionHeader title={t('analytics.weeklyCompletionRate')} subtitle={t('analytics.howMuchPlannedWork')} />
-        <Card style={styles.card}>
+        <Card variant="glass" style={styles.card}>
           <LineChart
             title={t('analytics.avgCompletionPct')}
             data={completionRate.map((d) => ({ label: d.weekStart.slice(5), value: d.rate * 100 }))}
@@ -175,7 +175,7 @@ export function AnalyticsScreen() {
           </View>
         </View>
         {rpeTotal > 0 && (
-          <Card style={styles.card}>
+          <Card variant="glass" style={styles.card}>
             <BarChart
               title={t('analytics.rpeBreakdown')}
               data={[
@@ -189,7 +189,7 @@ export function AnalyticsScreen() {
 
         {/* Muscle Group Volume */}
         <SectionHeader title={t('analytics.muscleGroupVolume30Days')} subtitle={t('analytics.whichAreasReceivedWork')} />
-        <Card style={styles.card}>
+        <Card variant="glass" style={styles.card}>
           <BarChart
             title={t('analytics.volumeByMuscleGroup')}
             data={muscleVolume.slice(0, 8).map((d) => ({ label: t(`muscleGroups.${d.muscleGroup}`), value: Math.round(d.volume) }))}
@@ -198,7 +198,7 @@ export function AnalyticsScreen() {
 
         {/* Weekly Muscle Coverage */}
         <SectionHeader title={t('analytics.weeklyMuscleCoverage')} subtitle={t('analytics.colorIntensityShowsVolume')} />
-        <Card style={styles.card}>
+        <Card variant="glass" style={styles.card}>
           <View style={styles.heatmapContainer}>
             {muscleHeatmap.map((item) => {
               const maxVolume = Math.max(1, muscleHeatmap[0]?.volume ?? 1); // Heatmap is sorted by desc volume
@@ -235,7 +235,7 @@ export function AnalyticsScreen() {
 
         {/* Bodyweight */}
         <SectionHeader title={t('analytics.bodyweight')} subtitle={t('analytics.bodyweightContext')} />
-        <Card style={styles.card}>
+        <Card variant="glass" style={styles.card}>
           <LineChart
             title={t('analytics.bodyweight90Days')}
             data={bodyweight.map((d) => ({ label: d.date.slice(5), value: d.bodyweight }))}

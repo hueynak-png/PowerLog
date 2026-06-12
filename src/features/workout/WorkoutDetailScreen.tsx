@@ -260,7 +260,7 @@ export function WorkoutDetailScreen() {
             );
           })
         ) : (
-          <Card variant="outlined" style={styles.card}>
+          <Card variant="glass" style={styles.card}>
             <Text style={styles.empty}>{t('workoutDetail.noExerciseData')}</Text>
           </Card>
         )}
@@ -268,7 +268,7 @@ export function WorkoutDetailScreen() {
         {session?.notes ? (
           <>
             <SectionHeader title={t('workout.sessionNotes')} />
-            <Card style={styles.card}>
+            <Card variant="glass" style={styles.card}>
               <Text style={styles.notes}>{session.notes}</Text>
             </Card>
           </>

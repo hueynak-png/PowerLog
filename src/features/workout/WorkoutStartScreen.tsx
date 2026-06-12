@@ -106,7 +106,7 @@ export function WorkoutStartScreen() {
         </View>
 
         {persistedSessionId && (
-          <Card variant="coach" style={styles.resumeCard}>
+          <Card variant="glass" style={styles.resumeCard}>
             <View style={styles.cardTopRow}>
               <View style={styles.liveDot} />
               <Text style={styles.resumeEyebrow}>{t('workout.sessionInProgress')}</Text>
@@ -117,7 +117,7 @@ export function WorkoutStartScreen() {
           </Card>
         )}
 
-        <Card variant="elevated" style={styles.startCard}>
+        <Card variant="glass" style={styles.startCard}>
           <View style={styles.cardTopRow}>
             <Text style={styles.cardKicker}>{t('common.today')}</Text>
             <Text style={styles.statusPill}>{t('common.offlineReady')}</Text>
@@ -133,7 +133,7 @@ export function WorkoutStartScreen() {
           <Button title={t('workout.startTodaysWorkout')} onPress={() => void handleStartWorkout()} loading={isStarting} disabled={!db} fullWidth />
         </Card>
 
-        <Card variant="tonal" style={styles.startCard}>
+        <Card variant="glass" style={styles.startCard}>
           <Text style={styles.cardTitle}>{t('workout.logPastWorkout')}</Text>
           <Text style={styles.lastWorkout}>{t('workout.backfillTraining')}</Text>
           <TextInput
@@ -151,7 +151,7 @@ export function WorkoutStartScreen() {
           <View>
             <SectionHeader title={t('workout.recent')} subtitle={t('workout.completedSessions')} />
             {recentWorkouts.slice(1).map((workout) => (
-              <Card key={workout.id} variant="outlined" style={styles.recentCard}>
+              <Card key={workout.id} variant="glass" style={styles.recentCard}>
                 <View style={styles.recentRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.recentDate}>{formatDate(workout.date)}</Text>

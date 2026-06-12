@@ -191,7 +191,7 @@ export function WorkoutSummaryScreen() {
         </View>
 
         <SectionHeader title={t('workout.suggestions')} />
-        <Card style={styles.card}>
+        <Card variant="glass" style={styles.card}>
           {summary.suggestions.length > 0 ? (
             summary.suggestions.map((suggestion, index) => (
               <View key={`${suggestion.type}-${index}`} style={styles.suggestion}>
