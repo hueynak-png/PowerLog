@@ -337,12 +337,12 @@ export function HomeDashboard() {
         </View>
 
         <View style={styles.quickGrid}>
-          <Card style={styles.quickCard} variant="coach" padding={spacing.md}>
+          <Card style={styles.quickCard} variant="glass" padding={spacing.md}>
             <Text style={styles.quickLabel}>{t('home.weeklyReview')}</Text>
             <Text style={styles.quickCopy}>{t('home.aiTrainingRecap')}</Text>
             <Button title={t('common.view')} onPress={() => router.push('/review')} variant="secondary" size="sm" />
           </Card>
-          <Card style={styles.quickCard} variant="tonal" padding={spacing.md}>
+          <Card style={styles.quickCard} variant="glass" padding={spacing.md}>
             <Text style={styles.quickLabel}>{t('home.currentCycle')}</Text>
             {cycle ? (
               <Text style={styles.quickCopy}>
@@ -355,7 +355,7 @@ export function HomeDashboard() {
         </View>
 
         <SectionHeader title={t('home.recentWorkout')} subtitle={t('home.latestCompletedSession')} />
-        <Card style={styles.card} variant="outlined">
+        <Card style={styles.card} variant="glass">
           {lastWorkout ? (
             <View style={styles.summaryGrid}>
               <View style={styles.summaryItem}>
@@ -389,7 +389,7 @@ export function HomeDashboard() {
         </View>
 
         <SectionHeader title={t('home.todaysNutrition')} subtitle={t('home.trackMealsMacros')} />
-        <Card style={styles.card}>
+        <Card style={styles.card} variant="glass">
           <View style={styles.macroRow}>
             <View style={styles.macroItem}>
               <Text style={styles.macroValue}>{foodTotals.calories}</Text>

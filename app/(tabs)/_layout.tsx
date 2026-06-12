@@ -34,8 +34,13 @@ export default function TabLayout() {
   const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const themeColors = colorScheme === 'dark' ? darkColors : lightColors;
-  const webDarkTabBarStyle = Platform.OS === 'web' && colorScheme === 'dark'
-    ? ({ backgroundColor: darkColors.tabBar, borderColor: darkColors.tabBarBorder } as const)
+  const webGlass = Platform.OS === 'web'
+    ? ({
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        backgroundColor: colorScheme === 'dark' ? darkColors.glassSurface : lightColors.glassSurface,
+        borderColor: colorScheme === 'dark' ? darkColors.glassBorder : lightColors.glassBorder,
+      } as const)
     : null;
 
   return (
@@ -43,8 +48,6 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.textTertiary,
-        sceneStyle: { backgroundColor: 'transparent' },
-        unmountOnBlur: true,
         sceneStyle: { backgroundColor: 'transparent' },
         tabBarStyle: {
           position: 'absolute',
@@ -64,7 +67,7 @@ export default function TabLayout() {
           shadowOpacity: 0.9,
           shadowRadius: 24,
           elevation: 12,
-          ...(webDarkTabBarStyle ?? {}),
+          ...(webGlass ?? {}),
         },
         tabBarItemStyle: {
           borderRadius: radius.xl,
