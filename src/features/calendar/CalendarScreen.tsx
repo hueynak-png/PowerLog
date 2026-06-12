@@ -151,7 +151,7 @@ export function CalendarScreen() {
         </View>
 
         {/* Month navigation */}
-        <Card variant="glass" style={styles.calendarCard}>
+        <Card variant="elevated" style={styles.calendarCard}>
           <View style={styles.monthNav}>
             <Pressable onPress={prevMonth} style={styles.navBtn}>
               <Text style={styles.navBtnText}>‹</Text>
@@ -225,7 +225,7 @@ export function CalendarScreen() {
 
         {/* Range mode info */}
         {isRangeMode && !rangeComplete && (
-          <Card variant="glass" style={styles.rangeInfoCard}>
+          <Card variant="tonal" style={styles.rangeInfoCard}>
             <Text style={styles.rangeHint}>
               {!rangeStart ? t('calendar.rangeStartHint') : t('calendar.rangeEndHint')}
             </Text>
@@ -238,7 +238,7 @@ export function CalendarScreen() {
         {/* Range complete: show generate button */}
         {rangeComplete && (
           <View style={{ gap: spacing.sm }}>
-            <Card variant="glass" style={styles.rangeInfoCard}>
+            <Card variant="tonal" style={styles.rangeInfoCard}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.rangeText}>
                   {t('calendar.selectedRange', { start: rangeStart, end: rangeEnd })}
@@ -262,7 +262,7 @@ export function CalendarScreen() {
             <SectionHeader title={selectedDate === today ? t('common.today') : selectedDate} subtitle={`${dayWorkouts.length} ${dayWorkouts.length === 1 ? t('common.session') : t('common.sessions')} ${t('common.logged')}`} />
         {dayWorkouts.length > 0 ? (
           dayWorkouts.map((workout) => (
-            <Card key={workout.id} variant="glass" style={styles.workoutCard}>
+            <Card key={workout.id} variant="outlined" style={styles.workoutCard}>
               <View style={styles.workoutRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.workoutTime}>
@@ -284,7 +284,7 @@ export function CalendarScreen() {
             </Card>
           ))
         ) : (
-          <Card variant="glass" style={styles.workoutCard}>
+          <Card variant="tonal" style={styles.workoutCard}>
             <Text style={styles.emptyText}>{t('common.noWorkoutThisDay')}</Text>
           </Card>
         )}

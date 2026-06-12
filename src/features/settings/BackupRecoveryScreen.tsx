@@ -148,7 +148,7 @@ export function BackupRecoveryScreen() {
     const isRestoring = restoringKey === key;
 
     return (
-      <Card variant="glass" style={styles.backupCard}>
+      <Card variant="tonal" style={styles.backupCard}>
         <View style={styles.backupRow}>
           <View style={styles.backupInfo}>
             <Text style={styles.backupDate}>{formatDate(meta.createdAt)}</Text>
@@ -211,7 +211,7 @@ export function BackupRecoveryScreen() {
           title="Current Database"
           subtitle="The active database on this device."
         />
-        <Card variant="glass" style={styles.card}>
+          <Card variant="outlined" style={styles.card}>
           {loading && !currentMeta ? (
             <ActivityIndicator color={colors.primary} />
           ) : currentMeta ? (
@@ -251,7 +251,7 @@ export function BackupRecoveryScreen() {
             <ActivityIndicator color={colors.primary} />
           </View>
         ) : backups.length === 0 ? (
-          <Card variant="glass" style={styles.card}>
+        <Card variant="elevated" style={styles.card}>
             <Text style={styles.emptyText}>
               No local backups found. Backups are created automatically before
               cloud restore or file import.

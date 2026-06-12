@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Dimensions, ImageBackground, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,15 +20,10 @@ import {
 } from '@/src/repositories';
 import { getCurrentCycle, getProgramDayByWeekDay } from '@/src/repositories/programRepository';
 import { isAIConfigured, requestNutritionTags } from '@/src/services/aiService';
-import { useColorScheme } from '@/components/useColorScheme';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { confirmAction } from '@/src/lib/alert';
 import { colors, radius, spacing, typography } from '@/src/theme';
 import { commonFoods, type FoodItem } from '@/src/data/foodDatabase';
-
-const lightBg = require('../../../assets/power-log-light.png');
-const darkBg = require('../../../assets/power-log-dark.png');
-const DEBUG_RED = { uri: 'https://placehold.co/600x400/ff0000/ffffff?text=BG' };
 
 const MAIN_LIFTS: Array<{ liftType: LiftType; label: string; color: string }> = [
   { liftType: 'squat', label: 'Squat', color: colors.primary },
@@ -58,10 +53,6 @@ export function HomeDashboard() {
   const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const bgImage = colorScheme === 'dark' ? darkBg : lightBg;
-  const webBgUrl = Platform.OS === 'web' ? `url('/bg-${colorScheme === 'dark' ? 'dark' : 'light'}.png')` : null;
-
   const startWorkoutFromProgram = useActiveWorkoutStore((state) => state.startWorkoutFromProgram);
   const startWorkout = useActiveWorkoutStore((state) => state.startWorkout);
 
@@ -233,57 +224,20 @@ export function HomeDashboard() {
   };
 
   const lastWorkout = recentWorkouts[0];
-  const containerHeight = Platform.OS === 'web' ? '100vh' as const : undefined;
-
-  // Web: inject CSS background via <style> tag (highest specificity, cannot be overridden)
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const style = document.createElement('style');
-    style.setAttribute('data-powerlog-bg', '');
-    style.textContent = `
-      #powerlog-bg-web {
-        background-image: url('/bg-light.png') !important;
-        background-size: cover !important;
-        background-position: center !important;
-      }
-      @media (prefers-color-scheme: dark) {
-        #powerlog-bg-web { background-image: url('/bg-dark.png') !important; }
-      }
-      html.powerlog-dark #powerlog-bg-web {
-        background-image: url('/bg-dark.png') !important;
-      }
-    `;
-    document.head.appendChild(style);
-    return () => { style.remove(); };
-  }, []);
-
-  const BgLayer = Platform.OS === 'web' ? (
-    <View
-      id="powerlog-bg-web"
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-    />
-  ) : (
-    <ImageBackground source={bgImage} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
-  );
 
   if (!db || isLoading) {
     return (
-    <View style={{ height: Dimensions.get('window').height, position: 'relative' }}>
-      {BgLayer}
-        <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={colors.primary} />
           <Text style={styles.loadingText}>{t('common.loadingDashboard')}</Text>
         </View>
       </SafeAreaView>
-      </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, position: 'relative' }}>
-      {BgLayer}
-      <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{todayLabel}</Text>
@@ -291,9 +245,7 @@ export function HomeDashboard() {
           <Text style={styles.subtitle}>{t('home.trackBodySignals')}</Text>
         </View>
 
-        <View style={styles.glassCardWrapper}>
-          {Platform.OS === 'web' && <View style={styles.glassBlob} />}
-          <Card variant="glass" style={styles.heroCard}>
+        <Card variant="elevated" style={styles.heroCard}>
           <View style={styles.cardTopRow}>
             <Text style={styles.cardKicker}>{t('home.primaryAction')}</Text>
             <Text style={styles.statusPill}>{t('common.offlineReady')}</Text>
@@ -334,15 +286,14 @@ export function HomeDashboard() {
             </>
           )}
         </Card>
-        </View>
 
         <View style={styles.quickGrid}>
-          <Card style={styles.quickCard} variant="glass" padding={spacing.md}>
+          <Card style={styles.quickCard} variant="coach" padding={spacing.md}>
             <Text style={styles.quickLabel}>{t('home.weeklyReview')}</Text>
             <Text style={styles.quickCopy}>{t('home.aiTrainingRecap')}</Text>
             <Button title={t('common.view')} onPress={() => router.push('/review')} variant="secondary" size="sm" />
           </Card>
-          <Card style={styles.quickCard} variant="glass" padding={spacing.md}>
+          <Card style={styles.quickCard} variant="tonal" padding={spacing.md}>
             <Text style={styles.quickLabel}>{t('home.currentCycle')}</Text>
             {cycle ? (
               <Text style={styles.quickCopy}>
@@ -355,7 +306,7 @@ export function HomeDashboard() {
         </View>
 
         <SectionHeader title={t('home.recentWorkout')} subtitle={t('home.latestCompletedSession')} />
-        <Card style={styles.card} variant="glass">
+        <Card style={styles.card} variant="outlined">
           {lastWorkout ? (
             <View style={styles.summaryGrid}>
               <View style={styles.summaryItem}>
@@ -389,7 +340,7 @@ export function HomeDashboard() {
         </View>
 
         <SectionHeader title={t('home.todaysNutrition')} subtitle={t('home.trackMealsMacros')} />
-        <Card style={styles.card} variant="glass">
+        <Card style={styles.card}>
           <View style={styles.macroRow}>
             <View style={styles.macroItem}>
               <Text style={styles.macroValue}>{foodTotals.calories}</Text>
@@ -477,18 +428,17 @@ export function HomeDashboard() {
         </Card>
       </ScrollView>
     </SafeAreaView>
-      </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: colors.background,
   },
   content: {
     padding: spacing.lg,
@@ -525,19 +475,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   heroCard: { gap: spacing.md, marginBottom: spacing.sm },
-  glassCardWrapper: {
-    position: 'relative',
-  },
-  glassBlob: {
-    position: 'absolute',
-    top: -20,
-    right: -20,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: colors.primarySoft,
-    opacity: 0.5,
-  },
   card: {
     marginBottom: spacing.sm,
   },

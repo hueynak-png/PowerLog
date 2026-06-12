@@ -1,0 +1,39 @@
+- generic [ref=e9]:
+  - generic [ref=e12]:
+    - generic:
+      - generic:
+        - generic:
+          - progressbar [ref=e13]:
+            - img [ref=e15]
+          - generic [ref=e18]: Loading dashboard…
+  - tablist [ref=e20]:
+    - tab "⌂ ⌂ Home" [selected] [ref=e22] [cursor=pointer]:
+      - generic [ref=e23]:
+        - generic [ref=e26]: ⌂
+        - generic [ref=e29]: ⌂
+      - generic [ref=e30]: Home
+    - tab "◆ ◆ Workout" [ref=e32] [cursor=pointer]:
+      - generic [ref=e33]:
+        - generic [ref=e36]: ◆
+        - generic [ref=e39]: ◆
+      - generic [ref=e40]: Workout
+    - tab "□ □ Calendar" [ref=e42] [cursor=pointer]:
+      - generic [ref=e43]:
+        - generic [ref=e46]: □
+        - generic [ref=e49]: □
+      - generic [ref=e50]: Calendar
+    - tab "▤ ▤ Program" [ref=e52] [cursor=pointer]:
+      - generic [ref=e53]:
+        - generic [ref=e56]: ▤
+        - generic [ref=e59]: ▤
+      - generic [ref=e60]: Program
+    - tab "⌁ ⌁ Analytics" [ref=e62] [cursor=pointer]:
+      - generic [ref=e63]:
+        - generic [ref=e66]: ⌁
+        - generic [ref=e69]: ⌁
+      - generic [ref=e70]: Analytics
+    - tab "⚙ ⚙ Settings" [ref=e72] [cursor=pointer]:
+      - generic [ref=e73]:
+        - generic [ref=e76]: ⚙
+        - generic [ref=e79]: ⚙
+      - generic [ref=e80]: Settings

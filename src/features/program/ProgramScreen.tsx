@@ -313,7 +313,7 @@ export function ProgramScreen() {
         {/* Current Cycle */}
         <SectionHeader title={t('home.currentCycle')} subtitle={t('programOpts.activeBlockHint')} />
         {cycle ? (
-          <Card variant="glass" style={styles.card}>
+          <Card variant="elevated" style={styles.card}>
             <View style={styles.cardTopRow}>
               <Text style={styles.cardKicker}>{t('programOpts.activeBlock')}</Text>
               <Text style={styles.statusPill}>{t('programOpts.week')} {cycle.currentWeek}</Text>
@@ -329,14 +329,14 @@ export function ProgramScreen() {
             </View>
           </Card>
         ) : (
-          <Card variant="glass" style={styles.card}>
+          <Card variant="tonal" style={styles.card}>
             <Text style={styles.emptyText}>{t('home.noActiveProgram')}</Text>
           </Card>
         )}
 
         {/* Generate Button */}
         <SectionHeader title={t('program.aiProgramGenerator')} subtitle={t('programOpts.createNewCycle')} />
-        <Card variant="glass" style={styles.card}>
+        <Card variant="coach" style={styles.card}>
           <Text style={styles.programDesc}>{t('programOpts.aiDraftHint')}</Text>
           <Button
             title={t('program.generateAIProgram')}
@@ -349,12 +349,12 @@ export function ProgramScreen() {
         {/* Program Library */}
         <SectionHeader title={t('program.programLibrary')} subtitle={`${programs.length} ${t('programOpts.savedProgram')}${programs.length === 1 ? '' : 's'}`} />
         {programs.length === 0 ? (
-          <Card variant="glass" style={styles.card}>
+          <Card variant="outlined" style={styles.card}>
             <Text style={styles.emptyText}>{t('programOpts.noSavedPrograms')}</Text>
           </Card>
         ) : (
           programs.map((program) => (
-            <Card key={program.id} style={styles.card} variant="glass">
+            <Card key={program.id} style={styles.card} variant="outlined">
               <View style={styles.cardTopRow}>
                 <Text style={styles.cardKicker}>{program.source === 'imported_excel' ? 'Excel 导入' : program.source === 'manual' ? '手动创建' : program.source.replace('_', ' ')}</Text>
                 <Text style={styles.statusPill}>{program.durationWeeks} {t('programOpts.weeks')}</Text>
@@ -404,7 +404,7 @@ export function ProgramScreen() {
               </Pressable>
             </View>
 
-            <Card variant="glass" style={styles.card}>
+            <Card variant="elevated" style={styles.card}>
               <SelectChips label={t('program.goal')} value={goalType} options={goalTypeOptions} onChange={setGoalType} t={t} />
               <SelectChips label={t('program.experience')} value={experienceLevel} options={experienceOptions} onChange={setExperienceLevel} t={t} />
               <NumberField label={t('programOpts.daysPerWeek')} value={daysPerWeek} onChangeValue={setDaysPerWeek} step={1} min={2} max={6} />
@@ -423,7 +423,7 @@ export function ProgramScreen() {
             </Card>
 
             <SectionHeader title={t('program.current1RM')} subtitle={t('programOpts.anchorPercentages')} />
-            <Card variant="glass" style={styles.card}>
+            <Card style={styles.card}>
               <NumberField label={t('analytics.squat')} value={squatMax} onChangeValue={setSquatMax} step={2.5} min={0} unit="kg" />
               <NumberField label={t('analytics.bench')} value={benchMax} onChangeValue={setBenchMax} step={2.5} min={0} unit="kg" />
               <NumberField label={t('analytics.deadlift')} value={deadliftMax} onChangeValue={setDeadliftMax} step={2.5} min={0} unit="kg" />

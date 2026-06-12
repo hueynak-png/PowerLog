@@ -191,7 +191,7 @@ export function WorkoutRecordingScreen() {
           <Text style={styles.backBtnText}>{`‹ ${t('common.back')}`}</Text>
         </Pressable>
 
-        <Card variant="glass" style={styles.topCard}>
+        <Card variant="elevated" style={styles.topCard}>
           <Text style={styles.sessionKicker}>{t('workout.activeWorkout')}</Text>
           <Text style={styles.sessionTitle}>{t('workout.trainingCockpit')}</Text>
           <View style={styles.topRow}>
@@ -228,7 +228,7 @@ export function WorkoutRecordingScreen() {
         {showPicker && <ExercisePickerModal onSelect={() => setShowPicker(false)} />}
 
         {exercises.length === 0 ? (
-          <Card variant="glass" style={styles.emptyCard}>
+          <Card variant="outlined" style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>{t('workout.buildTheSession')}</Text>
             <Text style={styles.emptyCopy}>{t('workoutRecording.emptyStateHint')}</Text>
             <Button title={t('workout.addExercise')} onPress={() => setShowPicker(true)} variant="secondary" />

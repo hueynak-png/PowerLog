@@ -88,7 +88,7 @@ export function ExercisePickerModal({ onSelect }: ExercisePickerModalProps) {
   };
 
   return (
-    <Card variant="glass" style={styles.container}>
+    <Card variant="outlined" style={styles.container}>
       <Text style={styles.title}>{t('workout.addExercise')}</Text>
       <TextInput
         value={query}

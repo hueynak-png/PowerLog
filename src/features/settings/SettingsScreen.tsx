@@ -298,7 +298,7 @@ export function SettingsScreen() {
         </View>
 
         <SectionHeader title={t('settings.oneRMSettings')} subtitle={t('settingsExtras.currentMaxes')} />
-        <Card variant="glass" style={styles.card}>
+        <Card variant="elevated" style={styles.card}>
           <View style={styles.cardTopRow}>
             <Text style={styles.cardKicker}>{t('settingsExtras.strengthProfile')}</Text>
             <Text style={styles.statusPill}>{t('settingsExtras.bigThree')}</Text>
@@ -309,7 +309,7 @@ export function SettingsScreen() {
         </Card>
 
         <SectionHeader title={t('settings.trainingPreferences')} subtitle={t('settingsExtras.trainingPrefsSubtitle')} />
-        <Card variant="glass" style={styles.card}>
+        <Card variant="tonal" style={styles.card}>
           <NumberField
             label={t('settingsExtras.defaultSessionDuration')}
             value={duration}
@@ -322,7 +322,7 @@ export function SettingsScreen() {
         </Card>
 
         <SectionHeader title={t('settings.bodyweight')} subtitle={t('settingsExtras.bodyweightHint')} />
-        <Card variant="glass" style={styles.card}>
+        <Card style={styles.card}>
           <View style={styles.cardTopRow}>
             <Text style={styles.cardKicker}>{t('settingsExtras.bodyContext')}</Text>
             <Text style={styles.statusPill}>{latestBodyweight ? t('settingsExtras.tracked') : t('common.noData')}</Text>
@@ -341,7 +341,7 @@ export function SettingsScreen() {
         </Card>
 
         <SectionHeader title={t('workout.aiCoach')} subtitle={t('settingsExtras.aiCoachSubtitle')} />
-        <Card variant="glass" style={styles.card}>
+        <Card variant="coach" style={styles.card}>
           <Pressable onPress={() => setAiExpanded(!aiExpanded)} style={styles.aiHeader}>
             <Text style={[styles.aiStatus, !aiConfigured && styles.aiNotConfigured]}>
               {aiConfigured ? '✓ ' + t('settingsExtras.aiConfigured') : '✗ ' + t('settingsExtras.notConfigured')}
@@ -367,7 +367,7 @@ export function SettingsScreen() {
         </Card>
 
         <SectionHeader title={t('settings.cloudSync')} subtitle={t('settingsExtras.cloudSyncSubtitle')} />
-        <Card variant="glass" style={styles.card}>
+        <Card variant="elevated" style={styles.card}>
           <Pressable onPress={() => setSyncExpanded(!syncExpanded)} style={styles.aiHeader}>
             <Text style={[styles.aiStatus, !syncConfigured && styles.aiNotConfigured]}>
               {syncConfigured ? '✓ ' + t('settingsExtras.cloudSyncConfigured') : '✗ ' + t('settingsExtras.notConfigured')}
@@ -403,7 +403,7 @@ export function SettingsScreen() {
         </Card>
 
         <SectionHeader title={t('settings.dataBackup')} subtitle={t('settingsExtras.dataBackupSubtitle')} />
-        <Card variant="glass" style={styles.card}>
+        <Card variant="tonal" style={styles.card}>
           <Text style={styles.cardText}>{t('settingsExtras.dataBackupHint')}</Text>
           {Platform.OS === 'web' ? (
             <>
@@ -431,7 +431,7 @@ export function SettingsScreen() {
         </Card>
 
         <SectionHeader title={t('settingsExtras.localBackupRecovery')} subtitle={t('settingsExtras.localBackupRecoveryHint')} />
-        <Card variant="glass" style={styles.card}>
+        <Card variant="tonal" style={styles.card}>
           <Text style={styles.cardText}>{t('settingsExtras.localBackupRecoveryDesc')}</Text>
           <Button
             title={t('settingsExtras.viewLocalBackups')}
@@ -443,7 +443,7 @@ export function SettingsScreen() {
         </Card>
 
         <SectionHeader title={t('settings.appVersion')} subtitle={t('settingsExtras.pwaUpdateStatus')} />
-        <Card variant="glass" style={styles.card}>
+        <Card variant="outlined" style={styles.card}>
           <Pressable style={styles.cardTopRow} onPress={() => setReleaseNotesExpanded((value) => !value)}>
             <Text style={styles.cardKicker}>{t('settingsExtras.powerLogVersion', { version: getAppVersion() })}</Text>
             <Text style={styles.statusPill}>{updateAvailable ? t('settings.updateReady') : t('settingsExtras.current')}</Text>

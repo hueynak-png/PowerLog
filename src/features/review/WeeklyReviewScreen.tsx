@@ -256,7 +256,7 @@ export function WeeklyReviewScreen({ initialPeriod }: Props) {
         )}
 
         {isLoading && (
-          <Card variant="glass" style={styles.card}>
+          <Card style={styles.card}>
             <ActivityIndicator color={colors.primary} />
             <Text style={styles.loadingText}>{t('review.analyzing')}</Text>
           </Card>
@@ -265,13 +265,13 @@ export function WeeklyReviewScreen({ initialPeriod }: Props) {
         {review && (
           <>
             <SectionHeader title={t('review.summary')} />
-            <Card variant="glass" style={styles.card}>
+            <Card style={styles.card}>
               <Text style={styles.bodyText}>{review.weekSummary}</Text>
             </Card>
 
             <SectionHeader title={t('review.liftAnalysis')} />
             {review.liftAnalysis.map((lift) => (
-              <Card key={lift.lift} variant="glass" style={styles.card}>
+              <Card key={lift.lift} style={styles.card}>
                 <View style={styles.liftRow}>
                   <Text style={styles.liftName}>{lift.lift}</Text>
                   <Text style={[styles.trend, lift.trend === 'up' && styles.trendUp, lift.trend === 'down' && styles.trendDown]}>
@@ -285,14 +285,14 @@ export function WeeklyReviewScreen({ initialPeriod }: Props) {
             {review.fatigueSigns.length > 0 && (
               <>
                 <SectionHeader title={t('reviewExtras.fatigueSigns')} />
-                <Card variant="glass" style={styles.card}>
+                <Card style={styles.card}>
                   {review.fatigueSigns.map((s, i) => <Text key={i} style={styles.bullet}>• {s}</Text>)}
                 </Card>
               </>
             )}
 
             <SectionHeader title={t('review.suggestions')} />
-            <Card variant="glass" style={styles.card}>
+            <Card style={styles.card}>
               {review.suggestions.map((s, i) => (
                 <View key={i} style={styles.suggestionRow}>
                   <Text style={styles.suggestionType}>{s.type}</Text>
@@ -302,7 +302,7 @@ export function WeeklyReviewScreen({ initialPeriod }: Props) {
             </Card>
 
             <SectionHeader title={t('review.deload')} />
-            <Card variant="glass" style={styles.card}>
+            <Card style={styles.card}>
               <Text style={[styles.deloadStatus, review.deloadRecommendation.needed && styles.deloadNeeded]}>
                 {review.deloadRecommendation.needed ? t('review.deloadRecommended') : t('review.noDeloadNeeded')}
               </Text>
@@ -310,7 +310,7 @@ export function WeeklyReviewScreen({ initialPeriod }: Props) {
             </Card>
 
             <SectionHeader title={t('review.nextWeekFocus')} />
-            <Card variant="glass" style={styles.card}>
+            <Card style={styles.card}>
               <Text style={styles.bodyText}>{review.nextWeekFocus}</Text>
             </Card>
 
@@ -342,12 +342,12 @@ export function WeeklyReviewScreen({ initialPeriod }: Props) {
           {showHistory && (
             <View style={{ marginTop: spacing.md }}>
               {savedReviews.length === 0 ? (
-                <Card variant="glass" style={styles.card}>
+                <Card variant="tonal" style={styles.card}>
                   <Text style={styles.emptyText}>{t('review.noSavedReports')}</Text>
                 </Card>
               ) : (
                 savedReviews.map((item) => (
-                  <Card key={item.id} variant="glass" style={styles.historyCard}>
+                  <Card key={item.id} variant="outlined" style={styles.historyCard}>
                     <View style={styles.historyRow}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.historyPeriod}>
