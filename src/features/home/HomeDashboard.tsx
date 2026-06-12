@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ImageBackground, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Dimensions, ImageBackground, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -233,11 +233,43 @@ export function HomeDashboard() {
   };
 
   const lastWorkout = recentWorkouts[0];
+  const containerHeight = Platform.OS === 'web' ? '100vh' as const : undefined;
+
+  // Web: inject CSS background via <style> tag (highest specificity, cannot be overridden)
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const style = document.createElement('style');
+    style.setAttribute('data-powerlog-bg', '');
+    style.textContent = `
+      #powerlog-bg-web {
+        background-image: url('/bg-light.png') !important;
+        background-size: cover !important;
+        background-position: center !important;
+      }
+      @media (prefers-color-scheme: dark) {
+        #powerlog-bg-web { background-image: url('/bg-dark.png') !important; }
+      }
+      html.powerlog-dark #powerlog-bg-web {
+        background-image: url('/bg-dark.png') !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => { style.remove(); };
+  }, []);
+
+  const BgLayer = Platform.OS === 'web' ? (
+    <View
+      nativeID="powerlog-bg-web"
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+    />
+  ) : (
+    <ImageBackground source={bgImage} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+  );
 
   if (!db || isLoading) {
     return (
-    <View style={{ flex: 1, position: 'relative' }}>
-      <ImageBackground source={bgImage} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+    <View style={{ height: Dimensions.get('window').height, position: 'relative' }}>
+      {BgLayer}
         <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={colors.primary} />
@@ -250,9 +282,7 @@ export function HomeDashboard() {
 
   return (
     <View style={{ flex: 1, position: 'relative' }}>
-        <ImageBackground source={bgImage} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
-        {/* DEBUG: if you see red bg, the layer works but ImageBackground/image isn't loading */}
-        {/* <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'red' }} /> */}
+      {BgLayer}
       <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
