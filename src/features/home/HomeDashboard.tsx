@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import i18n from '@/src/i18n';
 
-import { Button, Card, MetricCard, SectionHeader, TextField } from '@/src/components/ui';
+import { Button, Card, GlassView, MetricCard, SectionHeader, TextField } from '@/src/components/ui';
 import type { BodyweightEntry, CurrentCycle, LiftType, NutritionEntry, ProgramDay, WorkoutSession } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import {
@@ -53,6 +53,7 @@ export function HomeDashboard() {
   const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const startWorkoutFromProgram = useActiveWorkoutStore((state) => state.startWorkoutFromProgram);
   const startWorkout = useActiveWorkoutStore((state) => state.startWorkout);
 
@@ -238,6 +239,12 @@ export function HomeDashboard() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <GlassView
+        intensity={70}
+        tint="default"
+        borderRadius={0}
+        style={[styles.topGlass, { height: insets.top + 120 }]}
+      />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { paddingTop: spacing.xs }]}>
           <Text style={styles.eyebrow}>{todayLabel}</Text>
@@ -435,6 +442,19 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: 'transparent',
+  },
+  topGlass: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    pointerEvents: 'none',
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 8,
   },
   scrollView: {
     flex: 1,
