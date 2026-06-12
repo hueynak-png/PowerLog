@@ -21,7 +21,7 @@ export default function Root({ children }: { children: ReactNode }) {
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F6FA" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#05070B" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="PowerLog" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
 
@@ -60,6 +60,11 @@ body,
   #root {
     background-color: #05070B;
   }
+}
+html.powerlog-dark,
+html.powerlog-dark body,
+html.powerlog-dark #root {
+  background-color: #05070B;
 }`;
 
 const initialColorSchemeScript = `
