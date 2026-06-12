@@ -42,6 +42,7 @@ html,
 body {
   margin: 0;
   padding: 0;
+  background-color: transparent;
   color-scheme: light dark;
 }
 html,
@@ -51,18 +52,7 @@ body,
   height: 100%;
 }
 #root {
-  background-image: url('/bg-light.png');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-}
-@media (prefers-color-scheme: dark) {
-  #root {
-    background-image: url('/bg-dark.png');
-  }
-}
-html.powerlog-dark #root {
-  background-image: url('/bg-dark.png');
+  background-color: transparent;
 }`;
 
 const initialColorSchemeScript = `

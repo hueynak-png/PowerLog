@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { ImageBackground, Platform, View } from 'react-native';
+import { Image, ImageBackground, Platform, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
@@ -56,10 +56,31 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const bgImage = colorScheme === 'dark' ? darkBg : lightBg;
+  const bgSource = Platform.OS === 'web'
+    ? { uri: colorScheme === 'dark' ? '/bg-dark.png' : '/bg-light.png' }
+    : (colorScheme === 'dark' ? darkBg : lightBg);
 
-  const content = (
-    <>
+  if (Platform.OS === 'web') {
+    return (
+      <View style={{ flex: 1 }}>
+        <Image source={bgSource} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <Stack
+          screenOptions={{
+            contentStyle: { backgroundColor: 'transparent' },
+            headerShadowVisible: false,
+          }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
+          <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
+          <Stack.Screen name="review" options={{ headerShown: false }} />
+        </Stack>
+      </View>
+    );
+  }
+
+  return (
+    <ImageBackground source={bgSource} style={{ flex: 1 }} resizeMode="cover">
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
@@ -71,16 +92,6 @@ function RootLayoutNav() {
         <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
         <Stack.Screen name="review" options={{ headerShown: false }} />
       </Stack>
-    </>
-  );
-
-  if (Platform.OS === 'web') {
-    return <View style={{ flex: 1 }}>{content}</View>;
-  }
-
-  return (
-    <ImageBackground source={bgImage} style={{ flex: 1 }} resizeMode="cover">
-      {content}
     </ImageBackground>
   );
 }
