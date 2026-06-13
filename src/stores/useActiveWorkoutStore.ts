@@ -17,7 +17,7 @@ import {
   getWorkoutSession,
   updateWorkoutSet,
 } from '@/src/repositories';
-import { advanceCycleDay, getPlannedExercises } from '@/src/repositories/programRepository';
+import { advanceCycleDay, getPlannedExercises, getPlannedSets } from '@/src/repositories/programRepository';
 
 type ActiveWorkoutExercise = WorkoutExercise & { exercise: Exercise; sets: WorkoutSet[] };
 
@@ -117,21 +117,52 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
         exerciseId: pe.exerciseId,
         plannedExerciseId: pe.id,
         orderIndex: pe.orderIndex,
+        notes: pe.notes ?? undefined,
       });
 
       const sets: WorkoutSet[] = [];
-      const targetSets = pe.targetSets ?? 1;
-      for (let i = 0; i < targetSets; i++) {
-        const set = await addWorkoutSet(db, {
-          workoutExerciseId: workoutExercise.id,
-          setNumber: i + 1,
-          plannedWeight: pe.targetLoad ?? undefined,
-          plannedReps: pe.targetReps ?? undefined,
-          plannedRpe: pe.targetRpe ?? undefined,
-          completed: false,
-          isWarmup: false,
-        });
-        sets.push(set);
+
+      // Read planned_sets for per-set differentiation (Brad program)
+      const plannedSets = await getPlannedSets(db, pe.id);
+
+      if (plannedSets.length > 0) {
+        for (const ps of plannedSets) {
+          const noteParts = [];
+          if (ps.notes) noteParts.push(ps.notes);
+          if (ps.adjustmentReason) noteParts.push(`AI ${ps.adjustmentReason}`);
+
+          const set = await addWorkoutSet(db, {
+            workoutExerciseId: workoutExercise.id,
+            setNumber: ps.setNumber,
+            setLabel: ps.setLabel,
+            plannedWeight: ps.targetLoad ?? undefined,
+            plannedReps: ps.targetReps ?? undefined,
+            plannedRepRange: ps.targetRepRange ?? undefined,
+            plannedRpe: ps.targetRpe ?? undefined,
+            plannedPercent: ps.targetPercent ?? undefined,
+            completed: false,
+            isWarmup: false,
+            notes: noteParts.length > 0 ? noteParts.join('; ') : undefined,
+          });
+          sets.push(set);
+        }
+      } else {
+        // Fallback: exercise-level uniform sets (AI-generated programs, old plans)
+        const targetSets = pe.targetSets ?? 1;
+        for (let i = 0; i < targetSets; i++) {
+          const set = await addWorkoutSet(db, {
+            workoutExerciseId: workoutExercise.id,
+            setNumber: i + 1,
+            plannedWeight: pe.targetLoad ?? undefined,
+            plannedReps: pe.targetReps ?? undefined,
+            plannedRepRange: pe.targetRepRange ?? undefined,
+            plannedRpe: pe.targetRpe ?? undefined,
+            plannedPercent: pe.targetPercent ?? undefined,
+            completed: false,
+            isWarmup: false,
+          });
+          sets.push(set);
+        }
       }
 
       exercises.push({ ...workoutExercise, exercise, sets });
