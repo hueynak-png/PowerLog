@@ -8,6 +8,7 @@ import {
   createPlannedSets,
   setCurrentCycle,
   getProgram,
+  getProgramWeeks,
   getPlannedSets,
   getPlannedSetsForProgram,
   updatePlannedSetLoad,
@@ -30,6 +31,17 @@ export const instantiateAndActivate = async (
 ): Promise<Program> => {
   const template = await getProgram(db, options.templateProgramId);
   if (!template) throw new Error(`Template not found: ${options.templateProgramId}`);
+
+  // Verify template has weeks before proceeding
+  const templateWeeks = await getProgramWeeks(db, options.templateProgramId);
+  if (templateWeeks.length === 0) {
+    throw new Error(
+      `Template "${template.name}" has no training weeks.\n` +
+      `The seed data may not have been properly initialized.\n` +
+      `Try clearing the database (localStorage.clear()) and reloading.`
+    );
+  }
+  console.log(`[instantiate] Template has ${templateWeeks.length} weeks`);
 
   const strategy = resolveStrategy(template.id);
 

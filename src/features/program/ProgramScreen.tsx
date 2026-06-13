@@ -650,7 +650,7 @@ export function ProgramScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.switchLabel}>使用 Training Max</Text>
                   <Text style={{ ...typography.footnote, color: colors.textSecondary }}>
-                    {useTrainingMax ? `e1RM × ${trainingMaxPercent ?? 90}% = ${Math.round(instSquatMax ?? 0 * (trainingMaxPercent ?? 90) / 100)}kg / ${Math.round(instBenchMax ?? 0 * (trainingMaxPercent ?? 90) / 100)}kg / ${Math.round(instDeadliftMax ?? 0 * (trainingMaxPercent ?? 90) / 100)}kg` : '直接使用上方 e1RM 作为换算基准'}
+                    {useTrainingMax ? `e1RM × ${trainingMaxPercent ?? 90}% = ${Math.round((instSquatMax ?? 0) * (trainingMaxPercent ?? 90) / 100)}kg / ${Math.round((instBenchMax ?? 0) * (trainingMaxPercent ?? 90) / 100)}kg / ${Math.round((instDeadliftMax ?? 0) * (trainingMaxPercent ?? 90) / 100)}kg` : '直接使用上方 e1RM 作为换算基准'}
                   </Text>
                 </View>
                 <Switch value={useTrainingMax} onValueChange={setUseTrainingMax} trackColor={{ true: colors.primary }} />
