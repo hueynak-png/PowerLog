@@ -124,4 +124,16 @@ CREATE TABLE IF NOT EXISTS schema_version (
       );
     }
   }
+
+  // v10→v11: Backfill Brad seed template metadata (cols added by ensureColumn above)
+  if ((current?.version ?? 0) === 10) {
+    await db.runAsync(
+      `UPDATE programs SET
+        template_key = 'brad_33_week_full_cycle',
+        instantiation_strategy = 'preserve_structure_recalculate_loads',
+        requires_instantiation = 1
+      WHERE id = 'seed-program-brad-full-cycle'
+        AND (template_key IS NULL OR requires_instantiation = 0)`,
+    );
+  }
 };

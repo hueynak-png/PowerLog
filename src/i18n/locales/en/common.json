@@ -534,7 +534,11 @@
     "noSavedPrograms": "No saved programs",
     "weeks": "weeks",
     "createNewCycle": "Create a new cycle from your goal, maxes, and schedule.",
-    "aiDraftHint": "AI can draft a structured block with weeks, training days, main lifts, and accessory work."
+    "aiDraftHint": "AI can draft a structured block with weeks, training days, main lifts, and accessory work.",
+    "pickStartingDay": "Pick Starting Day",
+    "pickDayHint": "Choose which day you want to start from",
+    "noTrainingDays": "No training days available",
+    "noTrainingDaysHint": "Please generate a full program first or choose another program."
   },
   "route": {
     "loadingWorkout": "Loading workout…",

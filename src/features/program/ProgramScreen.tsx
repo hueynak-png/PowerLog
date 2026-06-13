@@ -297,6 +297,10 @@ export function ProgramScreen() {
       return;
     }
     const days = await getProgramDaysForWeek(db, program.id, 1);
+    if (days.length === 0) {
+      showAlert(t('programOpts.noTrainingDays'), t('programOpts.noTrainingDaysHint'));
+      return;
+    }
     setWeekOneDays(days);
     setPickingDayProgram(program);
     setShowDayPicker(true);
@@ -565,7 +569,13 @@ export function ProgramScreen() {
               </Pressable>
             </View>
             <Text style={styles.pickDayHint}>{t('programOpts.pickDayHint', { name: pickingDayProgram?.name ?? '' })}</Text>
-            {weekOneDays.map((day) => (
+            {weekOneDays.length === 0 ? (
+              <Card variant="tonal" style={styles.card}>
+                <Text style={styles.emptyText}>{t('programOpts.noTrainingDays')}</Text>
+                <Text style={{ ...typography.footnote, color: colors.textTertiary, marginTop: spacing.xs }}>{t('programOpts.noTrainingDaysHint')}</Text>
+              </Card>
+            ) : (
+            weekOneDays.map((day) => (
               <Pressable
                 key={day.id}
                 onPress={() => void handleConfirmDay(day.dayNumber)}
@@ -577,7 +587,8 @@ export function ProgramScreen() {
                   <Text style={styles.dayCardDuration}>~{day.estimatedDuration} min</Text>
                 )}
               </Pressable>
-            ))}
+            ))
+            )}
           </View>
         </SafeAreaView>
       </Modal>
