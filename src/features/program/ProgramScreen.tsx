@@ -29,6 +29,7 @@ import {
   getAllExercises,
   getProgramDaysForWeek,
   getAvailableTrainingDays,
+  scheduleProgramDays,
 } from '@/src/repositories';
 import { requestPlanGeneration, isAIConfigured } from '@/src/services/aiService';
 import { instantiateAndActivate } from '@/src/services/programInstantiation';
@@ -320,6 +321,7 @@ export function ProgramScreen() {
     setShowDayPicker(false);
     setPickingDayProgram(null);
     const wasReplacing = cycle != null;
+    const startDate = new Date().toISOString().slice(0, 10);
     await setCurrentCycle(db, {
       programId: pickingDayProgram.id,
       goal: pickingDayProgram.goal,
@@ -330,9 +332,14 @@ export function ProgramScreen() {
       startedAt: new Date().toISOString(),
       isActive: true,
     });
+    // Schedule all program days into the calendar
+    const scheduled = await scheduleProgramDays(db, pickingDayProgram.id, startDate, [0, 1, 3, 4]);
+    console.log(`[ProgramScreen] Scheduled ${scheduled} program days starting ${startDate}`);
     await refresh();
     if (wasReplacing) {
-      showAlert('已替换', '当前激活周期已替换为新的计划。');
+      showAlert('已替换', `当前激活周期已替换。${scheduled} 个训练日已排入日历。`);
+    } else {
+      showAlert('已激活', `${scheduled} 个训练日已排入日历。`);
     }
   };
 

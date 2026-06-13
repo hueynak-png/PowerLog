@@ -626,6 +626,37 @@ export const getAvailableTrainingDays = async (
   return [];
 };
 
+export const scheduleProgramDays = async (
+  db: SQLiteDatabase,
+  programId: string,
+  startDate: string,
+  scheduleOffsets: number[] = [0, 1, 3, 4],
+): Promise<number> => {
+  const startDateObj = new Date(startDate + 'T00:00:00');
+  const weeks = await getProgramWeeks(db, programId);
+  let updated = 0;
+
+  for (const week of weeks) {
+    const days = await getProgramDays(db, week.id);
+    const weekOffset = (week.weekNumber - 1) * 7;
+
+    for (const day of days) {
+      const dayOffset = scheduleOffsets[(day.dayNumber - 1) % scheduleOffsets.length] ?? (day.dayNumber - 1);
+      const scheduledDate = new Date(startDateObj);
+      scheduledDate.setDate(scheduledDate.getDate() + weekOffset + dayOffset);
+      const dateStr = scheduledDate.toISOString().slice(0, 10);
+
+      await db.runAsync(
+        `UPDATE program_days SET scheduled_date = ? WHERE id = ?`,
+        [dateStr, day.id],
+      );
+      updated++;
+    }
+  }
+
+  return updated;
+};
+
 export const getProgramDaysForWeek = async (
   db: SQLiteDatabase,
   programId: string,

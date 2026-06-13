@@ -72,6 +72,7 @@ export function CalendarScreen() {
     ]).then(([workouts, scheduled]) => {
       setDayWorkouts(workouts);
       setScheduledDays(scheduled);
+      console.log(`[Calendar] ${selectedDate}: ${workouts.length} completed, ${scheduled.length} scheduled`);
     });
   }, [db, selectedDate, monthWorkouts]);
 
