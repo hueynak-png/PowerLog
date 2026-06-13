@@ -3,7 +3,7 @@ import type { PowerLogDatabase } from '@/src/db/types';
 import { archetypePrograms } from './archetypePrograms';
 import { bradExcelProgram } from './bradExcelProgram';
 import { getExerciseIdMap, resolveExerciseId } from './exerciseResolver';
-import type { ProgramDaySeed, ProgramSeed, ProgramWeekSeed } from './types';
+import type { PlannedExerciseSeed, PlannedSetSeed, ProgramDaySeed, ProgramSeed, ProgramWeekSeed } from './types';
 
 export { archetypePrograms } from './archetypePrograms';
 export { bradExcelProgram } from './bradExcelProgram';
@@ -28,6 +28,9 @@ const expectedDayCount = (program: ProgramSeed): number => program.weeks.reduce(
 const expectedExerciseCount = (program: ProgramSeed): number =>
   program.weeks.reduce((weekTotal, week) => weekTotal + week.days.reduce((dayTotal, day) => dayTotal + day.exercises.length, 0), 0);
 
+const expectedPlannedSetCount = (program: ProgramSeed): number =>
+  program.weeks.reduce((weekTotal, week) => weekTotal + week.days.reduce((dayTotal, day) => dayTotal + day.exercises.reduce((exTotal, ex) => exTotal + (ex.sets?.length ?? 0), 0), 0), 0);
+
 const isExistingSeedComplete = async (db: PowerLogDatabase, program: ProgramSeed): Promise<boolean> => {
   const weekCount = await countRows(db, 'SELECT COUNT(*) as count FROM program_weeks WHERE program_id = ?', [program.id]);
   const dayCount = await countRows(
@@ -47,11 +50,35 @@ const isExistingSeedComplete = async (db: PowerLogDatabase, program: ProgramSeed
      WHERE pw.program_id = ?`,
     [program.id],
   );
+  const plannedSetCount = await countRows(
+    db,
+    `SELECT COUNT(*) as count
+     FROM planned_sets ps
+     INNER JOIN planned_exercises pe ON pe.id = ps.planned_exercise_id
+     INNER JOIN program_days pd ON pd.id = pe.program_day_id
+     INNER JOIN program_weeks pw ON pw.id = pd.program_week_id
+     WHERE pw.program_id = ?`,
+    [program.id],
+  );
 
-  return weekCount === program.weeks.length && dayCount === expectedDayCount(program) && exerciseCount === expectedExerciseCount(program);
+  return weekCount === program.weeks.length
+    && dayCount === expectedDayCount(program)
+    && exerciseCount === expectedExerciseCount(program)
+    && plannedSetCount === expectedPlannedSetCount(program);
 };
 
 const deleteSeedProgramRows = async (db: PowerLogDatabase, programId: string): Promise<void> => {
+  await db.runAsync(
+    `DELETE FROM planned_sets
+     WHERE planned_exercise_id IN (
+       SELECT pe.id FROM planned_exercises pe
+       INNER JOIN program_days pd ON pd.id = pe.program_day_id
+       INNER JOIN program_weeks pw ON pw.id = pd.program_week_id
+       WHERE pw.program_id = ?
+     )`,
+    [programId],
+  );
+
   await db.runAsync(
     `DELETE FROM planned_exercises
      WHERE program_day_id IN (
@@ -123,8 +150,8 @@ export const seedPrograms = async (db: PowerLogDatabase): Promise<void> => {
     }
 
     await db.runAsync(
-      `INSERT INTO programs (id, name, type, goal, source, duration_weeks, includes_deload, description, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO programs (id, name, type, goal, source, duration_weeks, includes_deload, description, template_key, instantiation_strategy, requires_instantiation, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         program.id,
         program.name,
@@ -134,6 +161,9 @@ export const seedPrograms = async (db: PowerLogDatabase): Promise<void> => {
         program.durationWeeks,
         program.includesDeload ? 1 : 0,
         program.description,
+        program.templateKey ?? null,
+        program.instantiationStrategy ?? null,
+        program.requiresInstantiation ? 1 : 0,
         program.createdAt,
       ],
     );
@@ -155,18 +185,29 @@ export const seedPrograms = async (db: PowerLogDatabase): Promise<void> => {
         );
 
         for (const exercise of day.exercises) {
+          // Guard: reject implausible rep counts (Excel date serials, data corruption)
+          if (typeof exercise.targetReps === 'number' && exercise.targetReps > 100) {
+            throw new Error(
+              `Invalid targetReps=${exercise.targetReps} for "${exercise.exerciseName}" ` +
+              `in ${program.id} week ${week.weekNumber} day ${day.dayNumber}. ` +
+              `Expected ≤ 100. This may be an Excel date serial number that needs fixing.`,
+            );
+          }
+
+          const savedExerciseId = exerciseId(program.id, week.weekNumber, day.dayNumber, exercise.orderIndex);
           await db.runAsync(
             `INSERT INTO planned_exercises (
               id, program_day_id, exercise_id, order_index, target_sets, target_reps,
-              target_load, target_rpe, target_percent, accessory_category, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              target_rep_range, target_load, target_rpe, target_percent, accessory_category, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-              exerciseId(program.id, week.weekNumber, day.dayNumber, exercise.orderIndex),
+              savedExerciseId,
               savedDayId,
               resolveExerciseId(exerciseMap, exercise.exerciseName),
               exercise.orderIndex,
               exercise.targetSets ?? null,
               exercise.targetReps ?? null,
+              exercise.targetRepRange ?? null,
               exercise.targetLoad ?? null,
               exercise.targetRpe ?? null,
               exercise.targetPercent ?? null,
@@ -174,6 +215,40 @@ export const seedPrograms = async (db: PowerLogDatabase): Promise<void> => {
               exercise.notes ?? null,
             ],
           );
+
+          // Insert planned_sets if the exercise has structured set-level data
+          const setsToInsert = exercise.sets ?? [];
+          if (setsToInsert.length > 0) {
+            for (const ps of setsToInsert) {
+              if (typeof ps.targetReps === 'number' && ps.targetReps > 100) {
+                throw new Error(
+                  `Invalid targetReps=${ps.targetReps} in planned_set #${ps.setNumber} ` +
+                  `for "${exercise.exerciseName}" in ${program.id} week ${week.weekNumber} day ${day.dayNumber}. ` +
+                  `Expected ≤ 100. This may be an Excel date serial number that needs fixing.`,
+                );
+              }
+              await db.runAsync(
+                `INSERT INTO planned_sets (
+                  id, planned_exercise_id, set_number, set_label,
+                  target_reps, target_rep_range, target_load, target_rpe,
+                  target_percent, notes, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                  `${savedExerciseId}-set-${String(ps.setNumber).padStart(2, '0')}`,
+                  savedExerciseId,
+                  ps.setNumber,
+                  ps.setLabel ?? null,
+                  ps.targetReps ?? null,
+                  ps.targetRepRange ?? null,
+                  ps.targetLoad ?? null,
+                  ps.targetRpe ?? null,
+                  ps.targetPercent ?? null,
+                  ps.notes ?? null,
+                  program.createdAt,
+                ],
+              );
+            }
+          }
         }
       }
     }
