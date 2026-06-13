@@ -4,10 +4,11 @@ import { type Href, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, SectionHeader } from '@/src/components/ui';
-import type { WorkoutSession } from '@/src/domain/types';
+import type { ProgramDay, WorkoutSession } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { confirmAction } from '@/src/lib/alert';
 import { deleteWorkoutSession, getWorkoutsByDate, getWorkoutsByMonth } from '@/src/repositories';
+import { getScheduledProgramDaysByDate } from '@/src/repositories/programRepository';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/src/i18n';
@@ -40,6 +41,7 @@ export function CalendarScreen() {
   const db = useDatabase();
   const router = useRouter();
   const startWorkout = useActiveWorkoutStore((state) => state.startWorkout);
+  const startWorkoutFromProgram = useActiveWorkoutStore((state) => state.startWorkoutFromProgram);
   const { t } = useTranslation();
 
   const today = getToday();
@@ -48,6 +50,7 @@ export function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [monthWorkouts, setMonthWorkouts] = useState<WorkoutSession[]>([]);
   const [dayWorkouts, setDayWorkouts] = useState<WorkoutSession[]>([]);
+  const [scheduledDays, setScheduledDays] = useState<Array<ProgramDay & { programName: string; programId: string; weekNumber: number }>>([]);
 
   // Range selection state
   const [isRangeMode, setIsRangeMode] = useState(false);
@@ -60,13 +63,37 @@ export function CalendarScreen() {
     getWorkoutsByMonth(db, year, month).then(setMonthWorkouts);
   }, [db, year, month]);
 
-  // Load workouts for selected date
+  // Load workouts + scheduled program days for selected date
   useEffect(() => {
     if (!db || !selectedDate) return;
-    getWorkoutsByDate(db, selectedDate).then(setDayWorkouts);
+    Promise.all([
+      getWorkoutsByDate(db, selectedDate),
+      getScheduledProgramDaysByDate(db, selectedDate),
+    ]).then(([workouts, scheduled]) => {
+      setDayWorkouts(workouts);
+      setScheduledDays(scheduled);
+    });
   }, [db, selectedDate, monthWorkouts]);
 
+  // Collect dates that have scheduled program days (for calendar dots)
+  // TODO: Replace per-date query with getScheduledProgramDaysByMonth for month-view dots
+  const [scheduledMonthDates, setScheduledMonthDates] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!db) return;
+    const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
+    const endOfMonth = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+    // Simple approach: check first 5 days of each week for scheduled days
+    // For now, just highlight dates that are loaded with scheduled days
+    // We'll improve this with a proper month-range query later
+    getScheduledProgramDaysByDate(db, selectedDate).then(s => {
+      if (s.length > 0) {
+        setScheduledMonthDates(prev => new Set([...prev, selectedDate]));
+      }
+    });
+  }, [db, selectedDate]);
+
   const workoutDates = new Set(monthWorkouts.map((w) => w.date));
+  const scheduledDates = scheduledMonthDates;
   const daysInMonth = getDaysInMonth(year, month);
   const firstDayOffset = getFirstDayOffset(year, month);
 
@@ -128,6 +155,13 @@ export function CalendarScreen() {
     if (sessionId) router.push(`/workout/${sessionId}` as Href);
   }, [db, router, startWorkout]);
 
+  const handleStartScheduledWorkout = useCallback(async (programDayId: string) => {
+    if (!db) return;
+    await startWorkoutFromProgram(db, programDayId);
+    const sessionId = useActiveWorkoutStore.getState().session?.id;
+    if (sessionId) router.push(`/workout/${sessionId}` as Href);
+  }, [db, router, startWorkoutFromProgram]);
+
   const handleDeleteWorkout = useCallback(async (session: WorkoutSession) => {
     if (!db) return;
     confirmAction(
@@ -181,6 +215,7 @@ export function CalendarScreen() {
               const day = i + 1;
               const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const hasWorkout = workoutDates.has(dateStr);
+              const hasScheduled = scheduledDates.has(dateStr);
               const isSelected = dateStr === selectedDate;
               const isToday = dateStr === today;
               return (
@@ -205,6 +240,12 @@ export function CalendarScreen() {
                     <View style={[
                       styles.dot,
                       (isRangeMode && (rangeStart === dateStr || rangeEnd === dateStr)) && styles.dotSelected,
+                      (!isRangeMode && isSelected) && styles.dotSelected,
+                    ]} />
+                  )}
+                  {!hasWorkout && hasScheduled && (
+                    <View style={[
+                      styles.scheduledDot,
                       (!isRangeMode && isSelected) && styles.dotSelected,
                     ]} />
                   )}
@@ -283,7 +324,34 @@ export function CalendarScreen() {
               </View>
             </Card>
           ))
-        ) : (
+        ) : null}
+        {/* Scheduled program days */}
+        {scheduledDays.length > 0 && (
+          <SectionHeader title="计划训练" subtitle={`${scheduledDays.length} scheduled day(s)`} />
+        )}
+        {scheduledDays.map((sd) => (
+          <Card key={sd.id} variant="elevated" style={styles.workoutCard}>
+            <View style={styles.workoutRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.workoutTime}>{sd.programName}</Text>
+                <Text style={styles.workoutMeta}>
+                  Week {sd.weekNumber} Day {sd.dayNumber} · {sd.title}
+                </Text>
+                {sd.mainFocus && <Text style={styles.workoutMeta}>{sd.mainFocus}</Text>}
+                {sd.estimatedDuration && <Text style={styles.workoutMeta}>~{sd.estimatedDuration} min</Text>}
+              </View>
+              <View style={styles.workoutActions}>
+                <Button
+                  title="开始计划训练"
+                  size="sm"
+                  variant="primary"
+                  onPress={() => void handleStartScheduledWorkout(sd.id)}
+                />
+              </View>
+            </View>
+          </Card>
+        ))}
+        {dayWorkouts.length === 0 && scheduledDays.length === 0 && (
           <Card variant="tonal" style={styles.workoutCard}>
             <Text style={styles.emptyText}>{t('common.noWorkoutThisDay')}</Text>
           </Card>
@@ -327,6 +395,7 @@ const styles = StyleSheet.create({
   dayTextSelected: { color: '#fff', fontWeight: '700' },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success, marginTop: 2 },
   dotSelected: { backgroundColor: '#fff' },
+  scheduledDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary, marginTop: 2 },
   workoutCard: { marginBottom: spacing.sm, gap: spacing.sm },
   workoutRow: { flexDirection: 'row', alignItems: 'center' },
   workoutTime: { ...typography.headline, color: colors.textPrimary },

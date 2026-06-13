@@ -207,9 +207,13 @@ export function WorkoutDetailScreen() {
                           <View style={{ flex: 1 }}>
                             <SetInput
                               setNumber={set.setNumber}
+                              setLabel={set.setLabel}
                               plannedWeight={set.plannedWeight}
                               plannedReps={set.plannedReps}
+                              plannedRepRange={set.plannedRepRange}
                               plannedRpe={set.plannedRpe}
+                              plannedPercent={set.plannedPercent}
+                              plannedNotes={set.notes}
                               actualWeight={set.actualWeight ?? null}
                               actualReps={set.actualReps ?? null}
                               actualRpe={set.actualRpe ?? null}

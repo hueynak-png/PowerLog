@@ -30,6 +30,9 @@ import {
   getProgramDaysForWeek,
 } from '@/src/repositories';
 import { requestPlanGeneration, isAIConfigured } from '@/src/services/aiService';
+import { instantiateAndActivate } from '@/src/services/programInstantiation';
+import { getCurrentTrainingMaxes } from '@/src/services/programInstantiation/trainingMaxes';
+import type { CurrentTrainingMaxes } from '@/src/services/programInstantiation/trainingMaxes';
 import { colors, radius, spacing, typography } from '@/src/theme';
 
 type GoalType = 'hypertrophy' | 'strength' | 'maintenance' | 'powerbuilding';
@@ -122,6 +125,19 @@ export function ProgramScreen() {
   const [activatingProgram, setActivatingProgram] = useState<Program | null>(null);
   const [weekOneDays, setWeekOneDays] = useState<ProgramDay[]>([]);
   const [pickingDayProgram, setPickingDayProgram] = useState<Program | null>(null);
+
+  // Instantiation state
+  const [showInstantiateModal, setShowInstantiateModal] = useState(false);
+  const [instantiatingProgram, setInstantiatingProgram] = useState<Program | null>(null);
+  const [instStartDate, setInstStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [instSquatMax, setInstSquatMax] = useState<number | null>(null);
+  const [instBenchMax, setInstBenchMax] = useState<number | null>(null);
+  const [instDeadliftMax, setInstDeadliftMax] = useState<number | null>(null);
+  const [instantiating, setInstantiating] = useState(false);
+  const [enableAiAdjustment, setEnableAiAdjustment] = useState(false);
+  const [trainingMaxes, setTrainingMaxes] = useState<CurrentTrainingMaxes | null>(null);
+  const [useTrainingMax, setUseTrainingMax] = useState(false);
+  const [trainingMaxPercent, setTrainingMaxPercent] = useState<number | null>(90);
 
   // Form state
   const [goalType, setGoalType] = useState<GoalType>('strength');
@@ -251,6 +267,35 @@ export function ProgramScreen() {
 
   const handleSetActive = async (program: Program) => {
     if (!db) return;
+
+    // If a different cycle is already active, confirm replacement
+    if (cycle && cycle.programId !== program.id) {
+      const currentName = programs.find(p => p.id === cycle.programId)?.name ?? '未知计划';
+      confirmAction(
+        '替换当前激活周期',
+        `当前已激活: ${currentName}\n是否替换为: ${program.name}？`,
+        async () => {
+          await doSetActive(program);
+        },
+      );
+      return;
+    }
+
+    await doSetActive(program);
+  };
+
+  const doSetActive = async (program: Program) => {
+    if (!db) return;
+    if (program.requiresInstantiation) {
+      setInstantiatingProgram(program);
+      setShowInstantiateModal(true);
+      const maxes = await getCurrentTrainingMaxes(db);
+      setTrainingMaxes(maxes);
+      setInstSquatMax(maxes.squat?.value && maxes.squat.value > 0 ? maxes.squat.value : null);
+      setInstBenchMax(maxes.bench?.value && maxes.bench.value > 0 ? maxes.bench.value : null);
+      setInstDeadliftMax(maxes.deadlift?.value && maxes.deadlift.value > 0 ? maxes.deadlift.value : null);
+      return;
+    }
     const days = await getProgramDaysForWeek(db, program.id, 1);
     setWeekOneDays(days);
     setPickingDayProgram(program);
@@ -269,6 +314,7 @@ export function ProgramScreen() {
     if (!db || !pickingDayProgram) return;
     setShowDayPicker(false);
     setPickingDayProgram(null);
+    const wasReplacing = cycle != null;
     await setCurrentCycle(db, {
       programId: pickingDayProgram.id,
       goal: pickingDayProgram.goal,
@@ -280,6 +326,66 @@ export function ProgramScreen() {
       isActive: true,
     });
     await refresh();
+    if (wasReplacing) {
+      showAlert('已替换', '当前激活周期已替换为新的计划。');
+    }
+  };
+
+  const handleInstantiate = async () => {
+    if (!db || !instantiatingProgram) return;
+    if (!instSquatMax || !instBenchMax || !instDeadliftMax) {
+      showAlert('数据缺失', '请填写 Squat / Bench / Deadlift 三项基准值。');
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(instStartDate)) {
+      showAlert('日期格式错误', '请输入 YYYY-MM-DD 格式的开始日期。');
+      return;
+    }
+
+    // Outlier warnings (non-blocking)
+    const warnings: string[] = [];
+    if (instSquatMax < 50 || instSquatMax > 400) warnings.push(`Squat ${instSquatMax}kg 超出常见范围 (50-400)`);
+    if (instBenchMax < 30 || instBenchMax > 300) warnings.push(`Bench ${instBenchMax}kg 超出常见范围 (30-300)`);
+    if (instDeadliftMax < 60 || instDeadliftMax > 450) warnings.push(`Deadlift ${instDeadliftMax}kg 超出常见范围 (60-450)`);
+
+    // Stale data warning
+    const staleLifts: string[] = [];
+    if (trainingMaxes?.squat?.staleDays && trainingMaxes.squat.staleDays > 60) staleLifts.push('Squat');
+    if (trainingMaxes?.bench?.staleDays && trainingMaxes.bench.staleDays > 60) staleLifts.push('Bench');
+    if (trainingMaxes?.deadlift?.staleDays && trainingMaxes.deadlift.staleDays > 60) staleLifts.push('Deadlift');
+    if (staleLifts.length > 0) warnings.push(`${staleLifts.join('、')} 估算值较旧（>60天），建议确认后再生成`);
+
+    const finalSquat = useTrainingMax ? instSquatMax * (trainingMaxPercent ?? 90) / 100 : instSquatMax;
+    const finalBench = useTrainingMax ? instBenchMax * (trainingMaxPercent ?? 90) / 100 : instBenchMax;
+    const finalDeadlift = useTrainingMax ? instDeadliftMax * (trainingMaxPercent ?? 90) / 100 : instDeadliftMax;
+
+    setInstantiating(true);
+    try {
+      await instantiateAndActivate(db, {
+        templateProgramId: instantiatingProgram.id,
+        startDate: instStartDate,
+        userMaxes: { squat: finalSquat, bench: finalBench, deadlift: finalDeadlift },
+        scheduleOffsets: [0, 1, 3, 4],
+        trainingDaysPerWeek: 4,
+        enableAiFatigueAdjustment: enableAiAdjustment,
+        adjustmentWeeks: 2,
+      });
+      setShowInstantiateModal(false);
+      const wasReplacing = cycle != null && cycle.programId !== instantiatingProgram.id;
+      const aiNote = enableAiAdjustment ? '\nAI 疲劳微调已启用（前 2 周）' : '';
+      const replaceNote = wasReplacing ? '\n已替换当前激活周期' : '';
+      showAlert('计划已生成', 
+        `${instantiatingProgram.name} 已实例化\n` +
+        `Squat: ${instSquatMax}kg · Bench: ${instBenchMax}kg · Deadlift: ${instDeadliftMax}kg\n` +
+        `从 ${instStartDate} 开始，共 33 周，已排入日历。${aiNote}${replaceNote}`
+      );
+      await refresh();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      showAlert('Instantiation failed', msg);
+    } finally {
+      setInstantiating(false);
+    }
   };
 
   const handleDeactivate = () => {
@@ -370,9 +476,11 @@ export function ProgramScreen() {
                 <Text style={styles.programDesc}>{program.id.startsWith('seed-program-') ? t(`seedPrograms.${program.id}.description`) : program.description}</Text>
               )}
               <View style={styles.programActions}>
-                {!cycle && (
+                {cycle?.programId === program.id ? (
+                  <Text style={styles.activeIndicator}>当前已激活</Text>
+                ) : (
                   <Button
-                    title={t('program.setActive')}
+                    title={program.requiresInstantiation ? '生成并激活' : t('program.setActive')}
                     onPress={() => handleSetActive(program)}
                     variant="secondary"
                     size="sm"
@@ -471,6 +579,86 @@ export function ProgramScreen() {
               </Pressable>
             ))}
           </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Instantiate Modal */}
+      <Modal visible={showInstantiateModal} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={styles.safeArea}>
+          <ScrollView contentContainerStyle={styles.content}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalKicker}>生成并激活</Text>
+                <Text style={styles.modalTitle}>{instantiatingProgram?.name ?? ''}</Text>
+              </View>
+              <Pressable onPress={() => { setShowInstantiateModal(false); setInstantiatingProgram(null); }}>
+                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+              </Pressable>
+            </View>
+            <Card style={styles.card}>
+              <TextField label="Start date (YYYY-MM-DD)" value={instStartDate} onChangeText={setInstStartDate} placeholder="2026-06-12" />
+
+              <Text style={styles.sectionKicker}>当前能力基准</Text>
+              <Text style={{ ...typography.footnote, color: colors.textSecondary, marginBottom: spacing.sm }}>
+                已自动读取分析页 e1RM，可手动修改
+              </Text>
+
+              <NumberField label="Squat (kg)" value={instSquatMax} onChangeValue={setInstSquatMax} step={2.5} min={20} />
+              <Text style={styles.sourceHint}>
+                {trainingMaxes?.squat?.source === 'analytics_e1rm' ? '来自分析估算 e1RM' :
+                 trainingMaxes?.squat?.source === 'manual_1rm' ? '来自手动 1RM' :
+                 '暂无数据，请手动输入'}
+                {trainingMaxes?.squat?.staleDays && trainingMaxes.squat.staleDays > 60 && ' · 估算值较旧，请确认'}
+              </Text>
+
+              <NumberField label="Bench (kg)" value={instBenchMax} onChangeValue={setInstBenchMax} step={2.5} min={20} />
+              <Text style={styles.sourceHint}>
+                {trainingMaxes?.bench?.source === 'analytics_e1rm' ? '来自分析估算 e1RM' :
+                 trainingMaxes?.bench?.source === 'manual_1rm' ? '来自手动 1RM' :
+                 '暂无数据，请手动输入'}
+                {trainingMaxes?.bench?.staleDays && trainingMaxes.bench.staleDays > 60 && ' · 估算值较旧，请确认'}
+              </Text>
+
+              <NumberField label="Deadlift (kg)" value={instDeadliftMax} onChangeValue={setInstDeadliftMax} step={2.5} min={20} />
+              <Text style={styles.sourceHint}>
+                {trainingMaxes?.deadlift?.source === 'analytics_e1rm' ? '来自分析估算 e1RM' :
+                 trainingMaxes?.deadlift?.source === 'manual_1rm' ? '来自手动 1RM' :
+                 '暂无数据，请手动输入'}
+                {trainingMaxes?.deadlift?.staleDays && trainingMaxes.deadlift.staleDays > 60 && ' · 估算值较旧，请确认'}
+              </Text>
+
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.switchLabel}>使用 Training Max</Text>
+                  <Text style={{ ...typography.footnote, color: colors.textSecondary }}>
+                    {useTrainingMax ? `e1RM × ${trainingMaxPercent ?? 90}% = ${Math.round(instSquatMax ?? 0 * (trainingMaxPercent ?? 90) / 100)}kg / ${Math.round(instBenchMax ?? 0 * (trainingMaxPercent ?? 90) / 100)}kg / ${Math.round(instDeadliftMax ?? 0 * (trainingMaxPercent ?? 90) / 100)}kg` : '直接使用上方 e1RM 作为换算基准'}
+                  </Text>
+                </View>
+                <Switch value={useTrainingMax} onValueChange={setUseTrainingMax} trackColor={{ true: colors.primary }} />
+              </View>
+              {useTrainingMax && (
+                <NumberField label="Training Max 百分比" value={trainingMaxPercent} onChangeValue={setTrainingMaxPercent} step={1} min={80} max={100} />
+              )}
+
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.switchLabel}>AI 疲劳微调</Text>
+                  <Text style={{ ...typography.footnote, color: colors.textSecondary }}>仅调整前 1-2 周重量，不改变计划结构</Text>
+                </View>
+                <Switch value={enableAiAdjustment} onValueChange={setEnableAiAdjustment} trackColor={{ true: colors.primary }} />
+              </View>
+              <Text style={{ ...typography.footnote, color: colors.textSecondary, marginTop: spacing.sm }}>
+                Schedule: Mon/Tue/Thu/Fri each week.
+              </Text>
+            </Card>
+            <Button
+              title={instantiating ? 'Instantiating...' : '生成并激活'}
+              onPress={() => void handleInstantiate()}
+              loading={instantiating}
+              disabled={instantiating}
+              fullWidth
+            />
+          </ScrollView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -580,6 +768,9 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textPrimary,
   },
+  sectionKicker: { ...typography.overline, color: colors.primary, marginTop: spacing.md, marginBottom: spacing.xs },
+  sourceHint: { ...typography.caption, color: colors.textTertiary, marginTop: -spacing.sm, marginBottom: spacing.sm },
+  activeIndicator: { ...typography.footnote, color: colors.success, fontWeight: '800', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   selectorBlock: { gap: spacing.sm },
   selectorLabel: { ...typography.subhead, color: colors.textSecondary, fontWeight: '700' },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
