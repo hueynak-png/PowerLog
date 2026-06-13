@@ -2,7 +2,7 @@ import type { PowerLogDatabase } from '@/src/db/types';
 
 import { archetypePrograms } from './archetypePrograms';
 import { bradExcelProgram } from './bradExcelProgram';
-import { getExerciseIdMap, resolveExerciseId } from './exerciseResolver';
+import { findUnresolvedExercises, getExerciseIdMap, normalizeExerciseName, resolveExerciseId } from './exerciseResolver';
 import type { PlannedExerciseSeed, PlannedSetSeed, ProgramDaySeed, ProgramSeed, ProgramWeekSeed } from './types';
 
 export { archetypePrograms } from './archetypePrograms';
@@ -147,6 +147,30 @@ export const getProgramSeeds = (): ProgramSeed[] => PROGRAM_SEEDS;
 
 export const seedPrograms = async (db: PowerLogDatabase): Promise<void> => {
   const exerciseMap = await getExerciseIdMap(db);
+
+  // Bulk-validate all exercise names against catalog BEFORE seeding
+  const allRawNames = new Set<string>();
+  for (const program of PROGRAM_SEEDS) {
+    for (const week of program.weeks) {
+      for (const day of week.days) {
+        for (const exercise of day.exercises) {
+          allRawNames.add(exercise.exerciseName);
+        }
+      }
+    }
+  }
+
+  const unresolved = findUnresolvedExercises(exerciseMap, [...allRawNames]);
+  if (unresolved.length > 0) {
+    const lines = unresolved.map(u => `  - ${u.raw} → normalized: ${u.normalized}`);
+    throw new Error(
+      `[seedPrograms] Missing exercises in catalog (${unresolved.length}):\n${lines.join('\n')}\n\n` +
+      `Add missing canonical exercises to seedExercises.ts or aliases to exerciseResolver.ts.`
+    );
+  }
+
+  console.log(`[seedPrograms] Unique exercise names in programs: ${allRawNames.size}`);
+  console.log(`[seedPrograms] All ${allRawNames.size} exercise names resolved to canonical catalog ✅`);
 
   for (const program of PROGRAM_SEEDS) {
     validateProgram(program);

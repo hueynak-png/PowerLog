@@ -20,7 +20,7 @@ export interface Max {
 }
 
 export type ExerciseCategory = 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight';
-export type LiftFamily = 'squat' | 'bench' | 'deadlift' | 'upper' | 'lower' | 'accessory';
+export type LiftFamily = 'squat' | 'bench' | 'deadlift' | 'upper' | 'lower' | 'core' | 'accessory';
 export type ExerciseRole = 'competition' | 'variation' | 'accessory';
 
 export interface Exercise {
