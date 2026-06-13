@@ -634,10 +634,12 @@ export const scheduleProgramDays = async (
 ): Promise<number> => {
   const startDateObj = new Date(startDate + 'T00:00:00');
   const weeks = await getProgramWeeks(db, programId);
+  console.log(`[scheduleProgramDays] programId=${programId} startDate=${startDate} weeks=${weeks.length}`);
   let updated = 0;
 
   for (const week of weeks) {
     const days = await getProgramDays(db, week.id);
+    console.log(`[scheduleProgramDays] week ${week.weekNumber}: ${days.length} days`);
     const weekOffset = (week.weekNumber - 1) * 7;
 
     for (const day of days) {

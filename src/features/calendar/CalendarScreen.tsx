@@ -8,7 +8,7 @@ import type { ProgramDay, WorkoutSession } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { confirmAction } from '@/src/lib/alert';
 import { deleteWorkoutSession, getWorkoutsByDate, getWorkoutsByMonth } from '@/src/repositories';
-import { getScheduledProgramDaysByDate } from '@/src/repositories/programRepository';
+import { getScheduledProgramDaysByDate, getCurrentCycle, scheduleProgramDays, getProgramWeeks, getProgramDays } from '@/src/repositories/programRepository';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/src/i18n';
@@ -62,6 +62,33 @@ export function CalendarScreen() {
     if (!db) return;
     getWorkoutsByMonth(db, year, month).then(setMonthWorkouts);
   }, [db, year, month]);
+
+  // Auto-repair: if active cycle exists but no program_days have scheduled_date, schedule them
+  useEffect(() => {
+    if (!db) return;
+    (async () => {
+      const activeCycle = await getCurrentCycle(db);
+      if (!activeCycle) return;
+
+      const weeks = await getProgramWeeks(db, activeCycle.programId);
+      if (weeks.length === 0) return;
+
+      const firstWeekDays = await getProgramDays(db, weeks[0].id);
+      if (firstWeekDays.length === 0) return;
+      if (firstWeekDays[0].scheduledDate) return;
+
+      const startDate = new Date().toISOString().slice(0, 10);
+      const count = await scheduleProgramDays(db, activeCycle.programId, startDate, [0, 1, 3, 4]);
+      console.log(`[Calendar] Auto-scheduled ${count} days for program ${activeCycle.programId}`);
+
+      const [workouts, scheduled] = await Promise.all([
+        getWorkoutsByDate(db, selectedDate),
+        getScheduledProgramDaysByDate(db, selectedDate),
+      ]);
+      setDayWorkouts(workouts);
+      setScheduledDays(scheduled);
+    })();
+  }, [db]);
 
   // Load workouts + scheduled program days for selected date
   useEffect(() => {
