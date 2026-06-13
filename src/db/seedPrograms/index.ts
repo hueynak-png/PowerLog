@@ -128,7 +128,15 @@ const validateProgram = (program: ProgramSeed) => {
     seenWeeks.add(week.weekNumber);
     const seenDays = new Set<number>();
     for (const day of week.days) {
-      if (seenDays.has(day.dayNumber)) throw new Error(`Duplicate day ${day.dayNumber} in ${program.id} week ${week.weekNumber}`);
+      if (seenDays.has(day.dayNumber)) {
+        console.error('[validateProgram] Duplicate dayNumber', {
+          programId: program.id,
+          weekNumber: week.weekNumber,
+          duplicateDayNumber: day.dayNumber,
+          allDays: week.days.map(d => ({ dayNumber: d.dayNumber, title: d.title })),
+        });
+        throw new Error(`Duplicate day ${day.dayNumber} in ${program.id} week ${week.weekNumber}`);
+      }
       seenDays.add(day.dayNumber);
       validateDay(program, week, day);
     }
