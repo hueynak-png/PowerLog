@@ -64,12 +64,15 @@ export interface WorkoutSet {
   id: string;
   workoutExerciseId: string;
   setNumber: number;
+  setLabel?: string;
   plannedWeight?: number;
   actualWeight?: number;
   plannedReps?: number;
   actualReps?: number;
+  plannedRepRange?: string;
   plannedRpe?: number;
   actualRpe?: number;
+  plannedPercent?: number;
   completed: boolean;
   isWarmup: boolean;
   notes?: string;
@@ -148,6 +151,9 @@ export interface Program {
   includesDeload: boolean;
   description?: string;
   createdAt: string;
+  templateKey?: string;
+  instantiationStrategy?: string;
+  requiresInstantiation?: boolean;
 }
 
 export interface ProgramWeek {
@@ -169,6 +175,26 @@ export interface ProgramDay {
   scheduledDate?: string;
 }
 
+export interface PlannedSet {
+  id: string;
+  plannedExerciseId: string;
+  setNumber: number;
+  setLabel?: string;
+  targetReps?: number;
+  targetRepRange?: string;
+  targetLoad?: number;
+  targetRpe?: number;
+  targetPercent?: number;
+  baseTargetLoad?: number;
+  adjustmentFactor?: number;
+  adjustmentReason?: string;
+  adjustmentSource?: string;
+  adjustmentCreatedAt?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface PlannedExercise {
   id: string;
   programDayId: string;
@@ -176,11 +202,13 @@ export interface PlannedExercise {
   orderIndex: number;
   targetSets?: number;
   targetReps?: number;
+  targetRepRange?: string;
   targetLoad?: number;
   targetRpe?: number;
   targetPercent?: number;
   accessoryCategory?: string;
   notes?: string;
+  plannedSets?: PlannedSet[];
 }
 
 export interface CurrentCycle {
