@@ -687,6 +687,16 @@ export const getScheduledProgramDaysByDate = async (
      ORDER BY pd.day_number`,
     [date],
   );
+  console.log(`[getScheduled] date=${date} rows=${rows.length}`);
+  if (rows.length > 0) {
+    console.log(`[getScheduled] first row: id=${rows[0].id} scheduled_date=${rows[0].scheduled_date} title=${rows[0].title} program_id=${rows[0].program_id}`);
+  } else {
+    // Check if ANY scheduled_date exists at all
+    const allRows = await db.getAllAsync<any>(
+      `SELECT scheduled_date, COUNT(*) as cnt FROM program_days WHERE scheduled_date IS NOT NULL GROUP BY scheduled_date LIMIT 5`,
+    );
+    console.log(`[getScheduled] no match for ${date}. All scheduled dates in DB: ${JSON.stringify(allRows)}`);
+  }
   return rows.map((row: any) => ({
     ...toProgramDay(row),
     programName: row.program_name,

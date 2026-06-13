@@ -46,7 +46,9 @@ export const instantiateAndActivate = async (
     ...result.program,
     source: result.program.source as Program['source'],
   });
+  console.log(`[instantiate] New program ID: ${program.id}`);
 
+  let dayCount = 0;
   for (const instWeek of result.weeks) {
     const week = await createProgramWeek(db, {
       programId: program.id,
@@ -64,9 +66,10 @@ export const instantiateAndActivate = async (
         mainFocus: instDay.day.mainFocus,
         estimatedDuration: instDay.day.estimatedDuration,
         scheduledDate: instDay.day.scheduledDate,
-      });
+          });
+          dayCount++;
 
-      for (const instEx of instDay.exercises) {
+          for (const instEx of instDay.exercises) {
         const plannedEx = await createPlannedExercise(db, {
           programDayId: day.id,
           exerciseId: instEx.exercise.exerciseId,
@@ -100,6 +103,8 @@ export const instantiateAndActivate = async (
 
   let adjustmentSummary = '';
   const enableAdjustment = options.enableAiFatigueAdjustment ?? false;
+
+  console.log(`[instantiate] Created ${dayCount} program days for program ${program.id}`);
   const adjustWeeks = options.adjustmentWeeks ?? 2;
 
   if (enableAdjustment) {
