@@ -30,12 +30,15 @@ interface WorkoutSetRow {
   id: string;
   workout_exercise_id: string;
   set_number: number;
+  set_label: string | null;
   planned_weight: number | null;
   actual_weight: number | null;
   planned_reps: number | null;
   actual_reps: number | null;
+  planned_rep_range: string | null;
   planned_rpe: number | null;
   actual_rpe: number | null;
+  planned_percent: number | null;
   completed: number;
   is_warmup: number;
   notes: string | null;
@@ -83,12 +86,15 @@ const toWorkoutSet = (row: WorkoutSetRow): WorkoutSet => ({
   id: row.id,
   workoutExerciseId: row.workout_exercise_id,
   setNumber: row.set_number,
+  setLabel: toOptional(row.set_label),
   plannedWeight: toOptional(row.planned_weight),
   actualWeight: toOptional(row.actual_weight),
   plannedReps: toOptional(row.planned_reps),
   actualReps: toOptional(row.actual_reps),
+  plannedRepRange: toOptional(row.planned_rep_range),
   plannedRpe: toOptional(row.planned_rpe),
   actualRpe: toOptional(row.actual_rpe),
+  plannedPercent: toOptional(row.planned_percent),
   completed: row.completed === 1,
   isWarmup: row.is_warmup === 1,
   notes: toOptional(row.notes),
@@ -353,26 +359,32 @@ export const addWorkoutSet = async (db: SQLiteDatabase, set: Omit<WorkoutSet, 'i
       id,
       workout_exercise_id,
       set_number,
+      set_label,
       planned_weight,
       actual_weight,
       planned_reps,
       actual_reps,
+      planned_rep_range,
       planned_rpe,
       actual_rpe,
+      planned_percent,
       completed,
       is_warmup,
       notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       savedSet.id,
       savedSet.workoutExerciseId,
       savedSet.setNumber,
+      savedSet.setLabel ?? null,
       savedSet.plannedWeight ?? null,
       savedSet.actualWeight ?? null,
       savedSet.plannedReps ?? null,
       savedSet.actualReps ?? null,
+      savedSet.plannedRepRange ?? null,
       savedSet.plannedRpe ?? null,
       savedSet.actualRpe ?? null,
+      savedSet.plannedPercent ?? null,
       savedSet.completed ? 1 : 0,
       savedSet.isWarmup ? 1 : 0,
       savedSet.notes ?? null,
@@ -408,12 +420,15 @@ export const updateWorkoutSet = async (
     `UPDATE workout_sets SET
       workout_exercise_id = ?,
       set_number = ?,
+      set_label = ?,
       planned_weight = ?,
       actual_weight = ?,
       planned_reps = ?,
       actual_reps = ?,
+      planned_rep_range = ?,
       planned_rpe = ?,
       actual_rpe = ?,
+      planned_percent = ?,
       completed = ?,
       is_warmup = ?,
       notes = ?
@@ -421,12 +436,15 @@ export const updateWorkoutSet = async (
     [
       next.workoutExerciseId,
       next.setNumber,
+      next.setLabel ?? null,
       next.plannedWeight ?? null,
       next.actualWeight ?? null,
       next.plannedReps ?? null,
       next.actualReps ?? null,
+      next.plannedRepRange ?? null,
       next.plannedRpe ?? null,
       next.actualRpe ?? null,
+      next.plannedPercent ?? null,
       next.completed ? 1 : 0,
       next.isWarmup ? 1 : 0,
       next.notes ?? null,

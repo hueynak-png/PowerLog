@@ -5,6 +5,7 @@ import type {
   ProgramWeek,
   ProgramDay,
   PlannedExercise,
+  PlannedSet,
   CurrentCycle,
   ProgramSource,
   CyclePhase,
@@ -22,6 +23,9 @@ interface ProgramRow {
   duration_weeks: number;
   includes_deload: number;
   description: string | null;
+  template_key: string | null;
+  instantiation_strategy: string | null;
+  requires_instantiation: number;
   created_at: string;
 }
 
@@ -51,11 +55,32 @@ interface PlannedExerciseRow {
   order_index: number;
   target_sets: number | null;
   target_reps: number | null;
+  target_rep_range: string | null;
   target_load: number | null;
   target_rpe: number | null;
   target_percent: number | null;
   accessory_category: string | null;
   notes: string | null;
+}
+
+interface PlannedSetRow {
+  id: string;
+  planned_exercise_id: string;
+  set_number: number;
+  set_label: string | null;
+  target_reps: number | null;
+  target_rep_range: string | null;
+  target_load: number | null;
+  target_rpe: number | null;
+  target_percent: number | null;
+  base_target_load: number | null;
+  adjustment_factor: number | null;
+  adjustment_reason: string | null;
+  adjustment_source: string | null;
+  adjustment_created_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string | null;
 }
 
 interface CurrentCycleRow {
@@ -82,6 +107,9 @@ const toProgram = (row: ProgramRow): Program => ({
   includesDeload: row.includes_deload === 1,
   description: row.description ?? undefined,
   createdAt: row.created_at,
+  templateKey: row.template_key ?? undefined,
+  instantiationStrategy: row.instantiation_strategy ?? undefined,
+  requiresInstantiation: row.requires_instantiation === 1,
 });
 
 const toProgramWeek = (row: ProgramWeekRow): ProgramWeek => ({
@@ -110,11 +138,32 @@ const toPlannedExercise = (row: PlannedExerciseRow): PlannedExercise => ({
   orderIndex: row.order_index,
   targetSets: row.target_sets ?? undefined,
   targetReps: row.target_reps ?? undefined,
+  targetRepRange: row.target_rep_range ?? undefined,
   targetLoad: row.target_load ?? undefined,
   targetRpe: row.target_rpe ?? undefined,
   targetPercent: row.target_percent ?? undefined,
   accessoryCategory: row.accessory_category ?? undefined,
   notes: row.notes ?? undefined,
+});
+
+const toPlannedSet = (row: PlannedSetRow): PlannedSet => ({
+  id: row.id,
+  plannedExerciseId: row.planned_exercise_id,
+  setNumber: row.set_number,
+  setLabel: row.set_label ?? undefined,
+  targetReps: row.target_reps ?? undefined,
+  targetRepRange: row.target_rep_range ?? undefined,
+  targetLoad: row.target_load ?? undefined,
+  targetRpe: row.target_rpe ?? undefined,
+  targetPercent: row.target_percent ?? undefined,
+  baseTargetLoad: row.base_target_load ?? undefined,
+  adjustmentFactor: row.adjustment_factor ?? undefined,
+  adjustmentReason: row.adjustment_reason ?? undefined,
+  adjustmentSource: row.adjustment_source ?? undefined,
+  adjustmentCreatedAt: row.adjustment_created_at ?? undefined,
+  notes: row.notes ?? undefined,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at ?? undefined,
 });
 
 const toCurrentCycle = (row: CurrentCycleRow): CurrentCycle => ({
@@ -140,8 +189,9 @@ export const createProgram = async (
   await db.runAsync(
     `INSERT INTO programs (
       id, name, type, goal, source, duration_weeks,
-      includes_deload, description, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      includes_deload, description, template_key, instantiation_strategy,
+      requires_instantiation, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       program.name,
@@ -151,6 +201,9 @@ export const createProgram = async (
       program.durationWeeks,
       program.includesDeload ? 1 : 0,
       program.description ?? null,
+      program.templateKey ?? null,
+      program.instantiationStrategy ?? null,
+      program.requiresInstantiation ? 1 : 0,
       program.createdAt,
     ],
   );
@@ -186,6 +239,12 @@ export const deleteProgram = async (
     const days = await getProgramDays(db, week.id);
 
     for (const day of days) {
+      await db.runAsync(
+        `DELETE FROM planned_sets WHERE planned_exercise_id IN (
+          SELECT id FROM planned_exercises WHERE program_day_id = ?
+        )`,
+        [day.id],
+      );
       await db.runAsync(
         'DELETE FROM planned_exercises WHERE program_day_id = ?',
         [day.id],
@@ -287,9 +346,9 @@ export const createPlannedExercise = async (
   await db.runAsync(
     `INSERT INTO planned_exercises (
       id, program_day_id, exercise_id, order_index,
-      target_sets, target_reps, target_load, target_rpe,
+      target_sets, target_reps, target_rep_range, target_load, target_rpe,
       target_percent, accessory_category, notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       ex.programDayId,
@@ -297,6 +356,7 @@ export const createPlannedExercise = async (
       ex.orderIndex,
       ex.targetSets ?? null,
       ex.targetReps ?? null,
+      ex.targetRepRange ?? null,
       ex.targetLoad ?? null,
       ex.targetRpe ?? null,
       ex.targetPercent ?? null,
@@ -317,6 +377,117 @@ export const getPlannedExercises = async (
     [programDayId],
   );
   return rows.map(toPlannedExercise);
+};
+
+// --- Planned Sets ---
+
+export const createPlannedSets = async (
+  db: SQLiteDatabase,
+  plannedExerciseId: string,
+  sets: Array<Omit<PlannedSet, 'id' | 'plannedExerciseId' | 'createdAt' | 'updatedAt'>>,
+): Promise<PlannedSet[]> => {
+  const now = new Date().toISOString();
+  const results: PlannedSet[] = [];
+
+  for (const set of sets) {
+    const id = generateId();
+    const plannedSet: PlannedSet = {
+      id,
+      plannedExerciseId,
+      setNumber: set.setNumber,
+      setLabel: set.setLabel,
+      targetReps: set.targetReps,
+      targetRepRange: set.targetRepRange,
+      targetLoad: set.targetLoad,
+      targetRpe: set.targetRpe,
+      targetPercent: set.targetPercent,
+      notes: set.notes,
+      createdAt: now,
+    };
+
+    await db.runAsync(
+      `INSERT INTO planned_sets (
+        id, planned_exercise_id, set_number, set_label,
+        target_reps, target_rep_range, target_load, target_rpe,
+        target_percent, base_target_load, adjustment_factor,
+        adjustment_reason, adjustment_source, adjustment_created_at,
+        notes, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        plannedSet.id,
+        plannedSet.plannedExerciseId,
+        plannedSet.setNumber,
+        plannedSet.setLabel ?? null,
+        plannedSet.targetReps ?? null,
+        plannedSet.targetRepRange ?? null,
+        plannedSet.targetLoad ?? null,
+        plannedSet.targetRpe ?? null,
+        plannedSet.targetPercent ?? null,
+        plannedSet.baseTargetLoad ?? null,
+        plannedSet.adjustmentFactor ?? null,
+        plannedSet.adjustmentReason ?? null,
+        plannedSet.adjustmentSource ?? null,
+        plannedSet.adjustmentCreatedAt ?? null,
+        plannedSet.notes ?? null,
+        plannedSet.createdAt,
+      ],
+    );
+
+    results.push(plannedSet);
+  }
+
+  return results;
+};
+
+export const getPlannedSets = async (
+  db: SQLiteDatabase,
+  plannedExerciseId: string,
+): Promise<PlannedSet[]> => {
+  const rows = await db.getAllAsync<PlannedSetRow>(
+    'SELECT * FROM planned_sets WHERE planned_exercise_id = ? ORDER BY set_number',
+    [plannedExerciseId],
+  );
+  return rows.map(toPlannedSet);
+};
+
+export const getPlannedSetsForProgram = async (
+  db: SQLiteDatabase,
+  programId: string,
+  limit?: number,
+): Promise<PlannedSet[]> => {
+  const limitClause = limit ? `LIMIT ${limit}` : '';
+  const rows = await db.getAllAsync<PlannedSetRow>(
+    `SELECT ps.* FROM planned_sets ps
+     INNER JOIN planned_exercises pe ON pe.id = ps.planned_exercise_id
+     INNER JOIN program_days pd ON pd.id = pe.program_day_id
+     INNER JOIN program_weeks pw ON pw.id = pd.program_week_id
+     WHERE pw.program_id = ?
+     ORDER BY pw.week_number, pd.day_number, pe.order_index, ps.set_number
+     ${limitClause}`,
+    [programId],
+  );
+  return rows.map(toPlannedSet);
+};
+
+export const updatePlannedSetLoad = async (
+  db: SQLiteDatabase,
+  setId: string,
+  targetLoad: number,
+  adjustmentFactor: number,
+  adjustmentReason: string,
+  adjustmentSource: string,
+): Promise<void> => {
+  const now = new Date().toISOString();
+  await db.runAsync(
+    `UPDATE planned_sets SET
+      target_load = ?,
+      adjustment_factor = ?,
+      adjustment_reason = ?,
+      adjustment_source = ?,
+      adjustment_created_at = ?
+    WHERE id = ?`,
+    [targetLoad, adjustmentFactor, adjustmentReason, adjustmentSource, now, setId],
+  );
 };
 
 // --- Current Cycle ---
@@ -450,6 +621,27 @@ export const getProgramDaysForWeek = async (
     [programId, weekNumber],
   );
   return rows.map(toProgramDay);
+};
+
+export const getScheduledProgramDaysByDate = async (
+  db: SQLiteDatabase,
+  date: string,
+): Promise<Array<ProgramDay & { programName: string; programId: string; weekNumber: number }>> => {
+  const rows = await db.getAllAsync<any>(
+    `SELECT pd.*, p.name as program_name, p.id as program_id, pw.week_number
+     FROM program_days pd
+     INNER JOIN program_weeks pw ON pw.id = pd.program_week_id
+     INNER JOIN programs p ON p.id = pw.program_id
+     WHERE pd.scheduled_date = ?
+     ORDER BY pd.day_number`,
+    [date],
+  );
+  return rows.map((row: any) => ({
+    ...toProgramDay(row),
+    programName: row.program_name,
+    programId: row.program_id,
+    weekNumber: row.week_number,
+  }));
 };
 
 export const advanceCycleDay = async (
