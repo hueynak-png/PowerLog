@@ -367,3 +367,48 @@ export const requestPlanGeneration = (data: {
   includeExercises?: string[];
 }): Promise<PlanGenerationResponse> =>
   aiRequest('/generate-plan', data, { timeout: 120000 });
+
+export interface FatigueAdjustmentRequest {
+  programId: string;
+  templateKey?: string;
+  strategy: string;
+  adjustmentWindow: { startDate: string; endDate: string; startWeek: number; weeksToAdjust: number };
+  userMaxes: { squat?: number; bench?: number; deadlift?: number };
+  plannedSetsPreview: Array<{
+    plannedSetId: string;
+    weekNumber: number;
+    dayNumber: number;
+    scheduledDate: string;
+    exerciseName: string;
+    liftFamily: string;
+    role: string;
+    setLabel: string;
+    targetReps?: number;
+    targetRepRange?: string;
+    targetLoad?: number;
+    targetRpe?: number;
+    targetPercent?: number;
+  }>;
+}
+
+export interface FatigueAdjustmentResponse {
+  adjustments: Array<{
+    plannedSetId: string;
+    action: 'adjust_load' | 'adjust_rpe' | 'no_change';
+    loadMultiplier?: number;
+    newTargetLoad?: number;
+    rpeDelta?: number;
+    reason: string;
+  }>;
+  summary: {
+    overallReadiness: 'normal' | 'fatigued' | 'fresh';
+    mainReason: string;
+    setsAdjusted: number;
+    averageAdjustment: number;
+  };
+}
+
+export const requestFatigueAdjustment = (
+  data: FatigueAdjustmentRequest,
+): Promise<FatigueAdjustmentResponse> =>
+  aiRequest('/fatigue-adjustment', data, { timeout: 60000 });
