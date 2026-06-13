@@ -2,7 +2,21 @@ import type { PowerLogDatabase } from './types';
 
 const CREATED_AT = '2026-05-26T00:00:00.000Z';
 
-const PROGRAM_SUMMARIES = [
+interface ProgramSummary {
+  id: string;
+  name: string;
+  type: string;
+  goal: string;
+  source: string;
+  durationWeeks: number;
+  includesDeload: boolean;
+  description: string;
+  templateKey?: string;
+  instantiationStrategy?: string;
+  requiresInstantiation?: boolean;
+}
+
+const PROGRAM_SUMMARIES: ProgramSummary[] = [
   {
     id: 'seed-program-brad-full-cycle',
     name: "Brad Excel 大周期",
@@ -12,6 +26,9 @@ const PROGRAM_SUMMARIES = [
     durationWeeks: 33,
     includesDeload: true,
     description: '从 Brad Program.xlsx 中 33 个非 PR 训练周表确定性导入。PR Tracker 已被有意忽略。',
+    templateKey: 'brad_33_week_full_cycle',
+    instantiationStrategy: 'preserve_structure_recalculate_loads',
+    requiresInstantiation: true,
   },
   {
     id: 'seed-program-brad-powerbuilding-8',
@@ -71,8 +88,8 @@ export const seedProgramSummaries = async (db: PowerLogDatabase): Promise<void> 
     if (existing) continue;
 
     await db.runAsync(
-      `INSERT INTO programs (id, name, type, goal, source, duration_weeks, includes_deload, description, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO programs (id, name, type, goal, source, duration_weeks, includes_deload, description, template_key, instantiation_strategy, requires_instantiation, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         program.id,
         program.name,
@@ -82,6 +99,9 @@ export const seedProgramSummaries = async (db: PowerLogDatabase): Promise<void> 
         program.durationWeeks,
         program.includesDeload ? 1 : 0,
         program.description,
+        program.templateKey ?? null,
+        program.instantiationStrategy ?? null,
+        program.requiresInstantiation ? 1 : 0,
         CREATED_AT,
       ],
     );

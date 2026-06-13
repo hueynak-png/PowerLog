@@ -608,6 +608,24 @@ export const getProgramDayByWeekDay = async (
   return row ? toProgramDay(row) : null;
 };
 
+export const getAvailableTrainingDays = async (
+  db: SQLiteDatabase,
+  programId: string,
+): Promise<ProgramDay[]> => {
+  // Try week 1 first, then fall back to earliest available week
+  let days = await getProgramDaysForWeek(db, programId, 1);
+  if (days.length > 0) return days;
+
+  // Scan all weeks for the first one with days
+  const weeks = await getProgramWeeks(db, programId);
+  for (const week of weeks) {
+    days = await getProgramDaysForWeek(db, programId, week.weekNumber);
+    if (days.length > 0) return days;
+  }
+
+  return [];
+};
+
 export const getProgramDaysForWeek = async (
   db: SQLiteDatabase,
   programId: string,

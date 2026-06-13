@@ -28,6 +28,7 @@ import {
   deactivateCurrentCycle,
   getAllExercises,
   getProgramDaysForWeek,
+  getAvailableTrainingDays,
 } from '@/src/repositories';
 import { requestPlanGeneration, isAIConfigured } from '@/src/services/aiService';
 import { instantiateAndActivate } from '@/src/services/programInstantiation';
@@ -296,7 +297,7 @@ export function ProgramScreen() {
       setInstDeadliftMax(maxes.deadlift?.value && maxes.deadlift.value > 0 ? maxes.deadlift.value : null);
       return;
     }
-    const days = await getProgramDaysForWeek(db, program.id, 1);
+    const days = await getAvailableTrainingDays(db, program.id);
     if (days.length === 0) {
       showAlert(t('programOpts.noTrainingDays'), t('programOpts.noTrainingDaysHint'));
       return;
