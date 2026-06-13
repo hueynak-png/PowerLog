@@ -23,7 +23,6 @@ const getToday = () => new Date().toISOString().slice(0, 10);
 const getDaysInMonth = (year: number, month: number): number =>
   new Date(year, month, 0).getDate();
 
-/** Monday = 0, Sunday = 6 */
 const getFirstDayOffset = (year: number, month: number): number => {
   const day = new Date(year, month - 1, 1).getDay();
   return day === 0 ? 6 : day - 1;
@@ -51,6 +50,8 @@ export function CalendarScreen() {
   const [monthWorkouts, setMonthWorkouts] = useState<WorkoutSession[]>([]);
   const [dayWorkouts, setDayWorkouts] = useState<WorkoutSession[]>([]);
   const [scheduledDays, setScheduledDays] = useState<Array<ProgramDay & { programName: string; programId: string; weekNumber: number }>>([]);
+  const [scheduledTotal, setScheduledTotal] = useState(0);
+  const [activeProgramId, setActiveProgramId] = useState<string | null>(null);
 
   // Range selection state
   const [isRangeMode, setIsRangeMode] = useState(false);
@@ -63,30 +64,24 @@ export function CalendarScreen() {
     getWorkoutsByMonth(db, year, month).then(setMonthWorkouts);
   }, [db, year, month]);
 
-  // Auto-repair: if active cycle exists but no program_days have scheduled_date, schedule them
+  // Load active cycle + auto-repair + scheduled dates for month
   useEffect(() => {
     if (!db) return;
     (async () => {
       const activeCycle = await getCurrentCycle(db);
-      if (!activeCycle) return;
-
-      const weeks = await getProgramWeeks(db, activeCycle.programId);
-      if (weeks.length === 0) return;
-
-      const firstWeekDays = await getProgramDays(db, weeks[0].id);
-      if (firstWeekDays.length === 0) return;
-      if (firstWeekDays[0].scheduledDate) return;
-
-      const startDate = new Date().toISOString().slice(0, 10);
-      const count = await scheduleProgramDays(db, activeCycle.programId, startDate, [0, 1, 3, 4]);
-      console.log(`[Calendar] Auto-scheduled ${count} days for program ${activeCycle.programId}`);
-
-      const [workouts, scheduled] = await Promise.all([
-        getWorkoutsByDate(db, selectedDate),
-        getScheduledProgramDaysByDate(db, selectedDate),
-      ]);
-      setDayWorkouts(workouts);
-      setScheduledDays(scheduled);
+      if (activeCycle) {
+        setActiveProgramId(activeCycle.programId);
+        // Auto-repair: schedule if needed
+        const weeks = await getProgramWeeks(db, activeCycle.programId);
+        if (weeks.length > 0) {
+          const firstWeekDays = await getProgramDays(db, weeks[0].id);
+          if (firstWeekDays.length > 0 && !firstWeekDays[0].scheduledDate) {
+            const startDate = new Date().toISOString().slice(0, 10);
+            const count = await scheduleProgramDays(db, activeCycle.programId, startDate, [0, 1, 3, 4]);
+            console.log(`[Calendar] Auto-scheduled ${count} days`);
+          }
+        }
+      }
     })();
   }, [db]);
 
@@ -103,22 +98,38 @@ export function CalendarScreen() {
     });
   }, [db, selectedDate, monthWorkouts]);
 
-  // Collect dates that have scheduled program days (for calendar dots)
-  // TODO: Replace per-date query with getScheduledProgramDaysByMonth for month-view dots
+  // Count total scheduled days (single query per program)
+  useEffect(() => {
+    if (!db) return;
+    getCurrentCycle(db).then(async (cycle) => {
+      if (!cycle) { setScheduledTotal(0); return; }
+      const weeks = await getProgramWeeks(db, cycle.programId);
+      let total = 0;
+      for (const w of weeks) {
+        const days = await getProgramDays(db, w.id);
+        total += days.filter(d => d.scheduledDate != null).length;
+      }
+      setScheduledTotal(total);
+    });
+  }, [db, dayWorkouts, scheduledDays]);
+
+  // Collect dates with scheduled days for calendar dots (from the current active program)
   const [scheduledMonthDates, setScheduledMonthDates] = useState<Set<string>>(new Set());
   useEffect(() => {
     if (!db) return;
-    const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endOfMonth = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
-    // Simple approach: check first 5 days of each week for scheduled days
-    // For now, just highlight dates that are loaded with scheduled days
-    // We'll improve this with a proper month-range query later
-    getScheduledProgramDaysByDate(db, selectedDate).then(s => {
-      if (s.length > 0) {
-        setScheduledMonthDates(prev => new Set([...prev, selectedDate]));
+    getCurrentCycle(db).then(async (cycle) => {
+      if (!cycle) { setScheduledMonthDates(new Set()); return; }
+      const weeks = await getProgramWeeks(db, cycle.programId);
+      const dates = new Set<string>();
+      for (const w of weeks) {
+        const days = await getProgramDays(db, w.id);
+        for (const d of days) {
+          if (d.scheduledDate) dates.add(d.scheduledDate);
+        }
       }
+      setScheduledMonthDates(dates);
     });
-  }, [db, selectedDate]);
+  }, [db, dayWorkouts, scheduledDays]);
 
   const workoutDates = new Set(monthWorkouts.map((w) => w.date));
   const scheduledDates = scheduledMonthDates;
@@ -139,7 +150,6 @@ export function CalendarScreen() {
       setSelectedDate(dateStr);
       return;
     }
-    // Range mode tap logic
     if (!rangeStart) {
       setRangeStart(dateStr);
     } else if (!rangeEnd) {
@@ -178,10 +188,15 @@ export function CalendarScreen() {
 
   const handleStartWorkout = useCallback(async (date: string) => {
     if (!db) return;
-    await startWorkout(db, date);
+    // If there are scheduled days for this date, use the first one
+    if (scheduledDays.length > 0) {
+      await startWorkoutFromProgram(db, scheduledDays[0].id);
+    } else {
+      await startWorkout(db, date);
+    }
     const sessionId = useActiveWorkoutStore.getState().session?.id;
     if (sessionId) router.push(`/workout/${sessionId}` as Href);
-  }, [db, router, startWorkout]);
+  }, [db, router, startWorkout, startWorkoutFromProgram, scheduledDays]);
 
   const handleStartScheduledWorkout = useCallback(async (programDayId: string) => {
     if (!db) return;
@@ -328,69 +343,77 @@ export function CalendarScreen() {
         {/* Selected date detail — hide in range mode */}
         {!isRangeMode && (
           <>
-            <SectionHeader title={selectedDate === today ? t('common.today') : selectedDate} subtitle={`${dayWorkouts.length} ${dayWorkouts.length === 1 ? t('common.session') : t('common.sessions')} ${t('common.logged')}`} />
-        {dayWorkouts.length > 0 ? (
-          dayWorkouts.map((workout) => (
-            <Card key={workout.id} variant="outlined" style={styles.workoutCard}>
-              <View style={styles.workoutRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.workoutTime}>
-                    {new Date(workout.startedAt).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
-                  </Text>
-                  <Text style={styles.workoutMeta}>
-                    {workout.durationSeconds ? formatDuration(workout.durationSeconds) : t('common.inProgress')}
-                    {workout.totalVolume ? ` · ${Math.round(workout.totalVolume)} kg` : ''}
-                    {workout.completionRate != null ? ` · ${Math.round(workout.completionRate * 100)}%` : ''}
-                  </Text>
-                </View>
-                <View style={styles.workoutActions}>
-                  <Button title={t('common.view')} size="sm" variant="secondary"
-                    onPress={() => router.push(`/workout/${workout.id}` as Href)} />
-                  <Button title={t('common.delete')} size="sm" variant="secondary"
-                    onPress={() => void handleDeleteWorkout(workout)} />
-                </View>
-              </View>
+            {/* Debug bar */}
+            <Card variant="tonal" style={styles.debugCard}>
+              <Text style={styles.debugText}>
+                activeProgramId: {activeProgramId ?? 'none'} | scheduledTotal: {scheduledTotal} | forDate: {scheduledDays.length}
+              </Text>
             </Card>
-          ))
-        ) : null}
-        {/* Scheduled program days */}
-        {scheduledDays.length > 0 && (
-          <SectionHeader title="计划训练" subtitle={`${scheduledDays.length} scheduled day(s)`} />
-        )}
-        {scheduledDays.map((sd) => (
-          <Card key={sd.id} variant="elevated" style={styles.workoutCard}>
-            <View style={styles.workoutRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.workoutTime}>{sd.programName}</Text>
-                <Text style={styles.workoutMeta}>
-                  Week {sd.weekNumber} Day {sd.dayNumber} · {sd.title}
-                </Text>
-                {sd.mainFocus && <Text style={styles.workoutMeta}>{sd.mainFocus}</Text>}
-                {sd.estimatedDuration && <Text style={styles.workoutMeta}>~{sd.estimatedDuration} min</Text>}
-              </View>
-              <View style={styles.workoutActions}>
-                <Button
-                  title="开始计划训练"
-                  size="sm"
-                  variant="primary"
-                  onPress={() => void handleStartScheduledWorkout(sd.id)}
-                />
-              </View>
-            </View>
-          </Card>
-        ))}
-        {dayWorkouts.length === 0 && scheduledDays.length === 0 && (
-          <Card variant="tonal" style={styles.workoutCard}>
-            <Text style={styles.emptyText}>{t('common.noWorkoutThisDay')}</Text>
-          </Card>
-        )}
 
-        <Button
-          title={t('calendar.startWorkoutFor', { date: selectedDate === today ? t('common.today') : selectedDate })}
-          onPress={() => void handleStartWorkout(selectedDate)}
-          disabled={!db}
-          fullWidth
-        />
+            {/* Scheduled program days — show FIRST */}
+            {scheduledDays.length > 0 && (
+              <>
+                <SectionHeader title="计划训练" subtitle={`${scheduledDays.length} 个计划训练日`} />
+                {scheduledDays.map((sd) => (
+                  <Card key={sd.id} variant="elevated" style={styles.workoutCard}>
+                    <View style={styles.workoutRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.workoutTime}>{sd.programName}</Text>
+                        <Text style={styles.workoutMeta}>
+                          Week {sd.weekNumber} Day {sd.dayNumber} · {sd.title}
+                        </Text>
+                        {sd.mainFocus && <Text style={styles.workoutMeta}>{sd.mainFocus}</Text>}
+                        {sd.estimatedDuration && <Text style={styles.workoutMeta}>~{sd.estimatedDuration} min</Text>}
+                      </View>
+                      <Button
+                        title="开始计划训练"
+                        size="sm"
+                        variant="primary"
+                        onPress={() => void handleStartScheduledWorkout(sd.id)}
+                      />
+                    </View>
+                  </Card>
+                ))}
+              </>
+            )}
+
+            {/* Completed workouts */}
+            <SectionHeader title={selectedDate === today ? t('common.today') : selectedDate} subtitle={`${dayWorkouts.length} 已完成 · ${scheduledDays.length} 计划`} />
+            {dayWorkouts.length > 0 ? (
+              dayWorkouts.map((workout) => (
+                <Card key={workout.id} variant="outlined" style={styles.workoutCard}>
+                  <View style={styles.workoutRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.workoutTime}>
+                        {new Date(workout.startedAt).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                      <Text style={styles.workoutMeta}>
+                        {workout.durationSeconds ? formatDuration(workout.durationSeconds) : t('common.inProgress')}
+                        {workout.totalVolume ? ` · ${Math.round(workout.totalVolume)} kg` : ''}
+                        {workout.completionRate != null ? ` · ${Math.round(workout.completionRate * 100)}%` : ''}
+                      </Text>
+                    </View>
+                    <View style={styles.workoutActions}>
+                      <Button title={t('common.view')} size="sm" variant="secondary"
+                        onPress={() => router.push(`/workout/${workout.id}` as Href)} />
+                      <Button title={t('common.delete')} size="sm" variant="secondary"
+                        onPress={() => void handleDeleteWorkout(workout)} />
+                    </View>
+                  </View>
+                </Card>
+              ))
+            ) : scheduledDays.length === 0 ? (
+              <Card variant="tonal" style={styles.workoutCard}>
+                <Text style={styles.emptyText}>当天无训练安排</Text>
+              </Card>
+            ) : null}
+
+            <Button
+              title={t('calendar.startWorkoutFor', { date: selectedDate === today ? t('common.today') : selectedDate })}
+              onPress={() => void handleStartWorkout(selectedDate)}
+              disabled={!db}
+              fullWidth
+            />
           </>
         )}
       </ScrollView>
@@ -430,6 +453,8 @@ const styles = StyleSheet.create({
   workoutMeta: { ...typography.footnote, color: colors.textSecondary, marginTop: spacing.xs },
   workoutActions: { flexDirection: 'row', gap: spacing.xs },
   emptyText: { ...typography.callout, color: colors.textSecondary, lineHeight: 20 },
+  debugCard: { gap: 0, padding: spacing.sm },
+  debugText: { ...typography.caption, color: colors.textTertiary, fontFamily: 'monospace' },
   // Range mode styles
   rangeToggleRow: { alignItems: 'flex-start' },
   rangeInfoCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
