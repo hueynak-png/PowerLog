@@ -18,6 +18,7 @@ import {
   updateWorkoutSet,
 } from '@/src/repositories';
 import { advanceCycleDay, getPlannedExercises, getPlannedSets } from '@/src/repositories/programRepository';
+import { liveActivityService } from '@/src/services/liveActivityService';
 
 type ActiveWorkoutExercise = WorkoutExercise & { exercise: Exercise; sets: WorkoutSet[] };
 
@@ -97,7 +98,11 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
 
   startWorkoutFromProgram: async (db, programDayId) => {
     const now = new Date().toISOString();
-    const workoutDate = now.slice(0, 10);
+    // Use the program day's scheduled date, fall back to today
+    const dayRow = await db.getFirstAsync<{ scheduled_date: string | null }>(
+      'SELECT scheduled_date FROM program_days WHERE id = ?', [programDayId],
+    );
+    const workoutDate = dayRow?.scheduled_date ?? now.slice(0, 10);
     const session = await createWorkoutSession(db, {
       programDayId,
       date: workoutDate,
@@ -140,6 +145,8 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
             plannedRepRange: ps.targetRepRange ?? undefined,
             plannedRpe: ps.targetRpe ?? undefined,
             plannedPercent: ps.targetPercent ?? undefined,
+            actualWeight: ps.targetLoad ?? undefined,
+            actualReps: ps.targetReps ?? undefined,
             completed: false,
             isWarmup: false,
             notes: noteParts.length > 0 ? noteParts.join('; ') : undefined,
@@ -158,6 +165,8 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
             plannedRepRange: pe.targetRepRange ?? undefined,
             plannedRpe: pe.targetRpe ?? undefined,
             plannedPercent: pe.targetPercent ?? undefined,
+            actualWeight: pe.targetLoad ?? undefined,
+            actualReps: pe.targetReps ?? undefined,
             completed: false,
             isWarmup: false,
           });
@@ -303,6 +312,35 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
 
   completeSet: async (db, setId) => {
     await get().updateSet(db, setId, { completed: true });
+
+    // Update Live Activity with new progress
+    try {
+      const state = get();
+      if (!state.isActive) return;
+
+      for (const ex of state.exercises) {
+        const targetSet = ex.sets.find((s) => s.id === setId);
+        if (!targetSet) continue;
+
+        const incompletedSets = ex.sets.filter((s) => !s.completed);
+        const completedCount = ex.sets.filter((s) => s.completed).length;
+
+        if (incompletedSets.length > 0) {
+          liveActivityService.update({
+            weightKg: incompletedSets[0].plannedWeight ?? 0,
+            setIndex: completedCount + 1,
+            totalSets: ex.sets.length,
+            nextWeightKg: incompletedSets[1]?.plannedWeight,
+            exerciseName: ex.exercise.nameEn,
+            restEndsAt: Date.now() + 90000,
+            phase: 'lifting',
+          });
+        }
+        break;
+      }
+    } catch {
+      /* no-op: Live Activity update is best-effort */
+    }
   },
 
   completeWorkout: async (db) => {
@@ -330,6 +368,8 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
     set({ session: completedSession, isActive: false });
     persistActiveSession(null);
 
+    liveActivityService.end();
+
     if (session.programDayId) {
       await advanceCycleDay(db);
     }
@@ -343,6 +383,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
     if (!session) {
       set(emptyWorkoutState);
       persistActiveSession(null);
+      liveActivityService.end();
       return;
     }
 
@@ -351,6 +392,7 @@ export const useActiveWorkoutStore = create<ActiveWorkoutState>((set, get) => ({
 
     set(emptyWorkoutState);
     persistActiveSession(null);
+    liveActivityService.end();
   },
 
   getTotalVolume: () =>

@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 
+import { liveActivityService } from '@/src/services/liveActivityService';
+import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
+
 interface TimerState {
   elapsedSeconds: number;
   isRunning: boolean;
@@ -69,6 +72,51 @@ const addVisibilityListener = (onVisible: () => void): void => {
   }
 };
 
+// ---- Live Activity listener (module-level) ----
+
+let _liveActivityCleanup: (() => void) | null = null;
+
+const removeLiveActivityListener = (): void => {
+  _liveActivityCleanup?.();
+  _liveActivityCleanup = null;
+};
+
+const setupLiveActivityListener = (): void => {
+  removeLiveActivityListener();
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { AppState } = require('react-native');
+    const sub = AppState.addEventListener('change', (nextState: string) => {
+      if (nextState === 'background') {
+        const wStore = useActiveWorkoutStore.getState();
+        if (wStore.isActive && wStore.exercises.length > 0) {
+          const currentEx = wStore.exercises.find(
+            (ex) => ex.sets.some((s) => !s.completed),
+          );
+          if (currentEx) {
+            const incompletedSets = currentEx.sets.filter((s) => !s.completed);
+            const completedCount = currentEx.sets.filter((s) => s.completed).length;
+            liveActivityService.start({
+              exerciseName: currentEx.exercise.nameEn,
+              weightKg: incompletedSets[0]?.plannedWeight ?? 0,
+              setIndex: completedCount + 1,
+              totalSets: currentEx.sets.length,
+              restEndsAt: Date.now() + 90000,
+              nextWeightKg: incompletedSets[1]?.plannedWeight,
+              phase: 'resting',
+            });
+          }
+        }
+      } else if (nextState === 'active') {
+        liveActivityService.end();
+      }
+    });
+    _liveActivityCleanup = () => sub.remove();
+  } catch {
+    /* no-op: AppState not available */
+  }
+};
+
 export const useTimerStore = create<TimerState>((set, get) => ({
   elapsedSeconds: 0,
   isRunning: false,
@@ -93,6 +141,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         set({ elapsedSeconds: Math.floor((Date.now() - st) / 1000) });
       }
     });
+
+    setupLiveActivityListener();
   },
 
   startFrom: (startedAt) => {
@@ -114,6 +164,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         set({ elapsedSeconds: Math.floor((Date.now() - st) / 1000) });
       }
     });
+
+    setupLiveActivityListener();
   },
 
   pause: () => {
@@ -121,6 +173,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
 
     clearTimerInterval(intervalId);
     removeVisibilityListener();
+    removeLiveActivityListener();
 
     set({
       elapsedSeconds: startTime ? Math.floor((Date.now() - startTime) / 1000) : get().elapsedSeconds,
@@ -149,11 +202,14 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         set({ elapsedSeconds: Math.floor((Date.now() - st) / 1000) });
       }
     });
+
+    setupLiveActivityListener();
   },
 
   reset: () => {
     clearTimerInterval(get().intervalId);
     removeVisibilityListener();
+    removeLiveActivityListener();
 
     set({
       elapsedSeconds: 0,
