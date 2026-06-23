@@ -97,7 +97,7 @@ export function WorkoutStartScreen() {
   const persistedSessionId = getPersistedActiveSession();
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{t('workout.trainingDeck')}</Text>

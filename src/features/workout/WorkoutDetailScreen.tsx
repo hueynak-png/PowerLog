@@ -134,7 +134,7 @@ export function WorkoutDetailScreen() {
   const isCompleted = !!session?.endedAt;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>{`‹ ${t('common.back')}`}</Text>

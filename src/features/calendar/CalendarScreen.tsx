@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from "expo-router/react-navigation";
 
 import { Button, Card, SectionHeader } from '@/src/components/ui';
 import type { ProgramDay, WorkoutSession } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { confirmAction } from '@/src/lib/alert';
 import { deleteWorkoutSession, getWorkoutsByDate, getWorkoutsByMonth } from '@/src/repositories';
-import { getScheduledProgramDaysByDate, getCurrentCycle, scheduleProgramDays, getProgramWeeks, getProgramDays } from '@/src/repositories/programRepository';
+import { getScheduledProgramDaysByDate, getCurrentCycle, scheduleProgramDays, getProgramWeeks, getProgramDays, rescheduleProgramDayCascade } from '@/src/repositories/programRepository';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/src/i18n';
@@ -49,7 +50,8 @@ export function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [monthWorkouts, setMonthWorkouts] = useState<WorkoutSession[]>([]);
   const [dayWorkouts, setDayWorkouts] = useState<WorkoutSession[]>([]);
-  const [scheduledDays, setScheduledDays] = useState<Array<ProgramDay & { programName: string; programId: string; weekNumber: number }>>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [scheduledDays, setScheduledDays] = useState<Array<ProgramDay & { programName: string; programId: string; weekNumber: number; exerciseCount: number }>>([]);
   const [scheduledTotal, setScheduledTotal] = useState(0);
   const [activeProgramId, setActiveProgramId] = useState<string | null>(null);
 
@@ -63,6 +65,14 @@ export function CalendarScreen() {
     if (!db) return;
     getWorkoutsByMonth(db, year, month).then(setMonthWorkouts);
   }, [db, year, month]);
+
+  // Refresh month workouts when tab regains focus (after completing a workout)
+  useFocusEffect(
+    useCallback(() => {
+      if (!db) return;
+      getWorkoutsByMonth(db, year, month).then(setMonthWorkouts);
+    }, [db, year, month]),
+  );
 
   // Load active cycle + auto-repair + scheduled dates for month
   useEffect(() => {
@@ -96,7 +106,7 @@ export function CalendarScreen() {
       setScheduledDays(scheduled);
       console.log(`[Calendar] ${selectedDate}: ${workouts.length} completed, ${scheduled.length} scheduled`);
     });
-  }, [db, selectedDate, monthWorkouts]);
+  }, [db, selectedDate, monthWorkouts, refreshKey]);
 
   // Count total scheduled days (single query per program)
   useEffect(() => {
@@ -111,7 +121,7 @@ export function CalendarScreen() {
       }
       setScheduledTotal(total);
     });
-  }, [db, dayWorkouts, scheduledDays]);
+  }, [db, dayWorkouts, scheduledDays, refreshKey]);
 
   // Collect dates with scheduled days for calendar dots (from the current active program)
   const [scheduledMonthDates, setScheduledMonthDates] = useState<Set<string>>(new Set());
@@ -129,7 +139,7 @@ export function CalendarScreen() {
       }
       setScheduledMonthDates(dates);
     });
-  }, [db, dayWorkouts, scheduledDays]);
+  }, [db, dayWorkouts, scheduledDays, refreshKey]);
 
   const workoutDates = new Set(monthWorkouts.map((w) => w.date));
   const scheduledDates = scheduledMonthDates;
@@ -188,15 +198,38 @@ export function CalendarScreen() {
 
   const handleStartWorkout = useCallback(async (date: string) => {
     if (!db) return;
-    // If there are scheduled days for this date, use the first one
-    if (scheduledDays.length > 0) {
+    // Single scheduled day → auto-start
+    if (scheduledDays.length === 1) {
       await startWorkoutFromProgram(db, scheduledDays[0].id);
-    } else {
-      await startWorkout(db, date);
+      const sessionId = useActiveWorkoutStore.getState().session?.id;
+      if (sessionId) router.push(`/workout/${sessionId}` as Href);
+      return;
     }
+    // Multiple scheduled days → show selection dialog
+    if (scheduledDays.length > 1) {
+      const buttons: Array<{ text: string; onPress: () => void; style?: 'cancel' | 'default' | 'destructive' }> = [
+        ...scheduledDays.slice(0, 5).map((sd) => ({
+          text: `${sd.programName} – Week ${sd.weekNumber} Day ${sd.dayNumber}`,
+          onPress: async () => {
+            await startWorkoutFromProgram(db, sd.id);
+            const sessionId = useActiveWorkoutStore.getState().session?.id;
+            if (sessionId) router.push(`/workout/${sessionId}` as Href);
+          },
+        })),
+        { text: t('common.cancel'), style: 'cancel' as const, onPress: () => {} },
+      ];
+      Alert.alert(
+        t('calendar.selectPlan'),
+        t('calendar.multiplePlansHint', { count: scheduledDays.length }),
+        buttons,
+      );
+      return;
+    }
+    // No scheduled days → free training
+    await startWorkout(db, date);
     const sessionId = useActiveWorkoutStore.getState().session?.id;
     if (sessionId) router.push(`/workout/${sessionId}` as Href);
-  }, [db, router, startWorkout, startWorkoutFromProgram, scheduledDays]);
+  }, [db, router, startWorkout, startWorkoutFromProgram, scheduledDays, t]);
 
   const handleStartScheduledWorkout = useCallback(async (programDayId: string) => {
     if (!db) return;
@@ -204,6 +237,24 @@ export function CalendarScreen() {
     const sessionId = useActiveWorkoutStore.getState().session?.id;
     if (sessionId) router.push(`/workout/${sessionId}` as Href);
   }, [db, router, startWorkoutFromProgram]);
+
+  const handleReschedule = useCallback(async (programDayId: string, label: string) => {
+    if (!db) return;
+    Alert.alert(
+      '推迟训练',
+      `${label}`,
+      [
+        { text: '推迟到下一个训练日', onPress: async () => {
+          try {
+            const r = await rescheduleProgramDayCascade(db, { programDayId, mode: 'next_training_day' });
+            showAlert('已顺延', `已顺延 ${r.affectedCount} 个训练日（${r.historyCreatedCount} 条记录）\n${r.firstChanges.map(c => `${c.label}: ${c.from} → ${c.to}`).join('\n')}`);
+            setRefreshKey(k => k + 1);
+          } catch (e) { showAlert('推迟失败', e instanceof Error ? e.message : 'Unknown error'); }
+        }},
+        { text: '取消', style: 'cancel', onPress: () => {} },
+      ],
+    );
+  }, [db]);
 
   const handleDeleteWorkout = useCallback(async (session: WorkoutSession) => {
     if (!db) return;
@@ -219,7 +270,7 @@ export function CalendarScreen() {
   }, [db]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{t('calendar.trainingHistory')}</Text>
@@ -264,6 +315,7 @@ export function CalendarScreen() {
               return (
                 <Pressable
                   key={dateStr}
+                  testID={`calendar-date-${dateStr}`}
                   style={[
                     styles.dayCell,
                     isRangeMode && (rangeStart === dateStr || rangeEnd === dateStr) && styles.dayCellSelected,
@@ -355,22 +407,33 @@ export function CalendarScreen() {
               <>
                 <SectionHeader title="计划训练" subtitle={`${scheduledDays.length} 个计划训练日`} />
                 {scheduledDays.map((sd) => (
-                  <Card key={sd.id} variant="elevated" style={styles.workoutCard}>
+                  <Card key={sd.id} variant="elevated" testID="scheduled-card" style={styles.workoutCard}>
                     <View style={styles.workoutRow}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.workoutTime}>{sd.programName}</Text>
                         <Text style={styles.workoutMeta}>
-                          Week {sd.weekNumber} Day {sd.dayNumber} · {sd.title}
+                          Week {sd.weekNumber} Day {sd.dayNumber} · {sd.title}{' '}
+                          {sd.exerciseCount > 0 ? `· ${sd.exerciseCount} exercises` : ''}
                         </Text>
                         {sd.mainFocus && <Text style={styles.workoutMeta}>{sd.mainFocus}</Text>}
                         {sd.estimatedDuration && <Text style={styles.workoutMeta}>~{sd.estimatedDuration} min</Text>}
                       </View>
-                      <Button
-                        title="开始计划训练"
-                        size="sm"
-                        variant="primary"
-                        onPress={() => void handleStartScheduledWorkout(sd.id)}
-                      />
+                      <View style={styles.workoutActions}>
+                        <Button
+                          title="开始"
+                          size="sm"
+                          variant="primary"
+                          testID="scheduled-card-start-btn"
+                          onPress={() => void handleStartScheduledWorkout(sd.id)}
+                        />
+                        <Button
+                          title="推迟"
+                          size="sm"
+                          variant="secondary"
+                          testID="scheduled-card-reschedule-btn"
+                          onPress={() => void handleReschedule(sd.id, `W${sd.weekNumber}D${sd.dayNumber} ${sd.title}`)}
+                        />
+                      </View>
                     </View>
                   </Card>
                 ))}
@@ -409,7 +472,11 @@ export function CalendarScreen() {
             ) : null}
 
             <Button
-              title={t('calendar.startWorkoutFor', { date: selectedDate === today ? t('common.today') : selectedDate })}
+              title={
+                scheduledDays.length > 1
+                  ? `${t('calendar.selectPlan')} (${scheduledDays.length})`
+                  : t('calendar.startWorkoutFor', { date: selectedDate === today ? t('common.today') : selectedDate })
+              }
               onPress={() => void handleStartWorkout(selectedDate)}
               disabled={!db}
               fullWidth

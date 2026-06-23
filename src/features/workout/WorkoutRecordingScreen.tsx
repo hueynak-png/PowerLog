@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, BackHandler, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 
 import { Button } from '@/src/components/ui/Button';
@@ -32,6 +32,7 @@ export function WorkoutRecordingScreen() {
   const db = useDatabase();
   const router = useRouter();
   const session = useActiveWorkoutStore((state) => state.session);
+  const isActive = useActiveWorkoutStore((state) => state.isActive);
   const exercises = useActiveWorkoutStore((state) => state.exercises);
   const addSet = useActiveWorkoutStore((state) => state.addSet);
   const removeExercise = useActiveWorkoutStore((state) => state.removeExercise);
@@ -49,6 +50,9 @@ export function WorkoutRecordingScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
+  const [programContext, setProgramContext] = useState<{
+    programName: string; weekNumber: number; dayNumber: number; phase: string; title: string;
+  } | null>(null);
   const restStartTimeRef = useRef<number | null>(null);
   const [restElapsed, setRestElapsed] = useState<number | null>(null);
   const restTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -56,6 +60,48 @@ export function WorkoutRecordingScreen() {
 
   const progressLabel = useMemo(() => `${setsCompleted} / ${setsTotal} sets`, [setsCompleted, setsTotal]);
   const completionPct = setsTotal > 0 ? Math.round((setsCompleted / setsTotal) * 100) : 0;
+
+  // Load program context when session comes from a program day
+  useEffect(() => {
+    if (!db || !session?.programDayId) return;
+    (async () => {
+      const row = await db.getFirstAsync<any>(
+        `SELECT p.name as program_name, pw.week_number, pd.day_number, pw.phase, pd.title
+         FROM program_days pd
+         JOIN program_weeks pw ON pw.id = pd.program_week_id
+         JOIN programs p ON p.id = pw.program_id
+         WHERE pd.id = ?`, [session.programDayId],
+      );
+      if (row) {
+        setProgramContext({
+          programName: row.program_name,
+          weekNumber: row.week_number,
+          dayNumber: row.day_number,
+          phase: row.phase,
+          title: row.title,
+        });
+      }
+    })();
+  }, [db, session?.programDayId]);
+
+  // Exit confirmation: warn if workout has modifications
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isActive && setsCompleted < setsTotal) {
+        Alert.alert(
+          t('workout.unsavedWorkout'),
+          t('workout.leaveConfirm'),
+          [
+            { text: t('common.cancel'), style: 'cancel', onPress: () => {} },
+            { text: t('workout.discardWorkout'), style: 'destructive', onPress: () => router.back() },
+          ],
+        );
+        return true; // Prevent default back behavior
+      }
+      return false;
+    });
+    return () => backHandler.remove();
+  }, [isActive, setsCompleted, setsTotal, router, t]);
 
   const clearRestTimer = () => {
     if (restTimerRef.current) { clearInterval(restTimerRef.current); restTimerRef.current = null; }
@@ -194,12 +240,22 @@ export function WorkoutRecordingScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Back button */}
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>{`‹ ${t('common.back')}`}</Text>
         </Pressable>
+
+        {programContext && (
+          <Card testID="workout-program-context" variant="tonal" style={styles.programContextCard}>
+            <Text style={styles.programContextTitle}>{programContext.programName}</Text>
+            <Text style={styles.programContextMeta}>
+              Week {programContext.weekNumber} · Day {programContext.dayNumber} · {programContext.title}{'\n'}
+              {programContext.phase} · {session?.date ?? '—'}
+            </Text>
+          </Card>
+        )}
 
         <Card variant="elevated" style={styles.topCard}>
           <Text style={styles.sessionKicker}>{t('workout.activeWorkout')}</Text>
@@ -330,7 +386,7 @@ export function WorkoutRecordingScreen() {
 
         <View style={styles.footerActions}>
           <Button title={t('workout.addExercise')} onPress={() => setShowPicker(true)} variant="secondary" disabled={!db} fullWidth />
-          <Button title={t('workout.completeWorkout')} onPress={handleCompleteWorkout} loading={isCompleting} disabled={!db || !session || setsTotal === 0} fullWidth />
+          <Button testID="complete-workout-btn" title={t('workout.completeWorkout')} onPress={handleCompleteWorkout} loading={isCompleting} disabled={!db || !session || setsTotal === 0} fullWidth />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -342,6 +398,9 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingBottom: spacing.dockBottomInset, gap: spacing.md },
   backBtn: { paddingVertical: spacing.sm },
   backBtnText: { ...typography.callout, color: colors.primary, fontWeight: '600' },
+  programContextCard: { marginBottom: spacing.sm, gap: spacing.xs },
+  programContextTitle: { ...typography.headline, color: colors.textPrimary },
+  programContextMeta: { ...typography.footnote, color: colors.textSecondary, lineHeight: 18 },
   topCard: { marginBottom: spacing.sm, gap: spacing.md },
   sessionKicker: { ...typography.overline, color: colors.primary },
   sessionTitle: { ...typography.title2, color: colors.textPrimary },

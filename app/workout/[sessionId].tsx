@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, SafeAreaView, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 
 import { WorkoutDetailScreen } from '@/src/features/workout/WorkoutDetailScreen';
@@ -49,7 +50,7 @@ export default function WorkoutSessionScreen() {
 
   if (isLoading || !db) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.centered}>
         <ActivityIndicator color={colors.primary} />
         <Text style={styles.loadingText}>{t('route.loadingWorkout')}</Text>
       </SafeAreaView>
@@ -58,7 +59,7 @@ export default function WorkoutSessionScreen() {
 
   if (!session) {
     return (
-      <SafeAreaView style={styles.centered}>
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.centered}>
         <Text style={styles.loadingText}>{t('route.workoutNotFound')}</Text>
       </SafeAreaView>
     );

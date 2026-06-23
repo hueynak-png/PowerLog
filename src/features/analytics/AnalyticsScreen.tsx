@@ -90,7 +90,7 @@ export function AnalyticsScreen() {
   const latestBodyweight = bodyweight.at(-1)?.bodyweight;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{t('analytics.trainingIntelligence')}</Text>

@@ -147,7 +147,7 @@ export function WorkoutSummaryScreen() {
   }, [db, session?.id]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{t('workout.sessionComplete')}</Text>
@@ -299,7 +299,10 @@ export function WorkoutSummaryScreen() {
           )}
         </Card>
 
-        <Button title={t('common.done')} onPress={() => router.replace('/(tabs)')} />
+        <View style={styles.buttonRow}>
+          <Button title={t('workout.viewDetails')} onPress={() => router.push(`/workout/${session!.id}` as any)} variant="secondary" />
+          <Button testID="summary-done-btn" title={t('common.done')} onPress={() => router.replace('/(tabs)/calendar')} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -353,4 +356,5 @@ const styles = StyleSheet.create({
   structuredRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, borderBottomColor: colors.divider, borderBottomWidth: 1, paddingVertical: spacing.xs },
   structuredLabel: { ...typography.footnote, color: colors.textSecondary, fontWeight: '700' },
   structuredValue: { ...typography.footnote, color: colors.textPrimary, flex: 1, textAlign: 'right' },
+  buttonRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
 });
