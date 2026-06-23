@@ -57,41 +57,61 @@ const aiRequest = async <T>(
     throw new Error('AI service not configured');
   }
 
-  const controller = new AbortController();
-  let didTimeout = false;
-  const timeout = setTimeout(
-    () => {
-      didTimeout = true;
-      controller.abort();
-    },
-    options.timeout ?? 30000,
+  const url = `${config.baseUrl}/ai${endpoint}`;
+  const timeoutMs = options.timeout ?? 30000;
+
+  let lastError: Error | null = null;
+
+  // Retry once on network failures (common on iOS simulator / flaky networks)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetchWithTimeout(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.authToken}`,
+        },
+        body: JSON.stringify(body),
+      }, timeoutMs);
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        const msg = (errorBody as { message?: string; error?: string }).message
+          ?? (errorBody as { error?: string }).error
+          ?? `HTTP ${response.status}`;
+        throw new Error(msg);
+      }
+
+      return await response.json() as T;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const msg = lastError.message.toLowerCase();
+
+      // Only retry on network-level failures, not HTTP errors
+      if (attempt === 0 && (msg.includes('network') || msg.includes('fetch') || msg.includes('abort') || msg.includes('timeout'))) {
+        await new Promise(r => setTimeout(r, 1000));
+        continue;
+      }
+      break;
+    }
+  }
+
+  throw lastError ?? new Error('AI request failed');
+};
+
+/** fetch with timeout using Promise.race — avoids AbortController compat issues on iOS */
+const fetchWithTimeout = (
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> => {
+  const fetchPromise = fetch(url, init);
+
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('AI request timed out. Please try again.')), timeoutMs),
   );
 
-  try {
-    const response = await fetch(`${config.baseUrl}/ai${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.authToken}`,
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error((error as { message?: string }).message ?? `HTTP ${response.status}`);
-    }
-
-    return await response.json() as T;
-  } catch (error) {
-    if (didTimeout) {
-      throw new Error('AI request timed out. Please try again.');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return Promise.race([fetchPromise, timeoutPromise]);
 };
 
 // --- Response Types ---
