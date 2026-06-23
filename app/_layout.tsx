@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/components/useColorScheme';
 import '@/src/i18n';
 import { useAppStore } from '@/src/stores/useAppStore';
+import { initAI } from '@/src/services/aiService';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -35,6 +36,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     void initialize();
+    void initAI();
   }, [initialize]);
 
   useEffect(() => {
@@ -65,6 +67,7 @@ function RootLayoutNav() {
         <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
         <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
         <Stack.Screen name="review" options={{ headerShown: false }} />
+        <Stack.Screen name="debug/program-intensity" options={{ title: '强度检查', headerShown: true }} />
       </Stack>
     </View>
   );

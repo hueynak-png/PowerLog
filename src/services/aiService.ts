@@ -4,6 +4,7 @@
  */
 
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'powerlog-ai-config';
 
@@ -15,32 +16,27 @@ interface AIConfig {
 const normalizeAIBaseUrl = (baseUrl: string): string =>
   baseUrl.trim().replace(/\/+$/, '').replace(/\/ai$/i, '');
 
-/**
- * Load config from localStorage (web) on startup.
- */
-const loadConfig = (): AIConfig => {
-  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as AIConfig;
-        return { ...parsed, baseUrl: normalizeAIBaseUrl(parsed.baseUrl) };
-      }
-    } catch { /* ignore */ }
-  }
-  return { baseUrl: '', authToken: '' };
+let config: AIConfig = { baseUrl: '', authToken: '' };
+
+const persist = async (cfg: AIConfig) => {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+  } catch { /* ignore */ }
 };
 
-let config: AIConfig = loadConfig();
+export const initAI = async () => {
+  try {
+    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as AIConfig;
+      config = { ...parsed, baseUrl: normalizeAIBaseUrl(parsed.baseUrl) };
+    }
+  } catch { /* ignore */ }
+};
 
 export const configureAI = (baseUrl: string, authToken: string) => {
   config = { baseUrl: normalizeAIBaseUrl(baseUrl), authToken: authToken.trim() };
-  // Persist to localStorage on web
-  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    } catch { /* ignore */ }
-  }
+  persist(config);
 };
 
 export const getAIConfig = (): AIConfig => config;
