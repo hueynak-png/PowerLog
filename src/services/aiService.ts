@@ -59,59 +59,75 @@ const aiRequest = async <T>(
 
   const url = `${config.baseUrl}/ai${endpoint}`;
   const timeoutMs = options.timeout ?? 30000;
+  const payload = JSON.stringify(body);
 
-  let lastError: Error | null = null;
+  // Use XMLHttpRequest on native (React Native fetch polyfill is unreliable on iOS).
+  // Keep fetch on web where it's natively supported.
+  if (Platform.OS !== 'web') {
+    return new Promise<T>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Authorization', `Bearer ${config.authToken}`);
+      xhr.timeout = timeoutMs;
 
-  // Retry once on network failures (common on iOS simulator / flaky networks)
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText) as T);
+          } catch {
+            reject(new Error('Invalid JSON response'));
+          }
+        } else {
+          let msg = `HTTP ${xhr.status}`;
+          try {
+            const err = JSON.parse(xhr.responseText);
+            msg = err.message ?? err.error ?? msg;
+          } catch { /* use status code */ }
+          reject(new Error(msg));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error(`Network error: could not reach ${config.baseUrl}. Check your connection and AI backend URL.`));
+      xhr.ontimeout = () => reject(new Error('AI request timed out. Please try again.'));
+      xhr.send(payload);
+    });
+  }
+
+  // Web path: fetch with Promise.race timeout
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const response = await fetchWithTimeout(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.authToken}`,
-        },
-        body: JSON.stringify(body),
-      }, timeoutMs);
+      const resp = await Promise.race([
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${config.authToken}`,
+          },
+          body: payload,
+        }),
+        new Promise<never>((_, r) =>
+          setTimeout(() => r(new Error('AI request timed out. Please try again.')), timeoutMs),
+        ),
+      ]);
 
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        const msg = (errorBody as { message?: string; error?: string }).message
-          ?? (errorBody as { error?: string }).error
-          ?? `HTTP ${response.status}`;
-        throw new Error(msg);
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error((err as any).message ?? (err as any).error ?? `HTTP ${resp.status}`);
       }
 
-      return await response.json() as T;
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      const msg = lastError.message.toLowerCase();
-
-      // Only retry on network-level failures, not HTTP errors
-      if (attempt === 0 && (msg.includes('network') || msg.includes('fetch') || msg.includes('abort') || msg.includes('timeout'))) {
+      return await resp.json() as T;
+    } catch (error: any) {
+      const msg = error?.message?.toLowerCase() ?? '';
+      if (attempt === 0 && (msg.includes('network') || msg.includes('fetch') || msg.includes('timeout'))) {
         await new Promise(r => setTimeout(r, 1000));
         continue;
       }
-      break;
+      throw error;
     }
   }
 
-  throw lastError ?? new Error('AI request failed');
-};
-
-/** fetch with timeout using Promise.race — avoids AbortController compat issues on iOS */
-const fetchWithTimeout = (
-  url: string,
-  init: RequestInit,
-  timeoutMs: number,
-): Promise<Response> => {
-  const fetchPromise = fetch(url, init);
-
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('AI request timed out. Please try again.')), timeoutMs),
-  );
-
-  return Promise.race([fetchPromise, timeoutPromise]);
+  throw new Error('AI request failed');
 };
 
 // --- Response Types ---
