@@ -11,11 +11,13 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
 import type { CyclePhase, CurrentCycle, Program, ProgramDay } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { confirmAction, showAlert } from '@/src/lib/alert';
+import { formatLocalDate, parseLocalDate, getFirstTrainingOffset } from '@/src/lib/date';
 import {
   createProgram,
   createProgramWeek,
@@ -31,7 +33,8 @@ import {
   getAvailableTrainingDays,
   scheduleProgramDays,
 } from '@/src/repositories';
-import { requestPlanGeneration, isAIConfigured } from '@/src/services/aiService';
+import { requestPlanGeneration, requestPlanParse, isAIConfigured } from '@/src/services/aiService';
+import type { PlanGenerationResponse } from '@/src/services/aiService';
 import { instantiateAndActivate } from '@/src/services/programInstantiation';
 import { getCurrentTrainingMaxes } from '@/src/services/programInstantiation/trainingMaxes';
 import type { CurrentTrainingMaxes } from '@/src/services/programInstantiation/trainingMaxes';
@@ -157,6 +160,13 @@ export function ProgramScreen() {
   const [squatMax, setSquatMax] = useState<number | null>(null);
   const [benchMax, setBenchMax] = useState<number | null>(null);
   const [deadliftMax, setDeadliftMax] = useState<number | null>(null);
+
+  // Import external plan state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importPlanText, setImportPlanText] = useState('');
+  const [importParsing, setImportParsing] = useState(false);
+  const [importParsedPlan, setImportParsedPlan] = useState<PlanGenerationResponse | null>(null);
+  const [importSaving, setImportSaving] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!db) return;
@@ -286,6 +296,95 @@ export function ProgramScreen() {
     await doSetActive(program);
   };
 
+  const handleParsePlan = async () => {
+    if (!importPlanText.trim()) {
+      showAlert(t('program.importNoText'), '');
+      return;
+    }
+    setImportParsing(true);
+    setImportParsedPlan(null);
+    try {
+      const result = await requestPlanParse({ planText: importPlanText.trim() });
+      setImportParsedPlan(result);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      showAlert(t('program.importFailed'), msg);
+    } finally {
+      setImportParsing(false);
+    }
+  };
+
+  const handleSaveImported = async () => {
+    if (!db || !importParsedPlan) return;
+    setImportSaving(true);
+    try {
+      const { data } = importParsedPlan;
+      const includesDeload = data.weeks.some(w => w.phase === 'deload');
+
+      const program = await createProgram(db, {
+        name: data.name,
+        type: data.type,
+        goal: 'strength',
+        source: 'imported_text',
+        durationWeeks: data.weeks.length,
+        includesDeload,
+        description: data.description,
+        createdAt: new Date().toISOString(),
+      });
+
+      const exercises = await getAllExercises(db);
+
+      for (const week of data.weeks) {
+        const savedWeek = await createProgramWeek(db, {
+          programId: program.id,
+          weekNumber: week.weekNumber,
+          phase: week.phase as CyclePhase,
+          focus: week.focus,
+        });
+
+        for (const day of week.days) {
+          const savedDay = await createProgramDay(db, {
+            programWeekId: savedWeek.id,
+            dayNumber: day.dayNumber,
+            title: day.title,
+            mainFocus: day.mainFocus,
+            estimatedDuration: day.estimatedDuration,
+          });
+
+          for (let i = 0; i < day.exercises.length; i++) {
+            const ex = day.exercises[i];
+            const match = exercises.find(
+              (e) => e.nameEn.toLowerCase() === ex.exerciseNameEn.toLowerCase(),
+            );
+            const exerciseId = match?.id ?? 'unknown';
+
+            await createPlannedExercise(db, {
+              programDayId: savedDay.id,
+              exerciseId,
+              orderIndex: i,
+              targetSets: ex.targetSets,
+              targetReps: ex.targetReps,
+              targetRpe: ex.targetRpe ?? undefined,
+              targetPercent: ex.targetPercent ?? undefined,
+              notes: ex.notes,
+            });
+          }
+        }
+      }
+
+      setShowImportModal(false);
+      setImportParsedPlan(null);
+      setImportPlanText('');
+      showAlert(t('common.success'), t('program.importSuccess'));
+      await refresh();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      showAlert(t('program.importFailed'), msg);
+    } finally {
+      setImportSaving(false);
+    }
+  };
+
   const doSetActive = async (program: Program) => {
     if (!db) return;
     if (program.requiresInstantiation) {
@@ -381,16 +480,35 @@ export function ProgramScreen() {
         trainingDaysPerWeek: 4,
         enableAiFatigueAdjustment: enableAiAdjustment,
         adjustmentWeeks: 2,
+        intensityTier: (intensityPreference === 'moderate' ? 'standard' : intensityPreference) as 'conservative' | 'standard' | 'aggressive',
       });
       setShowInstantiateModal(false);
       const wasReplacing = cycle != null && cycle.programId !== instantiatingProgram.id;
       const aiNote = enableAiAdjustment ? '\nAI 疲劳微调已启用（前 2 周）' : '';
       const replaceNote = wasReplacing ? '\n已替换当前激活周期' : '';
-      showAlert('计划已生成', 
-        `${instantiatingProgram.name} 已实例化\n` +
-        `Squat: ${instSquatMax}kg · Bench: ${instBenchMax}kg · Deadlift: ${instDeadliftMax}kg\n` +
-        `从 ${instStartDate} 开始，共 33 周，已排入日历。${aiNote}${replaceNote}`
+      const intensityLabel = intensityPreference === 'conservative' ? '保守' : intensityPreference === 'aggressive' ? '激进' : '标准';
+
+      // Compute first training date from startDate + schedule
+      const scheduleOffsets = [0, 1, 3, 4];
+      const startOffset = getFirstTrainingOffset(instStartDate, scheduleOffsets);
+      const firstTrainingDateObj = parseLocalDate(instStartDate);
+      firstTrainingDateObj.setDate(firstTrainingDateObj.getDate() + startOffset);
+      const firstTrainingDate = formatLocalDate(firstTrainingDateObj);
+
+      showAlert('计划已生成',
+        `${instantiatingProgram.name} 已生成\n\n` +
+        `开始日期：${instStartDate}\n` +
+        `第一天训练：${firstTrainingDate}\n` +
+        `训练频率：每周 ${scheduleOffsets.length} 天\n` +
+        `强度策略：${intensityLabel}\n` +
+        `周期长度：33 周\n\n` +
+        `已排入日历。${aiNote}${replaceNote}`
       );
+
+      // Navigate to calendar after alert
+      setTimeout(() => {
+        router.push('/(tabs)/calendar');
+      }, 300);
       await refresh();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -410,7 +528,7 @@ export function ProgramScreen() {
 
   if (!db || loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={colors.primary} />
           <Text style={styles.loadingText}>{t('common.loading')}</Text>
@@ -420,7 +538,7 @@ export function ProgramScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={styles.eyebrow}>{t('program.programBuilder')}</Text>
@@ -464,6 +582,18 @@ export function ProgramScreen() {
           />
         </Card>
 
+        {/* Import External Plan */}
+        <SectionHeader title={t('program.importExternalPlan')} subtitle={t('programOpts.importPlanHint')} />
+        <Card variant="coach" style={styles.card}>
+          <Text style={styles.programDesc}>{t('programOpts.importPlanDescription')}</Text>
+          <Button
+            title={t('program.importExternalPlan')}
+            onPress={() => setShowImportModal(true)}
+            variant="secondary"
+            fullWidth
+          />
+        </Card>
+
         {/* Program Library */}
         <SectionHeader title={t('program.programLibrary')} subtitle={`${programs.length} ${t('programOpts.savedProgram')}${programs.length === 1 ? '' : 's'}`} />
         {programs.length === 0 ? (
@@ -472,14 +602,14 @@ export function ProgramScreen() {
           </Card>
         ) : (
           programs.map((program) => (
-            <Card key={program.id} style={styles.card} variant="outlined">
+            <Card key={program.id} testID={program.id === 'seed-program-brad-full-cycle' ? 'brad-excel-card' : undefined} style={styles.card} variant="outlined">
               <View style={styles.cardTopRow}>
                 <Text style={styles.cardKicker}>{program.source === 'imported_excel' ? 'Excel 导入' : program.source === 'manual' ? '手动创建' : program.source.replace('_', ' ')}</Text>
                 <Text style={styles.statusPill}>{program.durationWeeks} {t('programOpts.weeks')}</Text>
               </View>
               <Text style={styles.programName}>{program.id.startsWith('seed-program-') ? t(`seedPrograms.${program.id}.name`) : program.name}</Text>
               <Text style={styles.programMeta}>
-                {t(`program.${program.type}`)} • {program.durationWeeks} {t('programOpts.weeks')} • {program.source === 'imported_excel' ? 'Excel 导入' : '手动创建'}
+                {t(`program.${program.type}`)} • {program.durationWeeks} {t('programOpts.weeks')} • {program.source === 'imported_excel' ? 'Excel 导入' : program.source === 'manual' ? '手动创建' : program.source.replace('_', ' ')}
               </Text>
               {program.goal && (
                 <Text style={styles.programGoal}>{program.id.startsWith('seed-program-') ? t(`seedPrograms.${program.id}.goal`) : program.goal}</Text>
@@ -492,6 +622,7 @@ export function ProgramScreen() {
                   <Text style={styles.activeIndicator}>当前已激活</Text>
                 ) : (
                   <Button
+                    testID="brad-excel-activate-btn"
                     title={program.requiresInstantiation ? '生成并激活' : t('program.setActive')}
                     onPress={() => handleSetActive(program)}
                     variant="secondary"
@@ -615,14 +746,14 @@ export function ProgramScreen() {
               </Pressable>
             </View>
             <Card style={styles.card}>
-              <TextField label="Start date (YYYY-MM-DD)" value={instStartDate} onChangeText={setInstStartDate} placeholder="2026-06-12" />
+              <TextField testID="instantiate-start-date" label="Start date (YYYY-MM-DD)" value={instStartDate} onChangeText={setInstStartDate} placeholder="2026-06-12" />
 
               <Text style={styles.sectionKicker}>当前能力基准</Text>
               <Text style={{ ...typography.footnote, color: colors.textSecondary, marginBottom: spacing.sm }}>
                 已自动读取分析页 e1RM，可手动修改
               </Text>
 
-              <NumberField label="Squat (kg)" value={instSquatMax} onChangeValue={setInstSquatMax} step={2.5} min={20} />
+              <NumberField testID="instantiate-squat" label="Squat (kg)" value={instSquatMax} onChangeValue={setInstSquatMax} step={2.5} min={20} />
               <Text style={styles.sourceHint}>
                 {trainingMaxes?.squat?.source === 'analytics_e1rm' ? '来自分析估算 e1RM' :
                  trainingMaxes?.squat?.source === 'manual_1rm' ? '来自手动 1RM' :
@@ -630,7 +761,7 @@ export function ProgramScreen() {
                 {trainingMaxes?.squat?.staleDays && trainingMaxes.squat.staleDays > 60 && ' · 估算值较旧，请确认'}
               </Text>
 
-              <NumberField label="Bench (kg)" value={instBenchMax} onChangeValue={setInstBenchMax} step={2.5} min={20} />
+              <NumberField testID="instantiate-bench" label="Bench (kg)" value={instBenchMax} onChangeValue={setInstBenchMax} step={2.5} min={20} />
               <Text style={styles.sourceHint}>
                 {trainingMaxes?.bench?.source === 'analytics_e1rm' ? '来自分析估算 e1RM' :
                  trainingMaxes?.bench?.source === 'manual_1rm' ? '来自手动 1RM' :
@@ -638,7 +769,7 @@ export function ProgramScreen() {
                 {trainingMaxes?.bench?.staleDays && trainingMaxes.bench.staleDays > 60 && ' · 估算值较旧，请确认'}
               </Text>
 
-              <NumberField label="Deadlift (kg)" value={instDeadliftMax} onChangeValue={setInstDeadliftMax} step={2.5} min={20} />
+              <NumberField testID="instantiate-deadlift" label="Deadlift (kg)" value={instDeadliftMax} onChangeValue={setInstDeadliftMax} step={2.5} min={20} />
               <Text style={styles.sourceHint}>
                 {trainingMaxes?.deadlift?.source === 'analytics_e1rm' ? '来自分析估算 e1RM' :
                  trainingMaxes?.deadlift?.source === 'manual_1rm' ? '来自手动 1RM' :
@@ -671,6 +802,7 @@ export function ProgramScreen() {
               </Text>
             </Card>
             <Button
+              testID="instantiate-generate-btn"
               title={instantiating ? 'Instantiating...' : '生成并激活'}
               onPress={() => void handleInstantiate()}
               loading={instantiating}
@@ -680,6 +812,113 @@ export function ProgramScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* Import External Plan Modal */}
+      <Modal visible={showImportModal} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={styles.safeArea}>
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalKicker}>{t('program.importExternalPlan')}</Text>
+                <Text style={styles.modalTitle}>{t('program.importPlanTitle')}</Text>
+              </View>
+              <Pressable
+                onPress={() => {
+                  setShowImportModal(false);
+                  setImportParsedPlan(null);
+                  setImportPlanText('');
+                }}
+                accessibilityRole="button"
+              >
+                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+              </Pressable>
+            </View>
+
+            <Text style={styles.pickDayHint}>{t('program.importPlanDescription')}</Text>
+
+            <TextField
+              label={t('program.pastePlanText')}
+              value={importPlanText}
+              onChangeText={setImportPlanText}
+              placeholder={t('program.pastePlanPlaceholder')}
+              multiline
+            />
+
+            <Button
+              title={importParsing ? t('program.parsing') : t('program.parsePlan')}
+              onPress={() => void handleParsePlan()}
+              loading={importParsing}
+              disabled={importParsing || !importPlanText.trim()}
+              fullWidth
+            />
+
+            {importParsedPlan && (
+              <>
+                <SectionHeader
+                  title={t('program.parsedPreview')}
+                  subtitle={importParsedPlan.data.name}
+                />
+                <Card variant="elevated" style={styles.card}>
+                  <Text style={styles.programName}>{importParsedPlan.data.name}</Text>
+                  <Text style={styles.programMeta}>
+                    {importParsedPlan.data.type}{' '}
+                    • {importParsedPlan.data.weeks.length} {t('programOpts.weeks')}
+                  </Text>
+                  {importParsedPlan.data.description ? (
+                    <Text style={styles.programDesc}>{importParsedPlan.data.description}</Text>
+                  ) : null}
+                  <View style={{ marginTop: spacing.sm }}>
+                    {importParsedPlan.data.weeks.slice(0, 3).map((week) => (
+                      <View key={week.weekNumber} style={{ marginBottom: spacing.xs }}>
+                        <Text style={{ ...typography.footnote, color: colors.primary, fontWeight: '800' }}>
+                          {t('programOpts.week')} {week.weekNumber}: {week.focus}
+                        </Text>
+                        {week.days.map((day) => (
+                          <Text
+                            key={day.dayNumber}
+                            style={{
+                              ...typography.caption,
+                              color: colors.textSecondary,
+                              marginLeft: spacing.sm,
+                            }}
+                          >
+                            Day {day.dayNumber}: {day.title}{' '}
+                            {day.estimatedDuration ? `(${day.estimatedDuration} min)` : ''}
+                          </Text>
+                        ))}
+                      </View>
+                    ))}
+                    {importParsedPlan.data.weeks.length > 3 && (
+                      <Text
+                        style={{
+                          ...typography.caption,
+                          color: colors.textTertiary,
+                          marginTop: spacing.xs,
+                        }}
+                      >
+                        + {importParsedPlan.data.weeks.length - 3} more weeks…
+                      </Text>
+                    )}
+                  </View>
+                </Card>
+                <Button
+                  title={importSaving ? 'Saving…' : t('program.saveToLibrary')}
+                  onPress={() => void handleSaveImported()}
+                  loading={importSaving}
+                  disabled={importSaving}
+                  fullWidth
+                />
+              </>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {__DEV__ && (
+        <Pressable onPress={() => router.push('/debug/program-intensity')} style={styles.devLink}>
+          <Text style={styles.devLinkText}>🔧 强度检查 (Dev)</Text>
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 }
@@ -830,5 +1069,14 @@ const styles = StyleSheet.create({
   dayCardDuration: {
     ...typography.footnote,
     color: colors.textTertiary,
+  },
+  devLink: {
+    position: 'absolute', bottom: 8, right: 16,
+    paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
+    borderRadius: radius.full, backgroundColor: colors.surfaceMuted,
+    borderWidth: 1, borderColor: colors.warning,
+  },
+  devLinkText: {
+    ...typography.footnote, color: colors.warning, fontWeight: '700',
   },
 });

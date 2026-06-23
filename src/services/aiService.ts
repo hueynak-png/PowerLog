@@ -412,3 +412,12 @@ export const requestFatigueAdjustment = (
   data: FatigueAdjustmentRequest,
 ): Promise<FatigueAdjustmentResponse> =>
   aiRequest('/fatigue-adjustment', data, { timeout: 60000 });
+
+/**
+ * Parse a free-text training plan (pasted from external AI) into
+ * the same structured PlanGenerationResponse used by generate-plan.
+ */
+export const requestPlanParse = (data: {
+  planText: string;
+}): Promise<PlanGenerationResponse> =>
+  aiRequest('/parse-plan', data, { timeout: 120000 });

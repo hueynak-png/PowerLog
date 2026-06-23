@@ -138,7 +138,7 @@ export interface RpeDistribution {
   high: number;
 }
 
-export type ProgramSource = 'ai_generated' | 'imported_excel' | 'manual';
+export type ProgramSource = 'ai_generated' | 'imported_excel' | 'imported_text' | 'manual';
 export type CyclePhase = 'entry' | 'accumulation' | 'intensification' | 'deload' | 'peak' | 'test' | 'maintenance';
 
 export interface Program {

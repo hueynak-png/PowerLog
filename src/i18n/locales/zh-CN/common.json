@@ -138,7 +138,9 @@
     "rangeEndHint": "点击结束日期",
     "selectedRange": "{{start}} → {{end}}",
     "generateReviewForRange": "为 {{start}} → {{end}} 生成周报",
-    "clearRange": "清除"
+    "clearRange": "清除",
+    "selectPlan": "选择计划训练",
+    "multiplePlansHint": "该日期有 {{count}} 个计划训练日，请选择一个开始："
   },
   "analytics": {
     "trainingIntelligence": "训练情报",
@@ -208,7 +210,19 @@
     "missingData": "数据缺失",
     "generationFailed": "生成失败",
     "missing1RMData": "部分动作缺少 1RM 数据",
-    "aiNotConfiguredProgram": "AI 未配置"
+    "aiNotConfiguredProgram": "AI 未配置",
+    "importExternalPlan": "导入外部计划",
+    "importPlanTitle": "导入外部 AI 计划",
+    "importPlanDescription": "在下方粘贴来自 ChatGPT、Claude 或其他 AI 助手生成的训练计划。",
+    "pastePlanText": "粘贴计划文本",
+    "pastePlanPlaceholder": "在此粘贴 AI 生成的训练计划…",
+    "parsePlan": "解析计划",
+    "parsing": "解析中…",
+    "parsedPreview": "解析预览",
+    "saveToLibrary": "保存到计划库",
+    "importFailed": "导入失败",
+    "importSuccess": "计划已解析并保存到计划库。",
+    "importNoText": "请先粘贴计划内容。"
   },
   "review": {
     "weeklyReview": "周报",
@@ -538,7 +552,9 @@
     "pickStartingDay": "选择起始训练日",
     "pickDayHint": "选择你希望从哪一天开始执行该计划",
     "noTrainingDays": "该计划暂无可用训练日",
-    "noTrainingDaysHint": "请先生成完整计划，或选择其他计划。"
+    "noTrainingDaysHint": "请先生成完整计划，或选择其他计划。",
+    "importPlanHint": "粘贴来自 ChatGPT、Claude 或其他 AI 的训练计划",
+    "importPlanDescription": "AI 可将自由文本训练计划解析为结构化周数、训练日和动作，直接存入计划库。"
   },
   "route": {
     "loadingWorkout": "加载训练中…",

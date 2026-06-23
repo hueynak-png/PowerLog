@@ -138,7 +138,9 @@
     "rangeEndHint": "Tap an end date",
     "selectedRange": "{{start}} → {{end}}",
     "generateReviewForRange": "Generate Review for {{start}} → {{end}}",
-    "clearRange": "Clear"
+    "clearRange": "Clear",
+    "selectPlan": "Select Plan",
+    "multiplePlansHint": "This date has {{count}} scheduled training days. Choose one to start:"
   },
   "analytics": {
     "trainingIntelligence": "Training intelligence",
@@ -208,7 +210,19 @@
     "missingData": "Missing Data",
     "generationFailed": "Generation Failed",
     "missing1RMData": "Missing 1RM data for some lifts",
-    "aiNotConfiguredProgram": "AI Not Configured"
+    "aiNotConfiguredProgram": "AI Not Configured",
+    "importExternalPlan": "Import External Plan",
+    "importPlanTitle": "Import External AI Plan",
+    "importPlanDescription": "Paste a training plan from ChatGPT, Claude, or any AI assistant below.",
+    "pastePlanText": "Paste plan text",
+    "pastePlanPlaceholder": "Paste your AI-generated training plan here...",
+    "parsePlan": "Parse Plan",
+    "parsing": "Parsing…",
+    "parsedPreview": "Parsed Preview",
+    "saveToLibrary": "Save to Library",
+    "importFailed": "Import Failed",
+    "importSuccess": "Plan imported and saved to library.",
+    "importNoText": "Please paste a plan first."
   },
   "review": {
     "weeklyReview": "Weekly Review",
@@ -538,7 +552,9 @@
     "pickStartingDay": "Pick Starting Day",
     "pickDayHint": "Choose which day you want to start from",
     "noTrainingDays": "No training days available",
-    "noTrainingDaysHint": "Please generate a full program first or choose another program."
+    "noTrainingDaysHint": "Please generate a full program first or choose another program.",
+    "importPlanHint": "Paste a plan from ChatGPT, Claude, or other AI",
+    "importPlanDescription": "AI can parse free-text training plans into structured weeks, days, and exercises ready for your library."
   },
   "route": {
     "loadingWorkout": "Loading workout…",
