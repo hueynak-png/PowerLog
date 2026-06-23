@@ -8,6 +8,7 @@ import { buildSessionSummaryPrompt } from '../prompts/sessionSummary';
 import { buildWorkoutSuggestionPrompt, buildNutritionTagsPrompt } from '../prompts/workoutSuggestion';
 import { buildWeeklyReviewPrompt } from '../prompts/weeklyReview';
 import { buildPlanGenerationPrompt } from '../prompts/planGeneration';
+import { buildPlanParsePrompt } from '../prompts/planParse';
 import { createDeepSeekProvider } from '../services/deepseek';
 import { createGPTProvider } from '../services/gpt';
 
@@ -223,5 +224,24 @@ aiRoutes.post('/generate-plan', createAIHandler({
   createProvider: createGPTProvider,
   buildPrompt: buildPlanGenerationPrompt,
   chatOptions: { temperature: 0.7, maxTokens: 8000 },
+  envKey: 'GPT_API_KEY',
+}));
+
+// --- Plan Parsing ---
+
+const planParseSchema = z.object({
+  planText: z.string().min(10),
+});
+
+/**
+ * POST /ai/parse-plan
+ * Parse a free-text training plan (pasted from external AI) into structured JSON.
+ * Provider: GPT
+ */
+aiRoutes.post('/parse-plan', createAIHandler({
+  schema: planParseSchema,
+  createProvider: createGPTProvider,
+  buildPrompt: buildPlanParsePrompt,
+  chatOptions: { temperature: 0.3, maxTokens: 8000 },
   envKey: 'GPT_API_KEY',
 }));
