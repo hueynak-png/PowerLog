@@ -10,7 +10,12 @@
     "backgroundColor": "#05070B",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bradhu.powerlog.app"
+      "bundleIdentifier": "com.bradhu.powerlog.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
