@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '@/src/i18n';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
@@ -61,6 +62,7 @@ export function WorkoutDetailScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const db = useDatabase();
+  const insets = useSafeAreaInsets();
   const session = useActiveWorkoutStore((state) => state.session);
   const exercises = useActiveWorkoutStore((state) => state.exercises);
   const addSet = useActiveWorkoutStore((state) => state.addSet);
@@ -140,7 +142,7 @@ export function WorkoutDetailScreen() {
           <Text style={styles.backBtnText}>{`‹ ${t('common.back')}`}</Text>
         </Pressable>
 
-        <View style={styles.hero}>
+        <View style={[styles.hero, { paddingTop: insets.top }]}>
           <Text style={styles.eyebrow}>{t('workout.workoutDetails')}</Text>
           <Text style={styles.title}>{session ? formatDateTimeLocale(session.startedAt, i18n.language) : t('workoutDetail.completedSession')}</Text>
           <Text style={styles.subtitle}>{t('workoutDetail.readonlyHint')}</Text>

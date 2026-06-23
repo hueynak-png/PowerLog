@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { Button, Card, SectionHeader } from '@/src/components/ui';
@@ -34,6 +34,7 @@ export function BackupRecoveryScreen() {
   const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [currentMeta, setCurrentMeta] = useState<{
@@ -198,7 +199,7 @@ export function BackupRecoveryScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.hero}>
+        <View style={[styles.hero, { paddingTop: insets.top }]}>
           <Text style={styles.eyebrow}>Data Management</Text>
           <Text style={styles.title}>Local Backup Recovery</Text>
           <Text style={styles.subtitle}>

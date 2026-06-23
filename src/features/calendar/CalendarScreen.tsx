@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from "expo-router/react-navigation";
 
 import { Button, Card, SectionHeader } from '@/src/components/ui';
@@ -43,6 +43,7 @@ export function CalendarScreen() {
   const startWorkout = useActiveWorkoutStore((state) => state.startWorkout);
   const startWorkoutFromProgram = useActiveWorkoutStore((state) => state.startWorkoutFromProgram);
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const today = getToday();
   const [year, setYear] = useState(() => new Date().getFullYear());
@@ -272,7 +273,7 @@ export function CalendarScreen() {
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
+        <View style={[styles.hero, { paddingTop: insets.top }]}>
           <Text style={styles.eyebrow}>{t('calendar.trainingHistory')}</Text>
           <Text style={styles.title}>{t('nav.calendar')}</Text>
           <Text style={styles.subtitle}>{t('calendar.reviewCompletedSessions')}</Text>

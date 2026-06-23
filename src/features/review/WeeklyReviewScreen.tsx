@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
 
 import { Button, Card, SectionHeader } from '@/src/components/ui';
@@ -28,6 +28,7 @@ export function WeeklyReviewScreen({ initialPeriod }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
   const db = useDatabase();
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(false);
   const [review, setReview] = useState<WeeklyReviewResponse['data'] | null>(null);
   const [period, setPeriod] = useState<{ start: string; end: string } | null>(null);
@@ -223,11 +224,13 @@ export function WeeklyReviewScreen({ initialPeriod }: Props) {
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{t('review.weeklyReview')}</Text>
-        <Text style={styles.subtitle}>
-          {period ? t('reviewExtras.aiAnalysisPeriod', { start: period.start, end: period.end }) : t('reviewExtras.aiPoweredAnalysis')}
-        </Text>
-        {generatedAt ? <Text style={styles.generatedText}>{t('reviewExtras.savedReview')} {new Date(generatedAt).toLocaleString()}</Text> : null}
+        <View style={{ paddingTop: insets.top }}>
+          <Text style={styles.title}>{t('review.weeklyReview')}</Text>
+          <Text style={styles.subtitle}>
+            {period ? t('reviewExtras.aiAnalysisPeriod', { start: period.start, end: period.end }) : t('reviewExtras.aiPoweredAnalysis')}
+          </Text>
+          {generatedAt ? <Text style={styles.generatedText}>{t('reviewExtras.savedReview')} {new Date(generatedAt).toLocaleString()}</Text> : null}
+        </View>
 
         {/* Back to Latest button when viewing historical report */}
         {viewingHistoryId && (

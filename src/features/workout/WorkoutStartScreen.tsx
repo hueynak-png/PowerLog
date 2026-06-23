@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '@/src/i18n';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
@@ -25,6 +26,7 @@ export function WorkoutStartScreen() {
   const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const startWorkout = useActiveWorkoutStore((state) => state.startWorkout);
   const activeSession = useActiveWorkoutStore((state) => state.session);
   const [recentWorkouts, setRecentWorkouts] = useState<WorkoutSession[]>([]);
@@ -99,7 +101,7 @@ export function WorkoutStartScreen() {
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
+        <View style={[styles.hero, { paddingTop: insets.top }]}>
           <Text style={styles.eyebrow}>{t('workout.trainingDeck')}</Text>
           <Text style={styles.title}>{t('workout.readyToLift')}</Text>
           <Text style={styles.subtitle}>{t('workout.startFastResumeClean')}</Text>

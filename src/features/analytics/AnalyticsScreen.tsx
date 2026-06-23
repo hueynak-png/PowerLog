@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BarChart } from '@/src/components/charts/BarChart';
 import { LineChart } from '@/src/components/charts/LineChart';
@@ -29,6 +29,7 @@ const MAIN_LIFTS: Array<{ liftFamily: string; label: string; color: string }> = 
 export function AnalyticsScreen() {
   const db = useDatabase();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const [e1rmData, setE1rmData] = useState<Record<string, { date: string; e1rm: number }[]>>({});
   const [currentE1rm, setCurrentE1rm] = useState<Record<string, number | null>>({});
@@ -92,7 +93,7 @@ export function AnalyticsScreen() {
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
+        <View style={[styles.hero, { paddingTop: insets.top }]}>
           <Text style={styles.eyebrow}>{t('analytics.trainingIntelligence')}</Text>
           <Text style={styles.pageTitle}>{t('nav.analytics')}</Text>
           <Text style={styles.subtitle}>{t('analytics.strengthTrendsWorkload')}</Text>

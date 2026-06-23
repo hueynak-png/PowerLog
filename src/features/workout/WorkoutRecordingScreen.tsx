@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, BackHandler, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
@@ -31,6 +32,7 @@ export function WorkoutRecordingScreen() {
   const { t } = useTranslation();
   const db = useDatabase();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const session = useActiveWorkoutStore((state) => state.session);
   const isActive = useActiveWorkoutStore((state) => state.isActive);
   const exercises = useActiveWorkoutStore((state) => state.exercises);
@@ -241,7 +243,7 @@ export function WorkoutRecordingScreen() {
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
-      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollViewRef} contentContainerStyle={[styles.content, { paddingTop: insets.top }]} keyboardShouldPersistTaps="handled">
         {/* Back button */}
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>{`‹ ${t('common.back')}`}</Text>

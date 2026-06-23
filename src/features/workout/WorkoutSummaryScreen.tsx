@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
@@ -25,6 +26,7 @@ export function WorkoutSummaryScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const db = useDatabase();
+  const insets = useSafeAreaInsets();
   const currentLocale = i18n.language;
   const session = useActiveWorkoutStore((state) => state.session);
   const exercises = useActiveWorkoutStore((state) => state.exercises);
@@ -149,7 +151,7 @@ export function WorkoutSummaryScreen() {
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
+        <View style={[styles.hero, { paddingTop: insets.top }]}>
           <Text style={styles.eyebrow}>{t('workout.sessionComplete')}</Text>
           <Text style={styles.title}>{t('workoutSummary.strongWork')}</Text>
           <Text style={styles.subtitle}>{t('workoutSummary.savedOffline')}</Text>

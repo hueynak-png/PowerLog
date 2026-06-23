@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
@@ -121,6 +121,7 @@ function MultiSelectChips({ label, values, options, onChange, t }: { label: stri
 export function ProgramScreen() {
   const { t } = useTranslation();
   const db = useDatabase();
+  const insets = useSafeAreaInsets();
   const [programs, setPrograms] = useState<Program[]>([]);
   const [cycle, setCycle] = useState<CurrentCycle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -540,7 +541,7 @@ export function ProgramScreen() {
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
+        <View style={[styles.hero, { paddingTop: insets.top }]}>
           <Text style={styles.eyebrow}>{t('program.programBuilder')}</Text>
           <Text style={styles.title}>{t('nav.program')}</Text>
           <Text style={styles.subtitle}>{t('programOpts.heroSubtitle')}</Text>

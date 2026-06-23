@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
 import type { BodyweightEntry, LiftType } from '@/src/domain/types';
@@ -34,6 +34,7 @@ export function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const db = useDatabase();
+  const insets = useSafeAreaInsets();
   const profile = useSettingsStore((state) => state.profile);
   const getMaxForLift = useSettingsStore((state) => state.getMaxForLift);
   const updateMax = useSettingsStore((state) => state.updateMax);
@@ -282,7 +283,7 @@ export function SettingsScreen() {
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
+        <View style={[styles.hero, { paddingTop: insets.top }]}>
           <Text style={styles.eyebrow}>{t('settings.controlRoom')}</Text>
           <View style={styles.titleRow}>
             <Text style={styles.title}>{t('nav.settings')}</Text>
