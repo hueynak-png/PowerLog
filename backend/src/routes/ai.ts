@@ -236,12 +236,12 @@ const planParseSchema = z.object({
 /**
  * POST /ai/parse-plan
  * Parse a free-text training plan (pasted from external AI) into structured JSON.
- * Provider: GPT
+ * Provider: DeepSeek (faster response for structured parsing)
  */
 aiRoutes.post('/parse-plan', createAIHandler({
   schema: planParseSchema,
-  createProvider: createGPTProvider,
+  createProvider: createDeepSeekProvider,
   buildPrompt: buildPlanParsePrompt,
-  chatOptions: { temperature: 0.1, maxTokens: 4000 },
-  envKey: 'GPT_API_KEY',
+  chatOptions: { temperature: 0.1, maxTokens: 6000 },
+  envKey: 'DEEPSEEK_API_KEY',
 }));
