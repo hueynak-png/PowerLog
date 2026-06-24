@@ -80,3 +80,31 @@ export const searchExercises = async (db: SQLiteDatabase, query: string): Promis
 
   return rows.map(toExercise);
 };
+
+export const insertCustomExercise = async (
+  db: SQLiteDatabase,
+  nameEn: string,
+  role: ExerciseRole = 'accessory',
+): Promise<Exercise> => {
+  const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const nameZh = nameEn;
+  const category: ExerciseCategory = 'barbell';
+  const liftFamily: LiftFamily = role === 'competition' ? 'upper' : 'accessory';
+
+  await db.runAsync(
+    `INSERT INTO exercises (id, name_en, name_zh, category, lift_family, role, muscle_groups, is_custom)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+    [id, nameEn, nameZh, category, liftFamily, role, JSON.stringify([])],
+  );
+
+  return {
+    id,
+    nameEn,
+    nameZh,
+    category,
+    liftFamily,
+    role,
+    muscleGroups: [],
+    isCustom: true,
+  };
+};

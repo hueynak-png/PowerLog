@@ -29,6 +29,7 @@ import {
   setCurrentCycle,
   deactivateCurrentCycle,
   getAllExercises,
+  insertCustomExercise,
   getProgramDaysForWeek,
   getAvailableTrainingDays,
   scheduleProgramDays,
@@ -248,10 +249,14 @@ export function ProgramScreen() {
 
           for (let i = 0; i < day.exercises.length; i++) {
             const ex = day.exercises[i];
-            const match = exercises.find(
+            let match = exercises.find(
               (e) => e.nameEn.toLowerCase() === ex.exerciseNameEn.toLowerCase(),
             );
-            const exerciseId = match?.id ?? 'unknown';
+            if (!match) {
+              match = await insertCustomExercise(db, ex.exerciseNameEn);
+              exercises.push(match);
+            }
+            const exerciseId = match.id;
 
             await createPlannedExercise(db, {
               programDayId: savedDay.id,
@@ -354,10 +359,14 @@ export function ProgramScreen() {
 
           for (let i = 0; i < day.exercises.length; i++) {
             const ex = day.exercises[i];
-            const match = exercises.find(
+            let match2 = exercises.find(
               (e) => e.nameEn.toLowerCase() === ex.exerciseNameEn.toLowerCase(),
             );
-            const exerciseId = match?.id ?? 'unknown';
+            if (!match2) {
+              match2 = await insertCustomExercise(db, ex.exerciseNameEn);
+              exercises.push(match2);
+            }
+            const exerciseId = match2.id;
 
             await createPlannedExercise(db, {
               programDayId: savedDay.id,
