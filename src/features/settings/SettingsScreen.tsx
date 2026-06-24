@@ -8,7 +8,7 @@ import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/compo
 import type { BodyweightEntry, LiftType } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
 import { addBodyweightEntry, getLatestBodyweight, updateBodyweightEntry } from '@/src/repositories';
-import { configureAI, getAIConfig, isAIConfigured } from '@/src/services/aiService';
+import { configureAI, getAIConfig, isAIConfigured, testAIConnection } from '@/src/services/aiService';
 import {
   configureSync,
   createRecoveryKey,
@@ -57,6 +57,9 @@ export function SettingsScreen() {
   const [aiAuthToken, setAiAuthToken] = useState(savedAIConfig.authToken);
   const [aiConfigured, setAiConfigured] = useState(isAIConfigured());
   const [aiExpanded, setAiExpanded] = useState(!isAIConfigured());
+  const [aiTestBusy, setAiTestBusy] = useState(false);
+  const [aiTestMessage, setAiTestMessage] = useState<string | null>(null);
+  const [aiTestError, setAiTestError] = useState<string | null>(null);
 
   const savedSyncConfig = getSyncConfig();
   const [syncBaseUrl, setSyncBaseUrl] = useState(savedSyncConfig.baseUrl || savedAIConfig.baseUrl);
@@ -167,6 +170,22 @@ export function SettingsScreen() {
     setSyncExpanded(false);
     setSyncMessage(t('settings.cloudSyncSaved'));
     setSyncError(null);
+  };
+
+  const handleTestAIConnection = async () => {
+    setAiTestBusy(true);
+    setAiTestMessage(null);
+    setAiTestError(null);
+    try {
+      const result = await testAIConnection(aiBaseUrl, aiAuthToken);
+      setAiTestMessage(
+        `URL: ${result.baseUrl}\nHealth: HTTP ${result.healthStatus}\nParse: HTTP ${result.parseStatus}\n${result.parseBody}`,
+      );
+    } catch (error) {
+      setAiTestError(error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setAiTestBusy(false);
+    }
   };
 
   const runSyncAction = async (action: () => Promise<string>) => {
@@ -363,6 +382,17 @@ export function SettingsScreen() {
                 onChangeText={setAiAuthToken}
                 placeholder={t('settingsExtras.yourAuthToken')}
               />
+              <Button
+                title="测试 AI 连接"
+                onPress={handleTestAIConnection}
+                loading={aiTestBusy}
+                disabled={!aiBaseUrl || !aiAuthToken || aiTestBusy}
+                variant="secondary"
+                size="sm"
+                fullWidth
+              />
+              {aiTestMessage ? <Text style={styles.savedText}>{aiTestMessage}</Text> : null}
+              {aiTestError ? <Text style={styles.errorText}>AI 连接失败: {aiTestError}</Text> : null}
             </>
           )}
         </Card>

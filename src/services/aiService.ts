@@ -44,6 +44,69 @@ export const getAIConfig = (): AIConfig => config;
 export const isAIConfigured = (): boolean =>
   config.baseUrl.length > 0 && config.authToken.length > 0;
 
+export interface AIConnectionTestResult {
+  baseUrl: string;
+  healthStatus: number;
+  parseStatus: number;
+  parseBody: string;
+}
+
+export const testAIConnection = async (
+  baseUrl: string,
+  authToken: string,
+): Promise<AIConnectionTestResult> => {
+  const normalizedBaseUrl = normalizeAIBaseUrl(baseUrl);
+  const health = await rawAIRequest('GET', normalizedBaseUrl, undefined, undefined, 15000);
+  const parse = await rawAIRequest(
+    'POST',
+    `${normalizedBaseUrl}/ai/parse-plan`,
+    authToken.trim(),
+    JSON.stringify({ planText: 'Week 1 Day 1: Squat 3x5, Bench 3x5' }),
+    30000,
+  );
+
+  return {
+    baseUrl: normalizedBaseUrl,
+    healthStatus: health.status,
+    parseStatus: parse.status,
+    parseBody: parse.body.slice(0, 500),
+  };
+};
+
+const rawAIRequest = (
+  method: 'GET' | 'POST',
+  url: string,
+  authToken?: string,
+  body?: string,
+  timeoutMs = 30000,
+): Promise<{ status: number; body: string }> => {
+  if (Platform.OS !== 'web') {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(method, url, true);
+      if (body) xhr.setRequestHeader('Content-Type', 'application/json');
+      if (authToken) xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+      xhr.timeout = timeoutMs;
+      xhr.onload = () => resolve({ status: xhr.status, body: xhr.responseText ?? '' });
+      xhr.onerror = () => reject(new Error(`XHR network error for ${url}`));
+      xhr.ontimeout = () => reject(new Error(`XHR timeout for ${url}`));
+      xhr.send(body);
+    });
+  }
+
+  return Promise.race([
+    fetch(url, {
+      method,
+      headers: {
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+      body,
+    }).then(async (response) => ({ status: response.status, body: await response.text() })),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Fetch timeout for ${url}`)), timeoutMs)),
+  ]);
+};
+
 interface AIRequestOptions {
   timeout?: number;
 }
