@@ -162,6 +162,7 @@ export function ProgramScreen() {
   const [squatMax, setSquatMax] = useState<number | null>(null);
   const [benchMax, setBenchMax] = useState<number | null>(null);
   const [deadliftMax, setDeadliftMax] = useState<number | null>(null);
+  const [scheduleWeekdays, setScheduleWeekdays] = useState<number[]>([0, 1, 3, 4]);
 
   // Import external plan state
   const [showImportModal, setShowImportModal] = useState(false);
@@ -442,7 +443,7 @@ export function ProgramScreen() {
       isActive: true,
     });
     // Schedule all program days into the calendar
-    const scheduled = await scheduleProgramDays(db, pickingDayProgram.id, startDate, [0, 1, 3, 4]);
+    const scheduled = await scheduleProgramDays(db, pickingDayProgram.id, startDate, scheduleWeekdays);
     console.log(`[ProgramScreen] Scheduled ${scheduled} program days starting ${startDate}`);
     await refresh();
     if (wasReplacing) {
@@ -486,7 +487,7 @@ export function ProgramScreen() {
         templateProgramId: instantiatingProgram.id,
         startDate: instStartDate,
         userMaxes: { squat: finalSquat, bench: finalBench, deadlift: finalDeadlift },
-        scheduleOffsets: [0, 1, 3, 4],
+        scheduleOffsets: scheduleWeekdays,
         trainingDaysPerWeek: 4,
         enableAiFatigueAdjustment: enableAiAdjustment,
         adjustmentWeeks: 2,
@@ -499,7 +500,7 @@ export function ProgramScreen() {
       const intensityLabel = intensityPreference === 'conservative' ? '保守' : intensityPreference === 'aggressive' ? '激进' : '标准';
 
       // Compute first training date from startDate + schedule
-      const scheduleOffsets = [0, 1, 3, 4];
+      const scheduleOffsets = scheduleWeekdays;
       const startOffset = getFirstTrainingOffset(instStartDate, scheduleOffsets);
       const firstTrainingDateObj = parseLocalDate(instStartDate);
       firstTrainingDateObj.setDate(firstTrainingDateObj.getDate() + startOffset);
@@ -718,6 +719,29 @@ export function ProgramScreen() {
               </Pressable>
             </View>
             <Text style={styles.pickDayHint}>{t('programOpts.pickDayHint', { name: pickingDayProgram?.name ?? '' })}</Text>
+            <SectionHeader title="选择每周训练日" subtitle="按你的计划安排训练日期" />
+            <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md }}>
+              {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((_label, i) => (
+                <Pressable
+                  key={i}
+                  onPress={() => {
+                    setScheduleWeekdays(prev =>
+                      prev.includes(i) ? prev.filter(d => d !== i) : [...prev, i].sort()
+                    );
+                  }}
+                  style={[
+                    { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+                    scheduleWeekdays.includes(i)
+                      ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                      : { borderColor: colors.borderLight }
+                  ]}
+                >
+                  <Text style={{ fontSize: 10, fontWeight: '600', color: scheduleWeekdays.includes(i) ? '#fff' : colors.textSecondary }}>
+                    {['一','二','三','四','五','六','日'][i]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
             {weekOneDays.length === 0 ? (
               <Card variant="tonal" style={styles.card}>
                 <Text style={styles.emptyText}>{t('programOpts.noTrainingDays')}</Text>

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from "expo-router/react-navigation";
 
-import { Button, Card, SectionHeader } from '@/src/components/ui';
+import { Button, Card, SectionHeader, TextField } from '@/src/components/ui';
 import type { ProgramDay, WorkoutSession } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
-import { confirmAction } from '@/src/lib/alert';
+import { confirmAction, showAlert } from '@/src/lib/alert';
 import { deleteWorkoutSession, getWorkoutsByDate, getWorkoutsByMonth } from '@/src/repositories';
 import { getScheduledProgramDaysByDate, getCurrentCycle, scheduleProgramDays, getProgramWeeks, getProgramDays, rescheduleProgramDayCascade } from '@/src/repositories/programRepository';
 import { useActiveWorkoutStore } from '@/src/stores/useActiveWorkoutStore';
@@ -60,6 +60,9 @@ export function CalendarScreen() {
   const [isRangeMode, setIsRangeMode] = useState(false);
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const [rangeEnd, setRangeEnd] = useState<string | null>(null);
+  const [showReschedulePicker, setShowReschedulePicker] = useState(false);
+  const [rescheduleDayId, setRescheduleDayId] = useState<string | null>(null);
+  const [customRescheduleDate, setCustomRescheduleDate] = useState('');
 
   // Load workouts for current month
   useEffect(() => {
@@ -252,6 +255,10 @@ export function CalendarScreen() {
             setRefreshKey(k => k + 1);
           } catch (e) { showAlert('推迟失败', e instanceof Error ? e.message : 'Unknown error'); }
         }},
+        { text: '选择日期', onPress: () => {
+          setRescheduleDayId(programDayId);
+          setShowReschedulePicker(true);
+        }},
         { text: '取消', style: 'cancel', onPress: () => {} },
       ],
     );
@@ -271,6 +278,7 @@ export function CalendarScreen() {
   }, [db]);
 
   return (
+    <>
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { paddingTop: insets.top }]}>
@@ -486,6 +494,55 @@ export function CalendarScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
+
+    {/* Custom reschedule date picker modal */}
+    <Modal visible={showReschedulePicker} animationType="slide" transparent>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.content}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>选择推迟日期</Text>
+            <Pressable onPress={() => { setShowReschedulePicker(false); setRescheduleDayId(null); setCustomRescheduleDate(''); }}>
+              <Text style={styles.cancelText}>取消</Text>
+            </Pressable>
+          </View>
+          <Text style={{ ...typography.body, color: colors.textSecondary, marginBottom: spacing.sm }}>
+            输入目标日期 (YYYY-MM-DD):
+          </Text>
+          <TextField
+            label="目标日期"
+            value={customRescheduleDate}
+            onChangeText={setCustomRescheduleDate}
+            placeholder="2026-07-01"
+          />
+          <Button
+            title="确认推迟"
+            onPress={async () => {
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(customRescheduleDate)) {
+                showAlert('日期格式错误', '请输入 YYYY-MM-DD 格式');
+                return;
+              }
+              if (!db || !rescheduleDayId) return;
+              try {
+                const r = await rescheduleProgramDayCascade(db, {
+                  programDayId: rescheduleDayId,
+                  mode: 'custom_date',
+                  targetDate: customRescheduleDate,
+                });
+                showAlert('已推迟', `已推迟到 ${customRescheduleDate}`);
+                setRefreshKey(k => k + 1);
+                setShowReschedulePicker(false);
+                setCustomRescheduleDate('');
+                setRescheduleDayId(null);
+              } catch (e) {
+                showAlert('推迟失败', e instanceof Error ? e.message : 'Unknown error');
+              }
+            }}
+            fullWidth
+          />
+        </View>
+      </SafeAreaView>
+    </Modal>
+    </>
   );
 }
 
@@ -530,4 +587,8 @@ const styles = StyleSheet.create({
   rangeText: { ...typography.callout, color: colors.textPrimary, fontWeight: '600' },
   clearRangeText: { ...typography.footnote, color: colors.primary, fontWeight: '600' },
   dayCellInRange: { backgroundColor: colors.primary, opacity: 0.25 },
+  // Modal styles
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },
+  modalTitle: { ...typography.title2, color: colors.textPrimary, marginBottom: spacing.md },
+  cancelText: { ...typography.body, color: colors.primary },
 });
