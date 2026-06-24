@@ -404,12 +404,14 @@ export function CalendarScreen() {
         {/* Selected date detail — hide in range mode */}
         {!isRangeMode && (
           <>
-            {/* Debug bar */}
+            {/* Debug bar — only in development */}
+            {__DEV__ && (
             <Card variant="tonal" style={styles.debugCard}>
               <Text style={styles.debugText}>
                 activeProgramId: {activeProgramId ?? 'none'} | scheduledTotal: {scheduledTotal} | forDate: {scheduledDays.length}
               </Text>
             </Card>
+            )}
 
             {/* Scheduled program days — show FIRST */}
             {scheduledDays.length > 0 && (
