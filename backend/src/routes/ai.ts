@@ -242,6 +242,6 @@ aiRoutes.post('/parse-plan', createAIHandler({
   schema: planParseSchema,
   createProvider: createGPTProvider,
   buildPrompt: buildPlanParsePrompt,
-  chatOptions: { temperature: 0.3, maxTokens: 8000 },
+  chatOptions: { temperature: 0.1, maxTokens: 3000 },
   envKey: 'GPT_API_KEY',
 }));
