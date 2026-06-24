@@ -54,7 +54,6 @@ export function CalendarScreen() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [scheduledDays, setScheduledDays] = useState<Array<ProgramDay & { programName: string; programId: string; weekNumber: number; exerciseCount: number }>>([]);
   const [scheduledTotal, setScheduledTotal] = useState(0);
-  const [activeProgramId, setActiveProgramId] = useState<string | null>(null);
 
   // Range selection state
   const [isRangeMode, setIsRangeMode] = useState(false);
@@ -84,7 +83,6 @@ export function CalendarScreen() {
     (async () => {
       const activeCycle = await getCurrentCycle(db);
       if (activeCycle) {
-        setActiveProgramId(activeCycle.programId);
         // Auto-repair: schedule if needed
         const weeks = await getProgramWeeks(db, activeCycle.programId);
         if (weeks.length > 0) {
@@ -404,15 +402,6 @@ export function CalendarScreen() {
         {/* Selected date detail — hide in range mode */}
         {!isRangeMode && (
           <>
-            {/* Debug bar — only in development */}
-            {__DEV__ && (
-            <Card variant="tonal" style={styles.debugCard}>
-              <Text style={styles.debugText}>
-                activeProgramId: {activeProgramId ?? 'none'} | scheduledTotal: {scheduledTotal} | forDate: {scheduledDays.length}
-              </Text>
-            </Card>
-            )}
-
             {/* Scheduled program days — show FIRST */}
             {scheduledDays.length > 0 && (
               <>
@@ -580,8 +569,6 @@ const styles = StyleSheet.create({
   workoutMeta: { ...typography.footnote, color: colors.textSecondary, marginTop: spacing.xs },
   workoutActions: { flexDirection: 'row', gap: spacing.xs },
   emptyText: { ...typography.callout, color: colors.textSecondary, lineHeight: 20 },
-  debugCard: { gap: 0, padding: spacing.sm },
-  debugText: { ...typography.caption, color: colors.textTertiary, fontFamily: 'monospace' },
   // Range mode styles
   rangeToggleRow: { alignItems: 'flex-start' },
   rangeInfoCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
