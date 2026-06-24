@@ -11,6 +11,7 @@ import type {
   CyclePhase,
 } from '@/src/domain/types';
 import generateId from '@/src/lib/uuid';
+import { formatLocalDate, parseLocalDate, getFirstTrainingOffset } from '@/src/lib/date';
 
 // --- Row types ---
 
@@ -632,9 +633,10 @@ export const scheduleProgramDays = async (
   startDate: string,
   scheduleOffsets: number[] = [0, 1, 3, 4],
 ): Promise<number> => {
-  const startDateObj = new Date(startDate + 'T00:00:00');
+  const startDateObj = parseLocalDate(startDate);
+  const startOffset = getFirstTrainingOffset(startDate, scheduleOffsets);
   const weeks = await getProgramWeeks(db, programId);
-  console.log(`[scheduleProgramDays] programId=${programId} startDate=${startDate} weeks=${weeks.length}`);
+  console.log(`[scheduleProgramDays] programId=${programId} startDate=${startDate} startOffset=${startOffset} weeks=${weeks.length}`);
   let updated = 0;
 
   for (const week of weeks) {
@@ -644,9 +646,9 @@ export const scheduleProgramDays = async (
 
     for (const day of days) {
       const dayOffset = scheduleOffsets[(day.dayNumber - 1) % scheduleOffsets.length] ?? (day.dayNumber - 1);
-      const scheduledDate = new Date(startDateObj);
-      scheduledDate.setDate(scheduledDate.getDate() + weekOffset + dayOffset);
-      const dateStr = scheduledDate.toISOString().slice(0, 10);
+      const scheduledDate = parseLocalDate(startDate);
+      scheduledDate.setDate(scheduledDate.getDate() + startOffset + weekOffset + dayOffset);
+      const dateStr = formatLocalDate(scheduledDate);
 
       await db.runAsync(
         `UPDATE program_days SET scheduled_date = ? WHERE id = ?`,
@@ -677,13 +679,21 @@ export const getProgramDaysForWeek = async (
 export const getScheduledProgramDaysByDate = async (
   db: SQLiteDatabase,
   date: string,
-): Promise<Array<ProgramDay & { programName: string; programId: string; weekNumber: number }>> => {
+): Promise<Array<ProgramDay & { programName: string; programId: string; weekNumber: number; exerciseCount: number }>> => {
+  // Exclude program days that already have a completed workout session
+  // (ended_at IS NOT NULL AND duration_seconds > 0 filters out discarded/in-progress sessions)
   const rows = await db.getAllAsync<any>(
-    `SELECT pd.*, p.name as program_name, p.id as program_id, pw.week_number
+    `SELECT pd.*, p.name as program_name, p.id as program_id, pw.week_number,
+            (SELECT COUNT(*) FROM planned_exercises WHERE program_day_id = pd.id) as exercise_count
      FROM program_days pd
      INNER JOIN program_weeks pw ON pw.id = pd.program_week_id
      INNER JOIN programs p ON p.id = pw.program_id
+     INNER JOIN current_cycle cc ON cc.program_id = p.id AND cc.is_active = 1
+     LEFT JOIN workout_sessions ws ON ws.program_day_id = pd.id
+       AND ws.ended_at IS NOT NULL
+       AND ws.duration_seconds > 0
      WHERE pd.scheduled_date = ?
+       AND ws.id IS NULL
      ORDER BY pd.day_number`,
     [date],
   );
@@ -702,6 +712,7 @@ export const getScheduledProgramDaysByDate = async (
     programName: row.program_name,
     programId: row.program_id,
     weekNumber: row.week_number,
+    exerciseCount: row.exercise_count,
   }));
 };
 
@@ -732,4 +743,160 @@ export const advanceCycleDay = async (
 
   // Program complete — no more days
   await deactivateCurrentCycle(db);
+};
+
+export interface RescheduleResult {
+  affectedCount: number;
+  historyCreatedCount: number;
+  firstChanges: Array<{ programDayId: string; from: string; to: string; label: string }>;
+}
+
+/**
+ * Generate consecutive training dates following a weekly schedule.
+ * scheduleOffsets: day-of-week offsets (0=Mon, 1=Tue, 3=Thu, 4=Fri)
+ */
+export const generateTrainingDates = (startDate: string, count: number, scheduleOffsets: number[]): string[] => {
+  const dates: string[] = [];
+  const d = parseLocalDate(startDate);
+  // Advance to first training day at or after startDate
+  let offset = 0;
+  while (dates.length < count) {
+    const testDate = new Date(d);
+    testDate.setDate(testDate.getDate() + offset);
+    const dow = testDate.getDay(); // 0=Sun
+    const monBased = dow === 0 ? 6 : dow - 1;
+    if (scheduleOffsets.includes(monBased)) {
+      dates.push(formatLocalDate(testDate));
+    }
+    offset++;
+    if (offset > count * 14) break; // safety
+  }
+  return dates;
+};
+
+export const rescheduleProgramDayCascade = async (
+  db: SQLiteDatabase,
+  params: {
+    programDayId: string;
+    mode: 'next_training_day' | 'custom_date';
+    targetDate?: string;
+    scheduleOffsets?: number[];
+  },
+): Promise<RescheduleResult> => {
+  const scheduleOffsets = params.scheduleOffsets ?? [0, 1, 3, 4];
+
+  // Get the program day with its week info
+  const dayRow = await db.getFirstAsync<{
+    id: string; program_week_id: string; day_number: number; scheduled_date: string | null; title: string;
+  }>(
+    `SELECT pd.id, pd.program_week_id, pd.day_number, pd.scheduled_date, pd.title
+     FROM program_days pd WHERE pd.id = ?`, [params.programDayId],
+  );
+  if (!dayRow) throw new Error(`Program day not found: ${params.programDayId}`);
+
+  // Check if already completed
+  const completedCheck = await db.getFirstAsync<{ id: string }>(
+    `SELECT ws.id FROM workout_sessions ws
+     WHERE ws.program_day_id = ? AND ws.ended_at IS NOT NULL AND ws.duration_seconds > 0 LIMIT 1`,
+    [params.programDayId],
+  );
+  if (completedCheck) throw new Error('该训练已完成，不能推迟。');
+
+  // Get all uncompleted program days from this day forward, ordered by training sequence
+  const weekRow = await db.getFirstAsync<{ program_id: string; week_number: number }>(
+    `SELECT program_id, week_number FROM program_weeks WHERE id = ?`, [dayRow.program_week_id],
+  );
+  if (!weekRow) throw new Error('Program week not found');
+
+  const rows = await db.getAllAsync<{
+    id: string; week_number: number; day_number: number; scheduled_date: string | null; title: string;
+  }>(
+    `SELECT pd.id, pw.week_number, pd.day_number, pd.scheduled_date, pd.title
+     FROM program_days pd
+     JOIN program_weeks pw ON pw.id = pd.program_week_id
+     WHERE pw.program_id = ?
+       AND (pw.week_number > ? OR (pw.week_number = ? AND pd.day_number >= ?))
+       AND pd.id NOT IN (
+         SELECT ws.program_day_id FROM workout_sessions ws
+         WHERE ws.ended_at IS NOT NULL AND ws.duration_seconds > 0 AND ws.program_day_id IS NOT NULL
+       )
+     ORDER BY pw.week_number ASC, pd.day_number ASC`,
+    [weekRow.program_id, weekRow.week_number, weekRow.week_number, dayRow.day_number],
+  );
+
+  if (rows.length === 0) return { affectedCount: 0, historyCreatedCount: 0, firstChanges: [] };
+
+  // Determine target start date
+  let targetStartDate: string;
+  if (params.mode === 'next_training_day') {
+    const d = parseLocalDate(dayRow.scheduled_date ?? new Date().toISOString().slice(0, 10));
+    d.setDate(d.getDate() + 1);
+    targetStartDate = formatLocalDate(d);
+  } else {
+    targetStartDate = params.targetDate ?? new Date().toISOString().slice(0, 10);
+  }
+
+  // Check if target date is a training day
+  const targetObj = parseLocalDate(targetStartDate);
+  const targetDow = targetObj.getDay();
+  const targetMonBased = targetDow === 0 ? 6 : targetDow - 1;
+  if (!scheduleOffsets.includes(targetMonBased)) {
+    // Advance to next training day
+    let advance = 0;
+    let found = false;
+    while (advance < 7) {
+      advance++;
+      const check = new Date(targetObj);
+      check.setDate(check.getDate() + advance);
+      const cd = check.getDay();
+      const cm = cd === 0 ? 6 : cd - 1;
+      if (scheduleOffsets.includes(cm)) {
+        targetStartDate = formatLocalDate(check);
+        found = true;
+        break;
+      }
+    }
+    if (!found) throw new Error('Cannot find next training day');
+  }
+
+  // Generate new dates
+  const newDates = generateTrainingDates(targetStartDate, rows.length, scheduleOffsets);
+
+  // Update all in transaction
+  const firstChanges: RescheduleResult['firstChanges'] = [];
+  const now = new Date().toISOString();
+  let historyCount = 0;
+  try {
+    await db.execAsync('BEGIN TRANSACTION');
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const newDate = newDates[i];
+      if (!newDate) break;
+      await db.runAsync(
+        `UPDATE program_days SET scheduled_date = ? WHERE id = ?`,
+        [newDate, row.id],
+      );
+      // Write history record for each moved day
+      await db.runAsync(
+        `INSERT INTO program_day_reschedules (id, program_id, program_day_id, from_date, to_date, operation_type, affected_count, created_at)
+         VALUES (?, ?, ?, ?, ?, 'cascade', ?, ?)`,
+        [generateId(), weekRow.program_id, row.id, row.scheduled_date ?? '?', newDate, rows.length, now],
+      );
+      historyCount++;
+      if (i < 5) {
+        firstChanges.push({
+          programDayId: row.id,
+          from: row.scheduled_date ?? '?',
+          to: newDate,
+          label: `W${row.week_number}D${row.day_number}`,
+        });
+      }
+    }
+    await db.execAsync('COMMIT');
+  } catch (e) {
+    await db.execAsync('ROLLBACK');
+    throw e;
+  }
+
+  return { affectedCount: rows.length, historyCreatedCount: historyCount, firstChanges };
 };
