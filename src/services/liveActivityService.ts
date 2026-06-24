@@ -1,4 +1,12 @@
-import type { WorkoutActivityProps } from '@/widgets/WorkoutActivity';
+interface WorkoutActivityProps {
+  exerciseName: string;
+  weightKg: number;
+  setIndex: number;
+  totalSets: number;
+  restEndsAt: number;
+  nextWeightKg?: number;
+  phase: 'lifting' | 'resting' | 'ready';
+}
 
 interface LiveActivityInstance {
   update: (props: WorkoutActivityProps) => Promise<void>;
