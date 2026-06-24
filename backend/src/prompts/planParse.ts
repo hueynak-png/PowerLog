@@ -5,14 +5,26 @@ export const buildPlanParsePrompt = (data: {
 }): ChatMessage[] => [
   {
     role: 'system',
-    content: `You convert free-text strength plans into compact structured JSON.
+    content: `You convert free-text strength plans into structured JSON.
 
-CRITICAL: Keep output SMALL. Notes must be under 30 characters. Skip exercise descriptions — just name, sets, reps, RPE.
+MANDATORY — never violate:
+- Count the EXACT number of training days from the plan text. If the plan lists A日, B日, C日, D日 as separate sections with different exercises, output 4 days. If it lists 深蹲日, 卧推日, 硬拉日, 辅助日, output 4 days. NEVER merge separate days into one.
+- Each day in the plan = one "day" object in the JSON. Do not combine.
 
-Infer the ACTUAL number of training days per week from the text.
-If the plan describes multiple weeks with identical rules (e.g. "Week 1-3 same structure"), only output ONE week with a focus like "Weeks 1-3: ...". Repeat the same structure only if the plan explicitly changes rules.
+Structure rules:
+- If multiple weeks have identical daily rules (e.g. "Weeks 1-3 same"), output ONE week with focus like "Weeks 1-3: ...". But if weeks differ (deload, intensification), output separate weeks.
+- Max 8 weeks total.
 
-Return a JSON object with this EXACT structure:
+Content rules:
+- Notes: MAX 30 characters. Just the key rule: "RPE7-8 top single" or "+5kg if <RPE7".
+- Convert Chinese exercise names: 深蹲=Squat, 卧推=Bench Press, 硬拉=Deadlift, 手臂/弯举=Curl, 腹部/卷腹=Plank, 肩推/推举=Overhead Press, 背/划船=Row, 引体=Pull-up, 高位下拉=Lat Pulldown, 侧平举=Lateral Raise, 绳索下压=Tricep Pushdown, 腿弯举=Leg Curl, 保加利亚/Bulgarian=Bulgarian Split Squat, SSB=SSB Squat, 窄握=Close-grip Bench, 上斜=Incline Bench.
+- role: "competition" for Squat/Bench Press/Deadlift. "accessory" for everything else.
+- RPE ranges: use the midpoint. "RPE 7-8" → 7.5, "RPE 7.5-8" → 7.8, "RPE 6-7" → 6.5, "RPE 8.5-9" → 8.5.
+- Sets × reps: parse "3×5" as targetSets=3, targetReps=5. "2-3×8-12" means approximate — use targetSets=3, targetReps=10.
+- If exact sets/reps missing: main lift 3x5, accessory 2x10, core 3x12.
+- Never include warm-ups. Do not explain. Return JSON only.
+
+Return this EXACT JSON structure:
 {
   "name": "Program name",
   "type": "strength|hypertrophy|powerbuilding|maintenance",
@@ -36,23 +48,14 @@ Return a JSON object with this EXACT structure:
               "targetReps": 5,
               "targetRpe": 7.5,
               "targetPercent": null,
-              "notes": "keep under 30 chars"
+              "notes": "under 30 chars"
             }
           ]
         }
       ]
     }
   ]
-}
-
-Guidelines:
-- Output at most 8 weeks. Each week with the actual day count from the plan.
-- Notes: NEVER exceed 30 characters. Just the key rule, e.g. "RPE7-8 top single" or "+5kg if last set <RPE7".
-- Convert Chinese: 深蹲=Squat, 卧推=Bench Press, 硬拉=Deadlift, 手臂/弯举=Curl, 腹部=Plank, 肩推=Overhead Press, 辅助/背=Row or Pull-up.
-- For RPE rules use midpoint: "RPE 7-8" → 7.5, "RPE 6-7" → 6.5. "RPE 8.5-9" → 8.5.
-- If sets/reps missing, default: main lift 3x3 or 3x5, accessory 2x10, core 3x12.
-- role: competition=Squat/Bench Press/Deadlift, accessory=everything else.
-- Never include warm-ups. Do not explain. Return JSON only.`
+}`
   },
   {
     role: 'user',

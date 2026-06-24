@@ -242,6 +242,6 @@ aiRoutes.post('/parse-plan', createAIHandler({
   schema: planParseSchema,
   createProvider: createDeepSeekProvider,
   buildPrompt: buildPlanParsePrompt,
-  chatOptions: { temperature: 0.1, maxTokens: 6000 },
+  chatOptions: { temperature: 0.1, maxTokens: 8000 },
   envKey: 'DEEPSEEK_API_KEY',
 }));
