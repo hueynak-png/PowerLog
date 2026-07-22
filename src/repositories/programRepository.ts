@@ -652,19 +652,17 @@ export const scheduleProgramDays = async (
     }
   }
 
-  try {
-    await db.execAsync('BEGIN TRANSACTION');
+  const writeSchedule = async () => {
     for (const update of updates) {
       await db.runAsync(
         `UPDATE program_days SET scheduled_date = ? WHERE id = ?`,
         [update.scheduledDate, update.id],
       );
     }
-    await db.execAsync('COMMIT');
-  } catch (error) {
-    await db.execAsync('ROLLBACK');
-    throw error;
-  }
+  };
+
+  if (db.withBatchAsync) await db.withBatchAsync(writeSchedule);
+  else await writeSchedule();
 
   return updates.length;
 };
@@ -874,8 +872,7 @@ export const rescheduleProgramDayCascade = async (
   const firstChanges: RescheduleResult['firstChanges'] = [];
   const now = new Date().toISOString();
   let historyCount = 0;
-  try {
-    await db.execAsync('BEGIN TRANSACTION');
+  const applyReschedule = async () => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const newDate = newDates[i];
@@ -900,11 +897,10 @@ export const rescheduleProgramDayCascade = async (
         });
       }
     }
-    await db.execAsync('COMMIT');
-  } catch (e) {
-    await db.execAsync('ROLLBACK');
-    throw e;
-  }
+  };
+
+  if (db.withBatchAsync) await db.withBatchAsync(applyReschedule);
+  else await applyReschedule();
 
   return { affectedCount: rows.length, historyCreatedCount: historyCount, firstChanges };
 };

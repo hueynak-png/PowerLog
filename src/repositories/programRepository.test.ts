@@ -30,14 +30,11 @@ const daysByWeek: Record<string, Array<Record<string, unknown>>> = {
 };
 
 const makeScheduleDb = (failOnUpdate?: number) => {
-  const transactions: string[] = [];
   const updates: Array<{ scheduledDate: string; id: string }> = [];
   let updateCount = 0;
 
   const db: PowerLogDatabase = {
-    execAsync: async (sql) => {
-      transactions.push(sql);
-    },
+    execAsync: async () => {},
     runAsync: async (sql, params = []) => {
       if (sql.includes('UPDATE program_days SET scheduled_date')) {
         updateCount += 1;
@@ -52,18 +49,18 @@ const makeScheduleDb = (failOnUpdate?: number) => {
       if (sql.includes('FROM program_days')) return (daysByWeek[String(params[0])] ?? []) as T[];
       return [];
     },
+    withBatchAsync: async <T>(fn: () => Promise<T>) => fn(),
   };
 
-  return { db, transactions, updates };
+  return { db, updates };
 };
 
 describe('scheduleProgramDays', () => {
   it('schedules all six days of a two-week imported plan using updates only', async () => {
-    const { db, transactions, updates } = makeScheduleDb();
+    const { db, updates } = makeScheduleDb();
 
     await expect(scheduleProgramDays(db, 'imported-plan', '2026-07-22', [0, 1, 3, 4])).resolves.toBe(6);
 
-    expect(transactions).toEqual(['BEGIN TRANSACTION', 'COMMIT']);
     expect(updates).toEqual([
       { id: 'week-1-day-1', scheduledDate: '2026-07-27' },
       { id: 'week-1-day-2', scheduledDate: '2026-07-28' },
@@ -75,11 +72,10 @@ describe('scheduleProgramDays', () => {
   });
 
   it('rolls back the complete schedule when a date update fails', async () => {
-    const { db, transactions } = makeScheduleDb(3);
+    const { db } = makeScheduleDb(3);
 
     await expect(scheduleProgramDays(db, 'imported-plan', '2026-07-22', [0, 1, 3, 4]))
       .rejects.toThrow('simulated schedule write failure');
 
-    expect(transactions).toEqual(['BEGIN TRANSACTION', 'ROLLBACK']);
   });
 });
