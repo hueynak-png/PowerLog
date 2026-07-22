@@ -8,6 +8,7 @@ import { View } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { WebAccessGate } from '@/src/features/auth/WebAccessGate';
 import '@/src/i18n';
 import { useAppStore } from '@/src/stores/useAppStore';
 import { initAI } from '@/src/services/aiService';
@@ -50,7 +51,11 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <WebAccessGate>
+      <RootLayoutNav />
+    </WebAccessGate>
+  );
 }
 
 function RootLayoutNav() {

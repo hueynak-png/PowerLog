@@ -1,5 +1,3 @@
-import '@testing-library/react-native/extend-expect';
-
 // Mock expo-sqlite for repository tests that need a DB handle
 jest.mock('expo-sqlite', () => ({
   openDatabaseAsync: jest.fn(),

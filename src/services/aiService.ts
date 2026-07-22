@@ -7,16 +7,40 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'powerlog-ai-config';
+const WEB_AI_BASE_URL = '/api/ai';
 
 interface AIConfig {
   baseUrl: string;
   authToken: string;
 }
 
+const fetchWithTimeout = async (
+  url: string,
+  options: RequestInit,
+  timeoutMs: number,
+  timeoutMessage: string,
+): Promise<Response> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(timeoutMessage);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 const normalizeAIBaseUrl = (baseUrl: string): string =>
   baseUrl.trim().replace(/\/+$/, '').replace(/\/ai$/i, '');
 
-let config: AIConfig = { baseUrl: '', authToken: '' };
+let config: AIConfig = Platform.OS === 'web'
+  ? { baseUrl: WEB_AI_BASE_URL, authToken: '' }
+  : { baseUrl: '', authToken: '' };
 
 const persist = async (cfg: AIConfig) => {
   try {
@@ -25,6 +49,11 @@ const persist = async (cfg: AIConfig) => {
 };
 
 export const initAI = async () => {
+  if (Platform.OS === 'web') {
+    config = { baseUrl: WEB_AI_BASE_URL, authToken: '' };
+    return;
+  }
+
   try {
     const stored = await AsyncStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -35,6 +64,11 @@ export const initAI = async () => {
 };
 
 export const configureAI = (baseUrl: string, authToken: string) => {
+  if (Platform.OS === 'web') {
+    config = { baseUrl: WEB_AI_BASE_URL, authToken: '' };
+    return;
+  }
+
   config = { baseUrl: normalizeAIBaseUrl(baseUrl), authToken: authToken.trim() };
   persist(config);
 };
@@ -42,7 +76,7 @@ export const configureAI = (baseUrl: string, authToken: string) => {
 export const getAIConfig = (): AIConfig => config;
 
 export const isAIConfigured = (): boolean =>
-  config.baseUrl.length > 0 && config.authToken.length > 0;
+  Platform.OS === 'web' || (config.baseUrl.length > 0 && config.authToken.length > 0);
 
 export interface AIConnectionTestResult {
   baseUrl: string;
@@ -55,6 +89,15 @@ export const testAIConnection = async (
   baseUrl: string,
   authToken: string,
 ): Promise<AIConnectionTestResult> => {
+  if (Platform.OS === 'web') {
+    return {
+      baseUrl: WEB_AI_BASE_URL,
+      healthStatus: 200,
+      parseStatus: 200,
+      parseBody: 'Built-in AI service',
+    };
+  }
+
   const normalizedBaseUrl = normalizeAIBaseUrl(baseUrl);
   const health = await rawAIRequest('GET', normalizedBaseUrl, undefined, undefined, 15000);
   const parse = await rawAIRequest(
@@ -80,31 +123,17 @@ const rawAIRequest = (
   body?: string,
   timeoutMs = 30000,
 ): Promise<{ status: number; body: string }> => {
-  if (Platform.OS !== 'web') {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open(method, url, true);
-      if (body) xhr.setRequestHeader('Content-Type', 'application/json');
-      if (authToken) xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
-      xhr.timeout = timeoutMs;
-      xhr.onload = () => resolve({ status: xhr.status, body: xhr.responseText ?? '' });
-      xhr.onerror = () => reject(new Error(`XHR network error for ${url}`));
-      xhr.ontimeout = () => reject(new Error(`XHR timeout for ${url}`));
-      xhr.send(body);
-    });
-  }
-
-  return Promise.race([
-    fetch(url, {
-      method,
-      headers: {
-        ...(body ? { 'Content-Type': 'application/json' } : {}),
-        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      },
-      body,
-    }).then(async (response) => ({ status: response.status, body: await response.text() })),
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Fetch timeout for ${url}`)), timeoutMs)),
-  ]);
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url, true);
+    if (body) xhr.setRequestHeader('Content-Type', 'application/json');
+    if (authToken) xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+    xhr.timeout = timeoutMs;
+    xhr.onload = () => resolve({ status: xhr.status, body: xhr.responseText ?? '' });
+    xhr.onerror = () => reject(new Error(`XHR network error for ${url}`));
+    xhr.ontimeout = () => reject(new Error(`XHR timeout for ${url}`));
+    xhr.send(body);
+  });
 };
 
 interface AIRequestOptions {
@@ -120,7 +149,9 @@ const aiRequest = async <T>(
     throw new Error('AI service not configured');
   }
 
-  const url = `${config.baseUrl}/ai${endpoint}`;
+  const url = Platform.OS === 'web'
+    ? `${config.baseUrl}${endpoint}`
+    : `${config.baseUrl}/ai${endpoint}`;
   const timeoutMs = options.timeout ?? 30000;
   const payload = JSON.stringify(body);
 
@@ -157,22 +188,22 @@ const aiRequest = async <T>(
     });
   }
 
-  // Web path: fetch with Promise.race timeout
+  // Web path: fetch with an abortable timeout and same-origin cookies.
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const resp = await Promise.race([
-        fetch(url, {
+      const resp = await fetchWithTimeout(
+        url,
+        {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.authToken}`,
           },
           body: payload,
-        }),
-        new Promise<never>((_, r) =>
-          setTimeout(() => r(new Error('AI request timed out. Please try again.')), timeoutMs),
-        ),
-      ]);
+          credentials: 'include',
+        },
+        timeoutMs,
+        'AI request timed out. Please try again.',
+      );
 
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
