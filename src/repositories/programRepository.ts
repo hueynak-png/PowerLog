@@ -637,7 +637,7 @@ export const scheduleProgramDays = async (
   const startOffset = getFirstTrainingOffset(startDate, scheduleOffsets);
   const weeks = await getProgramWeeks(db, programId);
   console.log(`[scheduleProgramDays] programId=${programId} startDate=${startDate} startOffset=${startOffset} weeks=${weeks.length}`);
-  let updated = 0;
+  const updates: Array<{ id: string; scheduledDate: string }> = [];
 
   for (const week of weeks) {
     const days = await getProgramDays(db, week.id);
@@ -646,19 +646,27 @@ export const scheduleProgramDays = async (
 
     for (const day of days) {
       const dayOffset = scheduleOffsets[(day.dayNumber - 1) % scheduleOffsets.length] ?? (day.dayNumber - 1);
-      const scheduledDate = parseLocalDate(startDate);
+      const scheduledDate = new Date(startDateObj);
       scheduledDate.setDate(scheduledDate.getDate() + startOffset + weekOffset + dayOffset);
-      const dateStr = formatLocalDate(scheduledDate);
-
-      await db.runAsync(
-        `UPDATE program_days SET scheduled_date = ? WHERE id = ?`,
-        [dateStr, day.id],
-      );
-      updated++;
+      updates.push({ id: day.id, scheduledDate: formatLocalDate(scheduledDate) });
     }
   }
 
-  return updated;
+  try {
+    await db.execAsync('BEGIN TRANSACTION');
+    for (const update of updates) {
+      await db.runAsync(
+        `UPDATE program_days SET scheduled_date = ? WHERE id = ?`,
+        [update.scheduledDate, update.id],
+      );
+    }
+    await db.execAsync('COMMIT');
+  } catch (error) {
+    await db.execAsync('ROLLBACK');
+    throw error;
+  }
+
+  return updates.length;
 };
 
 export const getProgramDaysForWeek = async (

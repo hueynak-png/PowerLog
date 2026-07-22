@@ -73,3 +73,36 @@ export const getWeekStart = (date: Date): Date => {
 
   return start;
 };
+
+/** Parse a persisted YYYY-MM-DD value as a local calendar date. */
+export const parseLocalDate = (value: string): Date => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) throw new Error(`Invalid local date: ${value}`);
+
+  const [, yearString, monthString, dayString] = match;
+  const year = Number(yearString);
+  const month = Number(monthString);
+  const day = Number(dayString);
+  const date = new Date(year, month - 1, day);
+
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    throw new Error(`Invalid local date: ${value}`);
+  }
+
+  return date;
+};
+
+/** Format a local calendar date for the scheduled_date column. */
+export const formatLocalDate = (date: Date): string =>
+  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+
+/**
+ * Returns the number of days until the first configured weekday, using a
+ * Monday-based schedule (0=Mon … 6=Sun).
+ */
+export const getFirstTrainingOffset = (startDate: string, scheduleOffsets: number[]): number => {
+  const date = parseLocalDate(startDate);
+  const firstTrainingDay = scheduleOffsets[0] ?? 0;
+  const mondayBasedDay = (date.getDay() + 6) % 7;
+  return (firstTrainingDay - mondayBasedDay + 7) % 7;
+};

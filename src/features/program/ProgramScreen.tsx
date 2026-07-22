@@ -432,24 +432,29 @@ export function ProgramScreen() {
     setPickingDayProgram(null);
     const wasReplacing = cycle != null;
     const startDate = new Date().toISOString().slice(0, 10);
-    await setCurrentCycle(db, {
-      programId: pickingDayProgram.id,
-      goal: pickingDayProgram.goal,
-      currentWeek: 1,
-      currentDay: dayNumber,
-      currentPhase: 'entry',
-      trainingDaysPerWeek: daysPerWeek ?? 4,
-      startedAt: new Date().toISOString(),
-      isActive: true,
-    });
-    // Schedule all program days into the calendar
-    const scheduled = await scheduleProgramDays(db, pickingDayProgram.id, startDate, scheduleWeekdays);
-    console.log(`[ProgramScreen] Scheduled ${scheduled} program days starting ${startDate}`);
-    await refresh();
-    if (wasReplacing) {
-      showAlert('已替换', `当前激活周期已替换。${scheduled} 个训练日已排入日历。`);
-    } else {
-      showAlert('已激活', `${scheduled} 个训练日已排入日历。`);
+    try {
+      // Finish the transactional calendar schedule before replacing the active cycle.
+      const scheduled = await scheduleProgramDays(db, pickingDayProgram.id, startDate, scheduleWeekdays);
+      await setCurrentCycle(db, {
+        programId: pickingDayProgram.id,
+        goal: pickingDayProgram.goal,
+        currentWeek: 1,
+        currentDay: dayNumber,
+        currentPhase: 'entry',
+        trainingDaysPerWeek: daysPerWeek ?? 4,
+        startedAt: new Date().toISOString(),
+        isActive: true,
+      });
+      console.log(`[ProgramScreen] Scheduled ${scheduled} program days starting ${startDate}`);
+      await refresh();
+      if (wasReplacing) {
+        showAlert('已替换', `当前激活周期已替换。${scheduled} 个训练日已排入日历。`);
+      } else {
+        showAlert('已激活', `${scheduled} 个训练日已排入日历。`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      showAlert('激活失败', `当前计划未切换；日历排程未发生部分写入。\n${message}`);
     }
   };
 
