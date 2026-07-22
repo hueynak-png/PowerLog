@@ -1,4 +1,5 @@
 import { useFonts } from 'expo-font';
+import Head from 'expo-router/head';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -56,19 +57,24 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <View style={{ flex: 1 }}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          contentStyle: { backgroundColor: 'transparent' },
-          headerShadowVisible: false,
-        }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
-        <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
-        <Stack.Screen name="review" options={{ headerShown: false }} />
-        <Stack.Screen name="debug/program-intensity" options={{ title: '强度检查', headerShown: true }} />
-      </Stack>
-    </View>
+    <>
+      <Head>
+        <title>IronBase</title>
+      </Head>
+      <View style={{ flex: 1 }}>
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <Stack
+          screenOptions={{
+            contentStyle: { backgroundColor: 'transparent' },
+            headerShadowVisible: false,
+          }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
+          <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
+          <Stack.Screen name="review" options={{ headerShown: false }} />
+          <Stack.Screen name="debug/program-intensity" options={{ title: '强度检查', headerShown: true }} />
+        </Stack>
+      </View>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 {
-  "name": "PowerLog",
-  "short_name": "PowerLog",
+  "name": "IronBase",
+  "short_name": "IronBase",
   "description": "Personal strength training management app with AI coaching",
   "start_url": "/",
   "display": "standalone",
