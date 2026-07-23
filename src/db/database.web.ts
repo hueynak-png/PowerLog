@@ -174,8 +174,8 @@ export const exportDatabaseSnapshot = async (): Promise<Uint8Array> => {
   return data;
 };
 
-export const createDatabaseSnapshotBackup = async (): Promise<{ backupId: string; createdAt: string }> => {
-  const data = await exportDatabaseSnapshot();
+export const createDatabaseSnapshotBackup = async (snapshot?: Uint8Array): Promise<{ backupId: string; createdAt: string }> => {
+  const data = snapshot ?? await exportDatabaseSnapshot();
   const createdAt = new Date().toISOString();
   const backupId = `powerlog-db-backup-${createdAt}`;
   await saveToIndexedDB(data, backupId);

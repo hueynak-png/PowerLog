@@ -18,7 +18,7 @@ export const exportDatabaseSnapshot = async (): Promise<Uint8Array> => {
   throw new Error('Platform-specific database implementation not resolved. This should not happen.');
 };
 
-export const createDatabaseSnapshotBackup = async (): Promise<{ backupId: string; createdAt: string }> => {
+export const createDatabaseSnapshotBackup = async (_snapshot?: Uint8Array): Promise<{ backupId: string; createdAt: string }> => {
   throw new Error('Platform-specific database implementation not resolved. This should not happen.');
 };
 

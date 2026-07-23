@@ -12,21 +12,18 @@ import { configureAI, getAIConfig, isAIConfigured, testAIConnection } from '@/sr
 import {
   configureSync,
   createRecoveryKey,
-  downloadLatestSnapshot,
   getLatestSnapshotMeta,
   getLocalSyncStatus,
   getSyncConfig,
   isSyncConfigured,
-  markSnapshotRestored,
   type RemoteSnapshotMeta,
   uploadSnapshot,
 } from '@/src/services/syncService';
 import { checkSyncState, flushAutoSync, overwriteCloudWithLocal, subscribeToSyncStatus } from '@/src/services/autoSyncService';
-import { createPreRestoreBackup, getLocalSnapshotMeta, replaceLocalSnapshot, sha256Hex } from '@/src/db/snapshot';
-import { getDatabase } from '@/src/db/database';
 import { exportBackupFile, importBackupFile } from '@/src/services/localBackupFileService';
 import { createSnapshotUploadPayload, formatSnapshotSize } from '@/src/services/snapshotBackupService';
 import { countCompletedWorkouts } from '@/src/services/backupRecoveryService';
+import { restoreLatestCloudSnapshot } from '@/src/services/cloudSnapshotRestoreService';
 import { getAppVersion, releaseNotes } from '@/src/services/versionService';
 import { hasPwaUpdateAvailable, reloadForPwaUpdate, subscribeToPwaUpdates } from '@/src/services/pwaUpdateService';
 import { isWebAccessEnabled, logoutWebAccess } from '@/src/services/webAccessService';
@@ -271,24 +268,10 @@ export function SettingsScreen() {
 
   const restoreLatestSnapshot = () => runSyncAction(async () => {
     saveSyncConfig();
-    const { bytes, meta } = await downloadLatestSnapshot();
-    const localMeta = await getLocalSnapshotMeta();
-    if (meta.schemaVersion > localMeta.schemaVersion) {
-      throw new Error('云端备份使用了更高的数据库版本，请先更新应用。');
-    }
-    const downloadedHash = await sha256Hex(bytes);
-    if (downloadedHash !== meta.sha256.toLowerCase()) throw new Error(t('errors.snapshotChecksumMismatch'));
-    const backup = await createPreRestoreBackup();
-    await replaceLocalSnapshot(bytes);
-    const restoredDb = await getDatabase();
-    const coreTables = await restoredDb.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('schema_version', 'profiles', 'workout_sessions')",
-    );
-    if (coreTables.length !== 3) throw new Error('云端备份恢复后未通过本地数据库完整性检查。');
-    markSnapshotRestored(meta);
-    setRemoteSnapshot(meta);
+    const restored = await restoreLatestCloudSnapshot();
+    setRemoteSnapshot(restored.meta);
     setSyncStatusMeta(getLocalSyncStatus());
-    return t('settingsExtras.restoredCloudBackup', { backupId: backup.backupId });
+    return t('settingsExtras.restoredCloudBackup', { backupId: restored.backupId });
   });
 
   const runBackupAction = async (action: () => Promise<string>) => {
