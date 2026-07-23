@@ -637,7 +637,7 @@ export const scheduleProgramDays = async (
   const startOffset = getFirstTrainingOffset(startDate, scheduleOffsets);
   const weeks = await getProgramWeeks(db, programId);
   console.log(`[scheduleProgramDays] programId=${programId} startDate=${startDate} startOffset=${startOffset} weeks=${weeks.length}`);
-  let updated = 0;
+  const updates: Array<{ id: string; scheduledDate: string }> = [];
 
   for (const week of weeks) {
     const days = await getProgramDays(db, week.id);
@@ -646,19 +646,25 @@ export const scheduleProgramDays = async (
 
     for (const day of days) {
       const dayOffset = scheduleOffsets[(day.dayNumber - 1) % scheduleOffsets.length] ?? (day.dayNumber - 1);
-      const scheduledDate = parseLocalDate(startDate);
+      const scheduledDate = new Date(startDateObj);
       scheduledDate.setDate(scheduledDate.getDate() + startOffset + weekOffset + dayOffset);
-      const dateStr = formatLocalDate(scheduledDate);
-
-      await db.runAsync(
-        `UPDATE program_days SET scheduled_date = ? WHERE id = ?`,
-        [dateStr, day.id],
-      );
-      updated++;
+      updates.push({ id: day.id, scheduledDate: formatLocalDate(scheduledDate) });
     }
   }
 
-  return updated;
+  const writeSchedule = async () => {
+    for (const update of updates) {
+      await db.runAsync(
+        `UPDATE program_days SET scheduled_date = ? WHERE id = ?`,
+        [update.scheduledDate, update.id],
+      );
+    }
+  };
+
+  if (db.withBatchAsync) await db.withBatchAsync(writeSchedule);
+  else await writeSchedule();
+
+  return updates.length;
 };
 
 export const getProgramDaysForWeek = async (
@@ -866,8 +872,7 @@ export const rescheduleProgramDayCascade = async (
   const firstChanges: RescheduleResult['firstChanges'] = [];
   const now = new Date().toISOString();
   let historyCount = 0;
-  try {
-    await db.execAsync('BEGIN TRANSACTION');
+  const applyReschedule = async () => {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const newDate = newDates[i];
@@ -892,11 +897,10 @@ export const rescheduleProgramDayCascade = async (
         });
       }
     }
-    await db.execAsync('COMMIT');
-  } catch (e) {
-    await db.execAsync('ROLLBACK');
-    throw e;
-  }
+  };
+
+  if (db.withBatchAsync) await db.withBatchAsync(applyReschedule);
+  else await applyReschedule();
 
   return { affectedCount: rows.length, historyCreatedCount: historyCount, firstChanges };
 };

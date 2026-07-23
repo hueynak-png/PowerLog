@@ -27,11 +27,13 @@ import { createSnapshotUploadPayload, formatSnapshotSize } from '@/src/services/
 import { countCompletedWorkouts } from '@/src/services/backupRecoveryService';
 import { getAppVersion, releaseNotes } from '@/src/services/versionService';
 import { hasPwaUpdateAvailable, reloadForPwaUpdate, subscribeToPwaUpdates } from '@/src/services/pwaUpdateService';
+import { isWebAccessEnabled, logoutWebAccess } from '@/src/services/webAccessService';
 import { useSettingsStore } from '@/src/stores/useSettingsStore';
 import { colors, radius, spacing, typography } from '@/src/theme';
 
 export function SettingsScreen() {
   const { t, i18n } = useTranslation();
+  const isWeb = Platform.OS === 'web';
   const router = useRouter();
   const db = useDatabase();
   const insets = useSafeAreaInsets();
@@ -60,9 +62,11 @@ export function SettingsScreen() {
   const [aiTestBusy, setAiTestBusy] = useState(false);
   const [aiTestMessage, setAiTestMessage] = useState<string | null>(null);
   const [aiTestError, setAiTestError] = useState<string | null>(null);
+  const [webLocking, setWebLocking] = useState(false);
+  const [webLockError, setWebLockError] = useState<string | null>(null);
 
   const savedSyncConfig = getSyncConfig();
-  const [syncBaseUrl, setSyncBaseUrl] = useState(savedSyncConfig.baseUrl || savedAIConfig.baseUrl);
+  const [syncBaseUrl, setSyncBaseUrl] = useState(savedSyncConfig.baseUrl || (isWeb ? '' : savedAIConfig.baseUrl));
   const [syncRecoveryKey, setSyncRecoveryKey] = useState(savedSyncConfig.recoveryKey);
   const [syncConfigured, setSyncConfigured] = useState(isSyncConfigured());
   const [syncExpanded, setSyncExpanded] = useState(!isSyncConfigured());
@@ -146,7 +150,7 @@ export function SettingsScreen() {
       ]);
 
       // Save AI config
-      if (aiBaseUrl && aiAuthToken) {
+      if (!isWeb && aiBaseUrl && aiAuthToken) {
         configureAI(aiBaseUrl, aiAuthToken);
         setAiBaseUrl(getAIConfig().baseUrl);
         setAiAuthToken(getAIConfig().authToken);
@@ -185,6 +189,19 @@ export function SettingsScreen() {
       setAiTestError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setAiTestBusy(false);
+    }
+  };
+
+  const handleLockWebApp = async () => {
+    if (!isWebAccessEnabled || webLocking) return;
+
+    setWebLocking(true);
+    setWebLockError(null);
+    try {
+      await logoutWebAccess();
+    } catch {
+      setWebLockError('无法锁定应用，请稍后重试。');
+      setWebLocking(false);
     }
   };
 
@@ -361,41 +378,59 @@ export function SettingsScreen() {
         </Card>
 
         <SectionHeader title={t('workout.aiCoach')} subtitle={t('settingsExtras.aiCoachSubtitle')} />
-        <Card variant="coach" style={styles.card}>
-          <Pressable onPress={() => setAiExpanded(!aiExpanded)} style={styles.aiHeader}>
-            <Text style={[styles.aiStatus, !aiConfigured && styles.aiNotConfigured]}>
-              {aiConfigured ? '✓ ' + t('settingsExtras.aiConfigured') : '✗ ' + t('settingsExtras.notConfigured')}
-            </Text>
-            <Text style={styles.aiToggle}>{aiExpanded ? '▲' : '▼'}</Text>
-          </Pressable>
-          {aiExpanded && (
-            <>
-              <TextField
-                label={t('settingsExtras.backendUrl')}
-                value={aiBaseUrl}
-                onChangeText={setAiBaseUrl}
-                placeholder="https://your-worker.workers.dev"
-              />
-              <TextField
-                label={t('settingsExtras.authToken')}
-                value={aiAuthToken}
-                onChangeText={setAiAuthToken}
-                placeholder={t('settingsExtras.yourAuthToken')}
-              />
-              <Button
-                title="测试 AI 连接"
-                onPress={handleTestAIConnection}
-                loading={aiTestBusy}
-                disabled={!aiBaseUrl || !aiAuthToken || aiTestBusy}
-                variant="secondary"
-                size="sm"
-                fullWidth
-              />
-              {aiTestMessage ? <Text style={styles.savedText}>{aiTestMessage}</Text> : null}
-              {aiTestError ? <Text style={styles.errorText}>AI 连接失败: {aiTestError}</Text> : null}
-            </>
-          )}
-        </Card>
+        {isWeb ? (
+          <Card variant="coach" style={styles.card}>
+            <Text style={styles.aiStatus}>✓ 内置 AI 服务</Text>
+            <Text style={styles.cardText}>Web 版会通过受保护的内置服务连接 AI，无需输入 endpoint 或 token。</Text>
+          </Card>
+        ) : (
+          <Card variant="coach" style={styles.card}>
+            <Pressable onPress={() => setAiExpanded(!aiExpanded)} style={styles.aiHeader}>
+              <Text style={[styles.aiStatus, !aiConfigured && styles.aiNotConfigured]}>
+                {aiConfigured ? '✓ ' + t('settingsExtras.aiConfigured') : '✗ ' + t('settingsExtras.notConfigured')}
+              </Text>
+              <Text style={styles.aiToggle}>{aiExpanded ? '▲' : '▼'}</Text>
+            </Pressable>
+            {aiExpanded && (
+              <>
+                <TextField
+                  label={t('settingsExtras.backendUrl')}
+                  value={aiBaseUrl}
+                  onChangeText={setAiBaseUrl}
+                  placeholder="https://your-worker.workers.dev"
+                />
+                <TextField
+                  label={t('settingsExtras.authToken')}
+                  value={aiAuthToken}
+                  onChangeText={setAiAuthToken}
+                  placeholder={t('settingsExtras.yourAuthToken')}
+                />
+                <Button
+                  title="测试 AI 连接"
+                  onPress={handleTestAIConnection}
+                  loading={aiTestBusy}
+                  disabled={!aiBaseUrl || !aiAuthToken || aiTestBusy}
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                />
+                {aiTestMessage ? <Text style={styles.savedText}>{aiTestMessage}</Text> : null}
+                {aiTestError ? <Text style={styles.errorText}>AI 连接失败: {aiTestError}</Text> : null}
+              </>
+            )}
+          </Card>
+        )}
+
+        {isWeb ? (
+          <>
+            <SectionHeader title="访问" subtitle="Private web access" />
+            <Card variant="elevated" style={styles.card}>
+              <Text style={styles.cardText}>此操作会清除当前浏览器会话，并返回锁定页面。</Text>
+              <Button title="锁定应用" onPress={() => void handleLockWebApp()} loading={webLocking} variant="danger" fullWidth />
+              {webLockError ? <Text style={styles.errorText}>{webLockError}</Text> : null}
+            </Card>
+          </>
+        ) : null}
 
         <SectionHeader title={t('settings.cloudSync')} subtitle={t('settingsExtras.cloudSyncSubtitle')} />
         <Card variant="elevated" style={styles.card}>

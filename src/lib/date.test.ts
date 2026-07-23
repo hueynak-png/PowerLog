@@ -1,6 +1,15 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { formatDate, formatDuration, formatTime, getWeekStart, isToday } from '@/src/lib/date';
+import {
+  formatDate,
+  formatDuration,
+  formatLocalDate,
+  formatTime,
+  getFirstTrainingOffset,
+  getWeekStart,
+  isToday,
+  parseLocalDate,
+} from '@/src/lib/date';
 
 describe('date', () => {
   it('formats date as YYYY-MM-DD', () => {
@@ -27,5 +36,19 @@ describe('date', () => {
 
     expect(weekStart.getDay()).toBe(1);
     expect(weekStart.getDate()).toBe(25);
+  });
+
+  it('parses and formats schedule dates without UTC conversion', () => {
+    const date = parseLocalDate('2026-07-27');
+
+    expect(date.getFullYear()).toBe(2026);
+    expect(date.getMonth()).toBe(6);
+    expect(date.getDate()).toBe(27);
+    expect(formatLocalDate(date)).toBe('2026-07-27');
+  });
+
+  it('anchors a training week on its first configured weekday', () => {
+    expect(getFirstTrainingOffset('2026-07-22', [0, 1, 3, 4])).toBe(5);
+    expect(getFirstTrainingOffset('2026-07-27', [0, 1, 3, 4])).toBe(0);
   });
 });

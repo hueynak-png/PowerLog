@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { type Href, useRouter } from 'expo-router';
+import { type Href, useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from "expo-router/react-navigation";
 
 import { Button, Card, SectionHeader, TextField } from '@/src/components/ui';
 import type { ProgramDay, WorkoutSession } from '@/src/domain/types';

@@ -1,4 +1,5 @@
 import { useFonts } from 'expo-font';
+import Head from 'expo-router/head';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -7,6 +8,7 @@ import { View } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { WebAccessGate } from '@/src/features/auth/WebAccessGate';
 import '@/src/i18n';
 import { useAppStore } from '@/src/stores/useAppStore';
 import { initAI } from '@/src/services/aiService';
@@ -49,26 +51,37 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <>
+      <Head>
+        <title>IronBase</title>
+      </Head>
+      <WebAccessGate>
+        <RootLayoutNav />
+      </WebAccessGate>
+    </>
+  );
 }
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <View style={{ flex: 1 }}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          contentStyle: { backgroundColor: 'transparent' },
-          headerShadowVisible: false,
-        }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
-        <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
-        <Stack.Screen name="review" options={{ headerShown: false }} />
-        <Stack.Screen name="debug/program-intensity" options={{ title: '强度检查', headerShown: true }} />
-      </Stack>
-    </View>
+    <>
+      <View style={{ flex: 1 }}>
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <Stack
+          screenOptions={{
+            contentStyle: { backgroundColor: 'transparent' },
+            headerShadowVisible: false,
+          }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
+          <Stack.Screen name="workout/[sessionId]/summary" options={{ headerShown: false }} />
+          <Stack.Screen name="review" options={{ headerShown: false }} />
+          <Stack.Screen name="debug/program-intensity" options={{ title: '强度检查', headerShown: true }} />
+        </Stack>
+      </View>
+    </>
   );
 }

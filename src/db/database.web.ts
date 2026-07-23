@@ -116,17 +116,42 @@ const createWebDatabase = async (): Promise<PowerLogDatabase> => {
     },
 
     withBatchAsync: async <T>(fn: () => Promise<T>): Promise<T> => {
-      batchDepth += 1;
+      const isOuterBatch = batchDepth === 0;
+      let enteredBatch = false;
+      let transactionStarted = false;
+
       try {
+        if (isOuterBatch) {
+          batchDirty = false;
+          db.run('BEGIN TRANSACTION');
+          transactionStarted = true;
+        }
+
+        batchDepth += 1;
+        enteredBatch = true;
         const result = await fn();
         batchDepth -= 1;
-        if (batchDepth === 0 && batchDirty) {
-          batchDirty = false;
-          await persist();
+
+        if (isOuterBatch) {
+          db.run('COMMIT');
+          transactionStarted = false;
+          if (batchDirty) {
+            batchDirty = false;
+            await persist();
+          }
         }
+
         return result;
       } catch (error) {
-        batchDepth -= 1;
+        if (enteredBatch) batchDepth -= 1;
+        if (isOuterBatch && transactionStarted) {
+          try {
+            db.run('ROLLBACK');
+          } catch {
+            // Preserve the original failure; a rollback error is secondary.
+          }
+          batchDirty = false;
+        }
         throw error;
       }
     },
