@@ -1,6 +1,7 @@
 import initSqlJs, { type Database } from 'sql.js';
 
 import { runMigrations } from './migrations';
+import { notifyDatabasePersisted } from './persistenceEvents';
 import type { PowerLogDatabase } from './types';
 
 const DB_STORAGE_KEY = 'powerlog-db';
@@ -55,6 +56,7 @@ const createWebDatabase = async (): Promise<PowerLogDatabase> => {
   const persist = async (): Promise<void> => {
     const data = db.export();
     await saveToIndexedDB(data);
+    notifyDatabasePersisted();
   };
 
   const runWrite = async (fn: () => void): Promise<void> => {

@@ -19,7 +19,7 @@ describe('local snapshot metadata', () => {
     mockExportDatabaseSnapshot.mockResolvedValue(snapshot);
     mockGetDatabase.mockResolvedValue({
       getFirstAsync: jest.fn().mockResolvedValue({ version: 11 }),
-    });
+    } as any);
   });
 
   it('uses the actual schema_version value instead of a fixed value', async () => {
@@ -35,7 +35,7 @@ describe('local snapshot metadata', () => {
   it('fails safely when schema_version is missing', async () => {
     mockGetDatabase.mockResolvedValue({
       getFirstAsync: jest.fn().mockResolvedValue(null),
-    });
+    } as any);
 
     await expect(getLocalSnapshotMeta()).rejects.toThrow('schema version is missing or invalid');
   });
@@ -43,7 +43,7 @@ describe('local snapshot metadata', () => {
   it('fails safely when schema_version is invalid', async () => {
     mockGetDatabase.mockResolvedValue({
       getFirstAsync: jest.fn().mockResolvedValue({ version: 'not-a-version' }),
-    });
+    } as any);
 
     await expect(getLocalSnapshotMeta()).rejects.toThrow('schema version is missing or invalid');
   });
