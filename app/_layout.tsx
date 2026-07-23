@@ -52,9 +52,14 @@ export default function RootLayout() {
   }
 
   return (
-    <WebAccessGate>
-      <RootLayoutNav />
-    </WebAccessGate>
+    <>
+      <Head>
+        <title>IronBase</title>
+      </Head>
+      <WebAccessGate>
+        <RootLayoutNav />
+      </WebAccessGate>
+    </>
   );
 }
 
@@ -63,9 +68,6 @@ function RootLayoutNav() {
 
   return (
     <>
-      <Head>
-        <title>IronBase</title>
-      </Head>
       <View style={{ flex: 1 }}>
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         <Stack

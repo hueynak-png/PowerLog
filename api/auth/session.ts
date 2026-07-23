@@ -4,11 +4,21 @@ import {
   requestIsAuthenticated,
 } from '../../server/webAuth';
 
-export default function session(request: Request): Response {
+export function handleSession(request: Request): Response {
   if (request.method !== 'GET') return methodNotAllowed('GET');
 
   const sessionSecret = process.env.IRONBASE_SESSION_SECRET;
-  return jsonResponse({
-    authenticated: Boolean(sessionSecret) && requestIsAuthenticated(request, sessionSecret),
-  });
+  if (!sessionSecret) return jsonResponse({ authenticated: false });
+
+  try {
+    return jsonResponse({
+      authenticated: requestIsAuthenticated(request, sessionSecret),
+    });
+  } catch {
+    return jsonResponse({ error: 'Authentication service is temporarily unavailable' }, 500);
+  }
 }
+
+// Expo's static output uses Vercel's Web Handler form. A default function would
+// instead receive Node's IncomingMessage/ServerResponse pair.
+export default { fetch: handleSession };

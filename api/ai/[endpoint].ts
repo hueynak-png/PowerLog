@@ -33,7 +33,7 @@ const getWorkerUrl = (baseUrl: string, endpoint: string): string | undefined => 
   }
 };
 
-export default async function proxyAiRequest(request: Request): Promise<Response> {
+export async function handleProxyAiRequest(request: Request): Promise<Response> {
   if (request.method !== 'POST') return methodNotAllowed('POST');
 
   const sessionSecret = process.env.IRONBASE_SESSION_SECRET;
@@ -90,3 +90,5 @@ export default async function proxyAiRequest(request: Request): Promise<Response
     clearTimeout(timeout);
   }
 }
+
+export default { fetch: handleProxyAiRequest };

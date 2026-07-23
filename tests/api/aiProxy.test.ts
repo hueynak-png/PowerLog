@@ -1,4 +1,4 @@
-import proxyAiRequest from '../../api/ai/[endpoint]';
+import proxyAiRequest, { handleProxyAiRequest } from '../../api/ai/[endpoint]';
 import { createSessionToken, SESSION_COOKIE_NAME } from '../../server/webAuth';
 
 const SESSION_SECRET = 'test-session-secret';
@@ -45,7 +45,7 @@ describe('IronBase AI proxy', () => {
     const fetchMock = jest.fn();
     global.fetch = fetchMock;
 
-    const response = await proxyAiRequest(new Request('https://ironbase.test/api/ai/parse-plan', {
+    const response = await handleProxyAiRequest(new Request('https://ironbase.test/api/ai/parse-plan', {
       method: 'POST',
       body: JSON.stringify({ planText: 'Week 1 Day 1: Squat 3x5' }),
     }));
@@ -61,7 +61,7 @@ describe('IronBase AI proxy', () => {
     ));
     global.fetch = fetchMock;
 
-    const response = await proxyAiRequest(authenticatedRequest());
+    const response = await handleProxyAiRequest(authenticatedRequest());
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ success: true, data: { name: 'Two weeks' } });
@@ -79,9 +79,13 @@ describe('IronBase AI proxy', () => {
       { status: 400, headers: { 'content-type': 'application/json' } },
     ));
 
-    const response = await proxyAiRequest(authenticatedRequest());
+    const response = await handleProxyAiRequest(authenticatedRequest());
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: 'Invalid request' });
+  });
+
+  it('uses the Vercel Web Handler export shape', () => {
+    expect(typeof proxyAiRequest.fetch).toBe('function');
   });
 });

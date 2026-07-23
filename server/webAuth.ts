@@ -57,8 +57,16 @@ export const getCookie = (cookieHeader: string | null, name: string): string | u
   return undefined;
 };
 
-export const requestIsAuthenticated = (request: Request, sessionSecret: string): boolean =>
-  isValidSessionToken(getCookie(request.headers.get('cookie'), SESSION_COOKIE_NAME), sessionSecret);
+export const requestIsAuthenticated = (request: Request, sessionSecret: string): boolean => {
+  try {
+    return isValidSessionToken(
+      getCookie(request.headers.get('cookie'), SESSION_COOKIE_NAME),
+      sessionSecret,
+    );
+  } catch {
+    return false;
+  }
+};
 
 export const sessionCookie = (sessionSecret: string): string =>
   `${SESSION_COOKIE_NAME}=${createSessionToken(sessionSecret)}; Max-Age=${SESSION_MAX_AGE_SECONDS}; ${COOKIE_ATTRIBUTES}`;
