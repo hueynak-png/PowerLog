@@ -25,6 +25,7 @@ export const markSyncDirty = (): void => undefined;
 export const scheduleAutoUpload = (): void => undefined;
 export const flushAutoSync = async (): Promise<boolean> => false;
 export const checkSyncState = async (): Promise<SyncStatusMeta> => getLocalSyncStatus();
+export const subscribeToSyncStatus = (_listener: () => void): (() => void) => () => undefined;
 export const disposeAutoSync = (): void => undefined;
 export const overwriteCloudWithLocal = async (): Promise<RemoteSnapshotMeta> => {
   throw new Error('Cloud backup overwrite is available on web only.');

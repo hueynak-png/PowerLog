@@ -40,7 +40,7 @@ export interface SyncStatusMeta {
   state?: CloudBackupState;
 }
 
-export type CloudBackupState = 'checking' | 'synced' | 'pending' | 'uploading' | 'offline' | 'remote-update' | 'conflict' | 'needs-choice' | 'unavailable' | 'idle';
+export type CloudBackupState = 'checking' | 'synced' | 'pending' | 'uploading' | 'offline' | 'remote-update' | 'conflict' | 'needs-choice' | 'unavailable' | 'error' | 'idle';
 
 const statusListeners = new Set<() => void>();
 

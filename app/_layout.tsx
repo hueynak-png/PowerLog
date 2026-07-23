@@ -40,7 +40,6 @@ export default function RootLayout() {
   useEffect(() => {
     void initialize();
     void initAI();
-    return initializeAutoSync();
   }, [initialize]);
 
   useEffect(() => {
@@ -67,6 +66,9 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+
+  // WebAccessGate only mounts this component after session authentication.
+  useEffect(() => initializeAutoSync(), []);
 
   return (
     <>

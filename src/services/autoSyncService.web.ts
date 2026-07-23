@@ -18,6 +18,16 @@ let uploadInFlight: Promise<boolean> | undefined;
 
 const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
 const normalizedHash = (value: string | undefined) => value?.toLowerCase();
+const isBlockedAutoSyncState = (state: ReturnType<typeof getLocalSyncStatus>['state']) =>
+  state === 'error' || state === 'unavailable' || state === 'checking';
+
+const safeSyncError = (error: unknown, fallback: string): string => {
+  const message = error instanceof Error ? error.message : '';
+  if (/\b401\b|unauthori[sz]ed/i.test(message)) return '访问会话无效，请重新解锁应用。';
+  if (/\b503\b|service.*unavailable|temporarily unavailable/i.test(message)) return 'Cloud backup service is unavailable';
+  if (!message || message.length > 200 || /https?:\/\/|recovery key|token|cookie/i.test(message)) return fallback;
+  return message;
+};
 
 export const checkSyncState = async (): Promise<ReturnType<typeof getLocalSyncStatus>> => {
   if (isOffline()) {
@@ -38,7 +48,10 @@ export const checkSyncState = async (): Promise<ReturnType<typeof getLocalSyncSt
     else if (localHash === lastSyncedHash) updateCloudBackupStatus({ ...checked, pending: false, conflict: false, state: 'remote-update' });
     else updateCloudBackupStatus({ ...checked, pending: false, conflict: true, state: 'conflict' });
   } catch (error) {
-    updateCloudBackupStatus({ pending: true, state: 'idle', lastError: error instanceof Error ? error.message : 'Cloud backup check failed' });
+    const state = getLocalSyncStatus().state === 'unavailable' ? 'unavailable' : 'error';
+    const message = safeSyncError(error, 'Cloud backup check failed');
+    updateCloudBackupStatus({ state, lastError: message });
+    throw new Error(message);
   }
   return getLocalSyncStatus();
 };
@@ -46,13 +59,17 @@ export const checkSyncState = async (): Promise<ReturnType<typeof getLocalSyncSt
 export const markSyncDirty = (): void => {
   const current = getLocalSyncStatus();
   if (current.conflict || current.state === 'needs-choice' || current.state === 'remote-update') return;
+  if (isBlockedAutoSyncState(current.state)) {
+    updateCloudBackupStatus({ pending: true });
+    return;
+  }
   updateCloudBackupStatus({ pending: true, state: isOffline() ? 'offline' : 'pending' });
   scheduleAutoUpload();
 };
 
 export const scheduleAutoUpload = (): void => {
   if (uploadTimer) clearTimeout(uploadTimer);
-  if (isOffline()) return;
+  if (isOffline() || isBlockedAutoSyncState(getLocalSyncStatus().state)) return;
   uploadTimer = setTimeout(() => { void flushAutoSync(); }, UPLOAD_DELAY_MS);
 };
 
@@ -60,8 +77,14 @@ export const flushAutoSync = async (): Promise<boolean> => {
   if (uploadInFlight) return uploadInFlight;
   uploadInFlight = (async () => {
     if (isOffline()) { updateCloudBackupStatus({ pending: true, state: 'offline' }); return false; }
-    const state = await checkSyncState();
-    if (!state.pending || state.conflict || state.state === 'needs-choice' || state.state === 'remote-update') return false;
+    if (isBlockedAutoSyncState(getLocalSyncStatus().state)) return false;
+    let state: ReturnType<typeof getLocalSyncStatus>;
+    try {
+      state = await checkSyncState();
+    } catch {
+      return false;
+    }
+    if (state.state !== 'pending' || !state.pending || !state.lastCheckAt || state.conflict) return false;
     updateCloudBackupStatus({ state: 'uploading', lastError: undefined });
     try {
       const payload = await createSnapshotUploadPayload();
@@ -73,7 +96,7 @@ export const flushAutoSync = async (): Promise<boolean> => {
       await uploadSnapshot(payload.bytes, payload.meta, 'auto');
       return true;
     } catch (error) {
-      updateCloudBackupStatus({ pending: true, state: 'idle', lastError: error instanceof Error ? error.message : 'Cloud backup upload failed' });
+      updateCloudBackupStatus({ state: 'error', lastError: safeSyncError(error, 'Cloud backup upload failed') });
       return false;
     }
   })();
@@ -89,7 +112,9 @@ export const overwriteCloudWithLocal = async (): Promise<RemoteSnapshotMeta> => 
 export const initializeAutoSync = (): (() => void) => {
   if (disposePersistence) return disposeAutoSync;
   disposePersistence = subscribeToDatabasePersisted(markSyncDirty);
-  void checkSyncState().then(() => { if (getLocalSyncStatus().pending) scheduleAutoUpload(); });
+  void checkSyncState()
+    .then((state) => { if (state.state === 'pending' && state.pending) scheduleAutoUpload(); })
+    .catch(() => undefined);
   pendingCheckTimer = setInterval(() => { if (getLocalSyncStatus().pending) void flushAutoSync(); }, PENDING_CHECK_MS);
   const onOnline = () => { void flushAutoSync(); };
   const onVisibility = () => { if (document.visibilityState === 'hidden') void flushAutoSync(); };

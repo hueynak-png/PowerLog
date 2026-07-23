@@ -23,6 +23,7 @@ import { checkSyncState, flushAutoSync, overwriteCloudWithLocal, subscribeToSync
 import { exportBackupFile, importBackupFile } from '@/src/services/localBackupFileService';
 import { createSnapshotUploadPayload, formatSnapshotSize } from '@/src/services/snapshotBackupService';
 import { countCompletedWorkouts } from '@/src/services/backupRecoveryService';
+import { getCloudBackupCheckSuccessMessage, getCloudBackupStatusLabel } from '@/src/services/cloudBackupStatus';
 import { restoreLatestCloudSnapshot } from '@/src/services/cloudSnapshotRestoreService';
 import { getAppVersion, releaseNotes } from '@/src/services/versionService';
 import { hasPwaUpdateAvailable, reloadForPwaUpdate, subscribeToPwaUpdates } from '@/src/services/pwaUpdateService';
@@ -241,7 +242,7 @@ export function SettingsScreen() {
     if (isWeb) {
       const status = await checkSyncState();
       setRemoteSnapshot(status.latestSnapshot ?? null);
-      return '已检查云端备份状态。';
+      return getCloudBackupCheckSuccessMessage(status);
     }
     saveSyncConfig();
     const meta = await getLatestSnapshotMeta();
@@ -330,19 +331,7 @@ export function SettingsScreen() {
     });
   };
 
-  const cloudStatusLabel = (() => {
-    switch (syncStatusMeta.state) {
-      case 'synced': return '已同步';
-      case 'pending': return '等待上传';
-      case 'uploading': return '正在上传';
-      case 'offline': return '离线，等待恢复网络';
-      case 'remote-update': return '云端有更新';
-      case 'conflict': return '同步冲突';
-      case 'needs-choice': return '需要选择本机数据或云端数据';
-      case 'unavailable': return '配置不可用';
-      default: return '正在检查云备份';
-    }
-  })();
+  const cloudStatusLabel = getCloudBackupStatusLabel(syncStatusMeta.state);
 
   if (!db) {
     return (
@@ -479,6 +468,9 @@ export function SettingsScreen() {
             </Text>
             <Text style={styles.aiToggle}>{syncExpanded ? '▲' : '▼'}</Text>
           </Pressable>
+          {isWeb && syncStatusMeta.state === 'error' && syncStatusMeta.lastError ? (
+            <Text style={styles.errorText}>检查失败：{syncStatusMeta.lastError}</Text>
+          ) : null}
           {syncExpanded && isWeb && (
             <>
               <Text style={styles.cardText}>Recovery Key 仅保存在服务器，浏览器不会保存密钥或云端地址。</Text>

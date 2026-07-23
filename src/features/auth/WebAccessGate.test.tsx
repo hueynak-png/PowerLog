@@ -58,4 +58,16 @@ describe('WebAccessGate', () => {
       expect(screen.getByRole('button', { name: '解锁' })).toBeTruthy();
     });
   });
+
+  it('mounts protected children after the session check succeeds', async () => {
+    global.fetch = jest.fn().mockResolvedValue(jsonResponse({ authenticated: true }));
+
+    const screen = render(
+      <WebAccessGate>
+        <Text>Unlocked application</Text>
+      </WebAccessGate>,
+    );
+
+    await waitFor(() => expect(screen.getByText('Unlocked application')).toBeTruthy());
+  });
 });

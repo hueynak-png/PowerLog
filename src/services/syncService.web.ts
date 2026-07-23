@@ -10,7 +10,7 @@ export interface RemoteSnapshotMeta {
   appVersion?: string; platform?: string; clientId?: string;
 }
 interface SyncStatusResponse { syncId: string; createdAt: string; latestSnapshot: RemoteSnapshotMeta | null }
-export type CloudBackupState = 'checking' | 'synced' | 'pending' | 'uploading' | 'offline' | 'remote-update' | 'conflict' | 'needs-choice' | 'unavailable' | 'idle';
+export type CloudBackupState = 'checking' | 'synced' | 'pending' | 'uploading' | 'offline' | 'remote-update' | 'conflict' | 'needs-choice' | 'unavailable' | 'error' | 'idle';
 export interface SyncStatusMeta {
   lastManualUploadAt?: string; lastAutoUploadAt?: string; lastRestoreAt?: string; lastCheckAt?: string;
   latestSnapshot?: RemoteSnapshotMeta | null; lastSyncedSha256?: string; lastSyncedAt?: string;
