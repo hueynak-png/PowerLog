@@ -7,24 +7,24 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
 import type { BodyweightEntry, LiftType } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
-import { addBodyweightEntry, getLatestBodyweight, updateBodyweightEntry } from '@/src/repositories';
+import { addBodyweightEntry, getLatestBodyweight, getPrograms, updateBodyweightEntry } from '@/src/repositories';
 import { configureAI, getAIConfig, isAIConfigured, testAIConnection } from '@/src/services/aiService';
 import {
   configureSync,
   createRecoveryKey,
-  downloadLatestSnapshot,
   getLatestSnapshotMeta,
   getLocalSyncStatus,
   getSyncConfig,
   isSyncConfigured,
-  markSnapshotRestored,
   type RemoteSnapshotMeta,
   uploadSnapshot,
 } from '@/src/services/syncService';
-import { createPreRestoreBackup, replaceLocalSnapshot, sha256Hex } from '@/src/db/snapshot';
+import { checkSyncState, createInitialCloudBackup, flushAutoSync, overwriteCloudWithLocal, subscribeToSyncStatus } from '@/src/services/autoSyncService';
 import { exportBackupFile, importBackupFile } from '@/src/services/localBackupFileService';
 import { createSnapshotUploadPayload, formatSnapshotSize } from '@/src/services/snapshotBackupService';
 import { countCompletedWorkouts } from '@/src/services/backupRecoveryService';
+import { getCloudBackupCheckSuccessMessage, getCloudBackupStatusLabel } from '@/src/services/cloudBackupStatus';
+import { restoreLatestCloudSnapshot } from '@/src/services/cloudSnapshotRestoreService';
 import { getAppVersion, releaseNotes } from '@/src/services/versionService';
 import { hasPwaUpdateAvailable, reloadForPwaUpdate, subscribeToPwaUpdates } from '@/src/services/pwaUpdateService';
 import { isWebAccessEnabled, logoutWebAccess } from '@/src/services/webAccessService';
@@ -106,6 +106,15 @@ export function SettingsScreen() {
   }, [db]);
 
   useEffect(() => subscribeToPwaUpdates(() => setUpdateAvailable(true)), []);
+
+  useEffect(() => {
+    if (!isWeb) return;
+    return subscribeToSyncStatus(() => {
+      setSyncStatusMeta(getLocalSyncStatus());
+      setRemoteSnapshot(getLocalSyncStatus().latestSnapshot ?? null);
+      setSyncConfigured(isSyncConfigured());
+    });
+  }, [isWeb]);
 
   const saveLiftMax = async (liftType: LiftType, value: number | null) => {
     if (!db || value === null) return;
@@ -230,6 +239,11 @@ export function SettingsScreen() {
   });
 
   const handleCheckCloudSnapshot = () => runSyncAction(async () => {
+    if (isWeb) {
+      const status = await checkSyncState();
+      setRemoteSnapshot(status.latestSnapshot ?? null);
+      return getCloudBackupCheckSuccessMessage(status);
+    }
     saveSyncConfig();
     const meta = await getLatestSnapshotMeta();
     setRemoteSnapshot(meta);
@@ -237,11 +251,44 @@ export function SettingsScreen() {
   });
 
   const handleUploadSnapshot = () => runSyncAction(async () => {
-    saveSyncConfig();
-    const completedCount = await countCompletedWorkouts();
-    if (completedCount === 0) {
-      throw new Error(t('backupRecovery.noCompletedWorkouts'));
+    if (isWeb) {
+      const checked = await checkSyncState();
+      setRemoteSnapshot(checked.latestSnapshot ?? null);
+      if (checked.state === 'initial-backup-required') {
+        if (!db) throw new Error('本机数据库尚未准备好。');
+        const [payload, completedWorkouts, programs] = await Promise.all([
+          createSnapshotUploadPayload(),
+          countCompletedWorkouts(),
+          getPrograms(db),
+        ]);
+        const confirmation = [
+          '确认使用当前本机数据创建第一份云端备份？',
+          '',
+          `本机计划：${programs.length}`,
+          `已完成训练：${completedWorkouts}`,
+          `快照大小：${formatSnapshotSize(payload.bytes.byteLength)}`,
+        ].join('\n');
+        const uploaded = await createInitialCloudBackup(() =>
+          typeof window !== 'undefined' && typeof window.confirm === 'function'
+            ? window.confirm(confirmation)
+            : false,
+        );
+        if (!uploaded) return '已取消创建第一份云端备份。';
+        setRemoteSnapshot(uploaded);
+        return '已创建第一份云端备份。';
+      }
+      if (checked.state === 'needs-choice' || checked.state === 'conflict' || checked.state === 'remote-update') {
+        throw new Error('云端与本机数据需要手动选择，未自动覆盖。');
+      }
+      const uploaded = await flushAutoSync();
+      const status = getLocalSyncStatus();
+      setRemoteSnapshot(status.latestSnapshot ?? null);
+      if (status.state === 'needs-choice' || status.state === 'conflict' || status.state === 'remote-update') {
+        throw new Error('云端与本机数据需要手动选择，未自动覆盖。');
+      }
+      return uploaded ? '云备份已上传。' : '云备份状态已是最新。';
     }
+    saveSyncConfig();
     const { bytes, meta: localMeta } = await createSnapshotUploadPayload();
     const meta = await uploadSnapshot(bytes, localMeta);
     setRemoteSnapshot(meta);
@@ -250,15 +297,10 @@ export function SettingsScreen() {
 
   const restoreLatestSnapshot = () => runSyncAction(async () => {
     saveSyncConfig();
-    const { bytes, meta } = await downloadLatestSnapshot();
-    const downloadedHash = await sha256Hex(bytes);
-    if (downloadedHash !== meta.sha256.toLowerCase()) throw new Error(t('errors.snapshotChecksumMismatch'));
-    const backup = await createPreRestoreBackup();
-    await replaceLocalSnapshot(bytes);
-    markSnapshotRestored(meta);
-    setRemoteSnapshot(meta);
+    const restored = await restoreLatestCloudSnapshot();
+    setRemoteSnapshot(restored.meta);
     setSyncStatusMeta(getLocalSyncStatus());
-    return t('settingsExtras.restoredCloudBackup', { backupId: backup.backupId });
+    return t('settingsExtras.restoredCloudBackup', { backupId: restored.backupId });
   });
 
   const runBackupAction = async (action: () => Promise<string>) => {
@@ -304,6 +346,20 @@ export function SettingsScreen() {
       ],
     );
   };
+
+  const handleOverwriteCloud = () => {
+    const proceed = Platform.OS === 'web'
+      ? window.confirm('确认使用本机数据覆盖云端备份？此操作不会删除本机数据。')
+      : true;
+    if (!proceed) return;
+    void runSyncAction(async () => {
+      const meta = await overwriteCloudWithLocal();
+      setRemoteSnapshot(meta);
+      return '已使用本机数据更新云端备份。';
+    });
+  };
+
+  const cloudStatusLabel = getCloudBackupStatusLabel(syncStatusMeta.state);
 
   if (!db) {
     return (
@@ -432,15 +488,37 @@ export function SettingsScreen() {
           </>
         ) : null}
 
-        <SectionHeader title={t('settings.cloudSync')} subtitle={t('settingsExtras.cloudSyncSubtitle')} />
+        <SectionHeader title={isWeb ? '云备份' : t('settings.cloudSync')} subtitle={isWeb ? '内置云备份：仅上传，恢复始终需要手动确认。' : t('settingsExtras.cloudSyncSubtitle')} />
         <Card variant="elevated" style={styles.card}>
           <Pressable onPress={() => setSyncExpanded(!syncExpanded)} style={styles.aiHeader}>
             <Text style={[styles.aiStatus, !syncConfigured && styles.aiNotConfigured]}>
-              {syncConfigured ? '✓ ' + t('settingsExtras.cloudSyncConfigured') : '✗ ' + t('settingsExtras.notConfigured')}
+              {isWeb ? `• ${cloudStatusLabel}` : (syncConfigured ? '✓ ' + t('settingsExtras.cloudSyncConfigured') : '✗ ' + t('settingsExtras.notConfigured'))}
             </Text>
             <Text style={styles.aiToggle}>{syncExpanded ? '▲' : '▼'}</Text>
           </Pressable>
-          {syncExpanded && (
+          {isWeb && syncStatusMeta.state === 'error' && syncStatusMeta.lastError ? (
+            <Text style={styles.errorText}>检查失败：{syncStatusMeta.lastError}</Text>
+          ) : null}
+          {isWeb && syncStatusMeta.state === 'initial-backup-required' ? (
+            <Text style={styles.cardText}>云端暂无备份。请确认本机数据后手动创建首次备份。</Text>
+          ) : null}
+          {syncExpanded && isWeb && (
+            <>
+              <Text style={styles.cardText}>Recovery Key 仅保存在服务器，浏览器不会保存密钥或云端地址。</Text>
+              <View style={styles.buttonRow}>
+                <Button title="立即备份" onPress={handleUploadSnapshot} loading={syncBusy} size="sm" style={styles.rowButton} />
+                <Button title="检查云端" onPress={handleCheckCloudSnapshot} variant="secondary" loading={syncBusy} size="sm" style={styles.rowButton} />
+              </View>
+              <Button title="从云端恢复" onPress={handleRestoreSnapshot} variant="danger" loading={syncBusy} size="md" fullWidth />
+              {(syncStatusMeta.state === 'conflict' || syncStatusMeta.state === 'needs-choice') ? (
+                <View style={styles.buttonRow}>
+                  <Button title="使用本机并覆盖云端" onPress={handleOverwriteCloud} variant="secondary" loading={syncBusy} size="sm" style={styles.rowButton} />
+                  <Button title="稍后处理" onPress={() => setSyncExpanded(false)} variant="ghost" size="sm" style={styles.rowButton} />
+                </View>
+              ) : null}
+            </>
+          )}
+          {syncExpanded && !isWeb && (
             <>
               <Text style={styles.cardText}>{t('settingsExtras.cloudSyncHint')}</Text>
               <TextField label={t('settingsExtras.backendUrl')} value={syncBaseUrl} onChangeText={setSyncBaseUrl} placeholder="https://your-worker.workers.dev" />

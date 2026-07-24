@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Platform,
   ScrollView,
   StyleSheet,
@@ -11,7 +10,6 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 
 import { Button, Card, SectionHeader } from '@/src/components/ui';
 import { useDatabase } from '@/src/hooks/useDatabase';
@@ -20,27 +18,22 @@ import {
   getCurrentDbMeta,
   listBackupKeys,
   restoreFromBackup,
+  type DatabaseSnapshotMeta,
 } from '@/src/services/backupRecoveryService';
 import { formatSnapshotSize } from '@/src/services/snapshotBackupService';
-import { colors, radius, spacing, typography } from '@/src/theme';
+import { colors, spacing, typography } from '@/src/theme';
 
-interface BackupMeta {
-  createdAt: string;
-  sizeBytes: number;
-  hasWorkoutSessions: boolean;
-}
+type BackupMeta = DatabaseSnapshotMeta & { createdAt: string };
 
 export function BackupRecoveryScreen() {
   const { t } = useTranslation();
   const db = useDatabase();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
-  const [currentMeta, setCurrentMeta] = useState<{
-    sizeBytes: number;
-    hasWorkoutSessions: boolean;
-  } | null>(null);
+  const [currentMeta, setCurrentMeta] = useState<DatabaseSnapshotMeta | null>(
+    null,
+  );
   const [backups, setBackups] = useState<{ key: string; meta: BackupMeta }[]>(
     [],
   );
@@ -68,7 +61,7 @@ export function BackupRecoveryScreen() {
       setBackups(entries);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to load backup data.',
+        err instanceof Error ? err.message : '加载备份数据失败。',
       );
     } finally {
       setLoading(false);
@@ -88,12 +81,12 @@ export function BackupRecoveryScreen() {
         try {
           const result = await restoreFromBackup(backupKey);
           setMessage(
-            `Backup restored (ID: ${result.preRestoreBackupId}). Reload the app to see your data.`,
+            `备份已恢复（ID：${result.preRestoreBackupId}）。请重新加载应用以查看恢复的数据。`,
           );
           await loadData();
         } catch (err) {
           setError(
-            err instanceof Error ? err.message : 'Failed to restore backup.',
+            err instanceof Error ? err.message : '恢复备份失败。',
           );
         } finally {
           setRestoringKey(null);
@@ -106,7 +99,7 @@ export function BackupRecoveryScreen() {
         typeof window.confirm === 'function'
       ) {
         const confirmed = window.confirm(
-          'This will replace your current data with the selected backup. Are you sure?',
+          '这会用所选备份替换当前数据，确定继续吗？',
         );
         if (!confirmed) return;
         await doRestore();
@@ -114,12 +107,12 @@ export function BackupRecoveryScreen() {
       }
 
       Alert.alert(
-        'Restore Backup',
-        'This will replace your current data with the selected backup. Are you sure?',
+        '恢复备份',
+        '这会用所选备份替换当前数据，确定继续吗？',
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: '取消', style: 'cancel' },
           {
-            text: 'Restore',
+            text: '恢复',
             style: 'destructive',
             onPress: doRestore,
           },
@@ -156,21 +149,14 @@ export function BackupRecoveryScreen() {
             <Text style={styles.backupSize}>
               {formatSnapshotSize(meta.sizeBytes)}
             </Text>
-            <View style={styles.recordBadge}>
-              <Text
-                style={[
-                  styles.recordBadgeText,
-                  meta.hasWorkoutSessions
-                    ? styles.recordBadgeHas
-                    : styles.recordBadgeEmpty,
-                ]}
-              >
-                {meta.hasWorkoutSessions ? 'Has records' : 'Empty'}
-              </Text>
-            </View>
+            <Text style={styles.backupDetail}>计划：{meta.programCount}</Text>
+            <Text style={styles.backupDetail}>训练记录：{meta.workoutSessionCount}</Text>
+            {meta.programCount === 0 && meta.workoutSessionCount === 0 ? (
+              <Text style={styles.emptyNotice}>暂无计划和训练记录</Text>
+            ) : null}
           </View>
           <Button
-            title="Restore"
+            title="恢复"
             onPress={() => handleRestore(key)}
             variant="danger"
             size="sm"
@@ -200,51 +186,55 @@ export function BackupRecoveryScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.hero, { paddingTop: insets.top }]}>
-          <Text style={styles.eyebrow}>Data Management</Text>
-          <Text style={styles.title}>Local Backup Recovery</Text>
+          <Text style={styles.eyebrow}>数据管理</Text>
+          <Text style={styles.title}>本地备份恢复</Text>
           <Text style={styles.subtitle}>
-            View and restore saved database snapshots directly from the app
-            without DevTools.
+            直接在应用内查看和恢复保存的数据库快照，无需使用开发者工具。
           </Text>
         </View>
 
         <SectionHeader
-          title="Current Database"
-          subtitle="The active database on this device."
+          title="当前数据库"
+          subtitle="此设备上正在使用的数据库。"
         />
-          <Card variant="outlined" style={styles.card}>
+        <Card variant="outlined" style={styles.card}>
           {loading && !currentMeta ? (
             <ActivityIndicator color={colors.primary} />
           ) : currentMeta ? (
-            <View style={styles.metaRow}>
-              <View style={styles.metaItem}>
-                <Text style={styles.metaLabel}>Size</Text>
-                <Text style={styles.metaValue}>
-                  {formatSnapshotSize(currentMeta.sizeBytes)}
-                </Text>
+            <View style={styles.metaContent}>
+              <View style={styles.metaRow}>
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>数据库大小</Text>
+                  <Text style={styles.metaValue}>
+                    {formatSnapshotSize(currentMeta.sizeBytes)}
+                  </Text>
+                </View>
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>计划</Text>
+                  <Text style={styles.metaValue}>
+                    {currentMeta.programCount}
+                  </Text>
+                </View>
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>训练记录</Text>
+                  <Text style={styles.metaValue}>
+                    {currentMeta.workoutSessionCount}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.metaItem}>
-                <Text style={styles.metaLabel}>Records</Text>
-                <Text
-                  style={[
-                    styles.metaValue,
-                    currentMeta.hasWorkoutSessions
-                      ? styles.metaSuccess
-                      : styles.metaDanger,
-                  ]}
-                >
-                  {currentMeta.hasWorkoutSessions ? '✓ Has data' : '✗ Empty'}
-                </Text>
-              </View>
+              {currentMeta.programCount === 0 &&
+              currentMeta.workoutSessionCount === 0 ? (
+                <Text style={styles.emptyNotice}>暂无计划和训练记录</Text>
+              ) : null}
             </View>
           ) : (
-            <Text style={styles.emptyText}>No database found.</Text>
+            <Text style={styles.emptyText}>未找到本地数据库。</Text>
           )}
         </Card>
 
         <SectionHeader
-          title="Saved Backups"
-          subtitle="Local snapshots created automatically before cloud restore or file import."
+          title="已保存的本地备份"
+          subtitle="在云端恢复或文件导入前自动创建的本地快照。"
         />
 
         {loading ? (
@@ -252,10 +242,9 @@ export function BackupRecoveryScreen() {
             <ActivityIndicator color={colors.primary} />
           </View>
         ) : backups.length === 0 ? (
-        <Card variant="elevated" style={styles.card}>
+          <Card variant="elevated" style={styles.card}>
             <Text style={styles.emptyText}>
-              No local backups found. Backups are created automatically before
-              cloud restore or file import.
+              未找到本地备份。云端恢复或文件导入前会自动创建备份。
             </Text>
           </Card>
         ) : (
@@ -269,7 +258,7 @@ export function BackupRecoveryScreen() {
 
         <View style={styles.buttonWrapper}>
           <Button
-            title="Refresh"
+            title="刷新"
             onPress={loadData}
             variant="secondary"
             size="md"
@@ -330,6 +319,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.xl,
   },
+  metaContent: {
+    gap: spacing.sm,
+  },
   metaItem: {
     gap: spacing.xs,
   },
@@ -340,12 +332,6 @@ const styles = StyleSheet.create({
   metaValue: {
     ...typography.headline,
     color: colors.textPrimary,
-  },
-  metaSuccess: {
-    color: colors.success,
-  },
-  metaDanger: {
-    color: colors.danger,
   },
   backupCard: {
     marginBottom: spacing.sm,
@@ -370,24 +356,13 @@ const styles = StyleSheet.create({
     ...typography.footnote,
     color: colors.textSecondary,
   },
-  recordBadge: {
-    alignSelf: 'flex-start',
+  backupDetail: {
+    ...typography.footnote,
+    color: colors.textSecondary,
   },
-  recordBadgeText: {
-    ...typography.caption,
-    fontWeight: '700',
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    overflow: 'hidden',
-  },
-  recordBadgeHas: {
-    color: colors.success,
-    backgroundColor: colors.successSoft,
-  },
-  recordBadgeEmpty: {
+  emptyNotice: {
+    ...typography.footnote,
     color: colors.textTertiary,
-    backgroundColor: colors.surfaceMuted,
   },
   emptyText: {
     ...typography.body,

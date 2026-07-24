@@ -32,7 +32,17 @@ export interface SyncStatusMeta {
   lastRestoreAt?: string;
   lastCheckAt?: string;
   latestSnapshot?: RemoteSnapshotMeta | null;
+  lastSyncedSha256?: string;
+  lastSyncedAt?: string;
+  pending?: boolean;
+  conflict?: boolean;
+  lastError?: string;
+  state?: CloudBackupState;
 }
+
+export type CloudBackupState = 'checking' | 'synced' | 'pending' | 'uploading' | 'offline' | 'remote-update' | 'conflict' | 'needs-choice' | 'initial-backup-required' | 'unavailable' | 'error' | 'idle';
+
+const statusListeners = new Set<() => void>();
 
 const normalizeSyncBaseUrl = (baseUrl: string): string =>
   baseUrl.trim().replace(/\/+$/, '').replace(/\/sync$/i, '');
@@ -86,6 +96,7 @@ const saveSyncStatus = () => {
       return false;
     }
   }
+  statusListeners.forEach((listener) => listener());
   return false;
 };
 
@@ -115,6 +126,16 @@ export const isSyncConfigured = (): boolean =>
   config.baseUrl.length > 0 && config.recoveryKey.length > 0;
 
 export const getLocalSyncStatus = (): SyncStatusMeta => syncStatus;
+
+export const subscribeToSyncStatus = (listener: () => void): (() => void) => {
+  statusListeners.add(listener);
+  return () => statusListeners.delete(listener);
+};
+
+export const updateCloudBackupStatus = (updates: Partial<SyncStatusMeta>): void => {
+  syncStatus = { ...syncStatus, ...updates };
+  saveSyncStatus();
+};
 
 export const markSnapshotRestored = (meta: RemoteSnapshotMeta) => {
   syncStatus = { ...syncStatus, lastRestoreAt: new Date().toISOString(), latestSnapshot: meta };

@@ -7,6 +7,9 @@
   "functions": {
     "api/ai/[endpoint].ts": {
       "maxDuration": 60
+    },
+    "api/sync/**/*.ts": {
+      "maxDuration": 60
     }
   },
   "rewrites": [

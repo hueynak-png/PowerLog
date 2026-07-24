@@ -12,6 +12,7 @@ import { WebAccessGate } from '@/src/features/auth/WebAccessGate';
 import '@/src/i18n';
 import { useAppStore } from '@/src/stores/useAppStore';
 import { initAI } from '@/src/services/aiService';
+import { initializeAutoSync } from '@/src/services/autoSyncService';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -65,6 +66,9 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+
+  // WebAccessGate only mounts this component after session authentication.
+  useEffect(() => initializeAutoSync(), []);
 
   return (
     <>

@@ -41,7 +41,7 @@ export const exportDatabaseSnapshot = async (): Promise<Uint8Array> => {
   throw new Error('Cloud Sync V1 snapshot export is currently supported on web only.');
 };
 
-export const createDatabaseSnapshotBackup = async (): Promise<{ backupId: string; createdAt: string }> => {
+export const createDatabaseSnapshotBackup = async (_snapshot?: Uint8Array): Promise<{ backupId: string; createdAt: string }> => {
   throw new Error('Cloud Sync V1 snapshot backup is currently supported on web only.');
 };
 
