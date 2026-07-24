@@ -11,6 +11,12 @@ const IDB_STORE = 'databases';
 const CURRENT_DB_KEY = 'powerlog-db';
 const BACKUP_KEY_PREFIX = 'powerlog-db-backup-';
 
+export interface DatabaseSnapshotMeta {
+  sizeBytes: number;
+  programCount: number;
+  workoutSessionCount: number;
+}
+
 function assertWeb(): void {
   if (Platform.OS !== 'web') {
     throw new Error('backupRecoveryService is only available on web platform.');
@@ -74,28 +80,13 @@ export async function listBackupKeys(): Promise<string[]> {
 
 export async function getBackupMeta(
   key: string,
-): Promise<{
-  createdAt: string;
-  sizeBytes: number;
-  hasWorkoutSessions: boolean;
-} | null> {
+): Promise<(DatabaseSnapshotMeta & { createdAt: string }) | null> {
   assertWeb();
   const bytes = await loadFromIndexedDB(key);
   if (!bytes) return null;
 
   const createdAt = key.replace(BACKUP_KEY_PREFIX, '');
-  const sizeBytes = bytes.byteLength;
-
-  const SQL = await initSqlJs({
-    locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
-  });
-  const db = new SQL.Database(bytes);
-  const result = db.exec('SELECT COUNT(*) as cnt FROM workout_sessions');
-  const count = (result[0]?.values[0]?.[0] as number | undefined) ?? 0;
-  const hasWorkoutSessions = count > 0;
-  db.close();
-
-  return { createdAt, sizeBytes, hasWorkoutSessions };
+  return { createdAt, ...(await getSnapshotMeta(bytes)) };
 }
 
 export async function restoreFromBackup(
@@ -130,24 +121,33 @@ export async function countCompletedWorkouts(): Promise<number> {
   return count;
 }
 
-export async function getCurrentDbMeta(): Promise<{
-  sizeBytes: number;
-  hasWorkoutSessions: boolean;
-} | null> {
+export async function getCurrentDbMeta(): Promise<DatabaseSnapshotMeta | null> {
   assertWeb();
   const bytes = await loadFromIndexedDB(CURRENT_DB_KEY);
   if (!bytes) return null;
 
-  const sizeBytes = bytes.byteLength;
+  return getSnapshotMeta(bytes);
+}
 
+async function getSnapshotMeta(bytes: Uint8Array): Promise<DatabaseSnapshotMeta> {
   const SQL = await initSqlJs({
     locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
   });
   const db = new SQL.Database(bytes);
-  const result = db.exec('SELECT COUNT(*) as cnt FROM workout_sessions');
-  const count = (result[0]?.values[0]?.[0] as number | undefined) ?? 0;
-  const hasWorkoutSessions = count > 0;
-  db.close();
+  try {
+    const programResult = db.exec('SELECT COUNT(*) FROM programs');
+    const workoutSessionResult = db.exec('SELECT COUNT(*) FROM workout_sessions');
+    const programCount =
+      (programResult[0]?.values[0]?.[0] as number | undefined) ?? 0;
+    const workoutSessionCount =
+      (workoutSessionResult[0]?.values[0]?.[0] as number | undefined) ?? 0;
 
-  return { sizeBytes, hasWorkoutSessions };
+    return {
+      sizeBytes: bytes.byteLength,
+      programCount,
+      workoutSessionCount,
+    };
+  } finally {
+    db.close();
+  }
 }
