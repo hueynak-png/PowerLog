@@ -7,7 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button, Card, NumberField, SectionHeader, TextField } from '@/src/components/ui';
 import type { BodyweightEntry, LiftType } from '@/src/domain/types';
 import { useDatabase } from '@/src/hooks/useDatabase';
-import { addBodyweightEntry, getLatestBodyweight, updateBodyweightEntry } from '@/src/repositories';
+import { addBodyweightEntry, getLatestBodyweight, getPrograms, updateBodyweightEntry } from '@/src/repositories';
 import { configureAI, getAIConfig, isAIConfigured, testAIConnection } from '@/src/services/aiService';
 import {
   configureSync,
@@ -19,7 +19,7 @@ import {
   type RemoteSnapshotMeta,
   uploadSnapshot,
 } from '@/src/services/syncService';
-import { checkSyncState, flushAutoSync, overwriteCloudWithLocal, subscribeToSyncStatus } from '@/src/services/autoSyncService';
+import { checkSyncState, createInitialCloudBackup, flushAutoSync, overwriteCloudWithLocal, subscribeToSyncStatus } from '@/src/services/autoSyncService';
 import { exportBackupFile, importBackupFile } from '@/src/services/localBackupFileService';
 import { createSnapshotUploadPayload, formatSnapshotSize } from '@/src/services/snapshotBackupService';
 import { countCompletedWorkouts } from '@/src/services/backupRecoveryService';
@@ -252,6 +252,34 @@ export function SettingsScreen() {
 
   const handleUploadSnapshot = () => runSyncAction(async () => {
     if (isWeb) {
+      const checked = await checkSyncState();
+      setRemoteSnapshot(checked.latestSnapshot ?? null);
+      if (checked.state === 'initial-backup-required') {
+        if (!db) throw new Error('本机数据库尚未准备好。');
+        const [payload, completedWorkouts, programs] = await Promise.all([
+          createSnapshotUploadPayload(),
+          countCompletedWorkouts(),
+          getPrograms(db),
+        ]);
+        const confirmation = [
+          '确认使用当前本机数据创建第一份云端备份？',
+          '',
+          `本机计划：${programs.length}`,
+          `已完成训练：${completedWorkouts}`,
+          `快照大小：${formatSnapshotSize(payload.bytes.byteLength)}`,
+        ].join('\n');
+        const uploaded = await createInitialCloudBackup(() =>
+          typeof window !== 'undefined' && typeof window.confirm === 'function'
+            ? window.confirm(confirmation)
+            : false,
+        );
+        if (!uploaded) return '已取消创建第一份云端备份。';
+        setRemoteSnapshot(uploaded);
+        return '已创建第一份云端备份。';
+      }
+      if (checked.state === 'needs-choice' || checked.state === 'conflict' || checked.state === 'remote-update') {
+        throw new Error('云端与本机数据需要手动选择，未自动覆盖。');
+      }
       const uploaded = await flushAutoSync();
       const status = getLocalSyncStatus();
       setRemoteSnapshot(status.latestSnapshot ?? null);
@@ -470,6 +498,9 @@ export function SettingsScreen() {
           </Pressable>
           {isWeb && syncStatusMeta.state === 'error' && syncStatusMeta.lastError ? (
             <Text style={styles.errorText}>检查失败：{syncStatusMeta.lastError}</Text>
+          ) : null}
+          {isWeb && syncStatusMeta.state === 'initial-backup-required' ? (
+            <Text style={styles.cardText}>云端暂无备份。请确认本机数据后手动创建首次备份。</Text>
           ) : null}
           {syncExpanded && isWeb && (
             <>

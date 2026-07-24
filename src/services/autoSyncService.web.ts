@@ -1,7 +1,7 @@
 import { createSnapshotUploadPayload } from './snapshotBackupService';
 import {
-  getLatestSnapshotMeta,
   getLocalSyncStatus,
+  getSyncStatus,
   type RemoteSnapshotMeta,
   subscribeToSyncStatus,
   updateCloudBackupStatus,
@@ -19,7 +19,7 @@ let uploadInFlight: Promise<boolean> | undefined;
 const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
 const normalizedHash = (value: string | undefined) => value?.toLowerCase();
 const isBlockedAutoSyncState = (state: ReturnType<typeof getLocalSyncStatus>['state']) =>
-  state === 'error' || state === 'unavailable' || state === 'checking';
+  state === 'error' || state === 'unavailable' || state === 'checking' || state === 'initial-backup-required';
 
 const safeSyncError = (error: unknown, fallback: string): string => {
   const message = error instanceof Error ? error.message : '';
@@ -36,12 +36,13 @@ export const checkSyncState = async (): Promise<ReturnType<typeof getLocalSyncSt
   }
   updateCloudBackupStatus({ state: 'checking', lastError: undefined });
   try {
-    const [payload, remote] = await Promise.all([createSnapshotUploadPayload(), getLatestSnapshotMeta()]);
+    const [payload, status] = await Promise.all([createSnapshotUploadPayload(), getSyncStatus()]);
+    const remote = status.latestSnapshot;
     const localHash = normalizedHash(payload.meta.sha256)!;
     const remoteHash = normalizedHash(remote?.sha256);
     const lastSyncedHash = normalizedHash(getLocalSyncStatus().lastSyncedSha256);
     const checked = { lastCheckAt: new Date().toISOString(), latestSnapshot: remote };
-    if (!remote) updateCloudBackupStatus({ ...checked, pending: true, conflict: false, state: 'pending' });
+    if (!remote) updateCloudBackupStatus({ ...checked, pending: false, conflict: false, state: 'initial-backup-required' });
     else if (localHash === remoteHash) updateCloudBackupStatus({ ...checked, lastSyncedSha256: localHash, lastSyncedAt: new Date().toISOString(), pending: false, conflict: false, state: 'synced' });
     else if (!lastSyncedHash) updateCloudBackupStatus({ ...checked, pending: false, conflict: false, state: 'needs-choice' });
     else if (remoteHash === lastSyncedHash) updateCloudBackupStatus({ ...checked, pending: true, conflict: false, state: 'pending' });
@@ -59,6 +60,10 @@ export const checkSyncState = async (): Promise<ReturnType<typeof getLocalSyncSt
 export const markSyncDirty = (): void => {
   const current = getLocalSyncStatus();
   if (current.conflict || current.state === 'needs-choice' || current.state === 'remote-update') return;
+  if (current.state === 'initial-backup-required') {
+    updateCloudBackupStatus({ pending: false, conflict: false });
+    return;
+  }
   if (isBlockedAutoSyncState(current.state)) {
     updateCloudBackupStatus({ pending: true });
     return;
@@ -107,6 +112,33 @@ export const overwriteCloudWithLocal = async (): Promise<RemoteSnapshotMeta> => 
   const payload = await createSnapshotUploadPayload();
   updateCloudBackupStatus({ state: 'uploading', lastError: undefined });
   return uploadSnapshot(payload.bytes, payload.meta, 'manual');
+};
+
+export const createInitialCloudBackup = async (
+  confirm: () => boolean,
+): Promise<RemoteSnapshotMeta | null> => {
+  const checked = await checkSyncState();
+  if (checked.state !== 'initial-backup-required' || checked.latestSnapshot) {
+    throw new Error('云端状态已变化，请重新检查后再备份。');
+  }
+  if (!confirm()) return null;
+
+  // The confirmation may have been open while another device uploaded. Recheck before
+  // writing so the first-backup action can never silently become an overwrite.
+  const rechecked = await checkSyncState();
+  if (rechecked.state !== 'initial-backup-required' || rechecked.latestSnapshot) {
+    throw new Error('云端状态已变化，请重新检查后再备份。');
+  }
+
+  updateCloudBackupStatus({ state: 'uploading', lastError: undefined });
+  try {
+    const payload = await createSnapshotUploadPayload();
+    return await uploadSnapshot(payload.bytes, payload.meta, 'manual');
+  } catch (error) {
+    const message = safeSyncError(error, 'Cloud backup upload failed');
+    updateCloudBackupStatus({ state: 'error', lastError: message });
+    throw new Error(message);
+  }
 };
 
 export const initializeAutoSync = (): (() => void) => {

@@ -9,6 +9,7 @@ export const getCloudBackupStatusLabel = (state: CloudBackupState | undefined): 
     case 'remote-update': return '云端有更新';
     case 'conflict': return '同步冲突';
     case 'needs-choice': return '需要选择本机或云端数据';
+    case 'initial-backup-required': return '云端暂无备份';
     case 'unavailable': return '云备份配置不可用';
     case 'error': return '检查失败';
     case 'checking': return '正在检查云备份';
@@ -25,6 +26,7 @@ export const getCloudBackupCheckSuccessMessage = (status: SyncStatusMeta): strin
   switch (status.state) {
     case 'synced': return '云备份已同步。';
     case 'pending': return '云端暂无备份，等待上传。';
+    case 'initial-backup-required': return '云端暂无备份，请确认本机数据后手动创建首次备份。';
     case 'needs-choice': return '需要选择本机或云端数据。';
     case 'remote-update': return '云端有更新，需要选择处理方式。';
     case 'conflict': return '检测到同步冲突，需要手动选择。';

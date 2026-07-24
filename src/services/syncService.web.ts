@@ -10,7 +10,7 @@ export interface RemoteSnapshotMeta {
   appVersion?: string; platform?: string; clientId?: string;
 }
 interface SyncStatusResponse { syncId: string; createdAt: string; latestSnapshot: RemoteSnapshotMeta | null }
-export type CloudBackupState = 'checking' | 'synced' | 'pending' | 'uploading' | 'offline' | 'remote-update' | 'conflict' | 'needs-choice' | 'unavailable' | 'error' | 'idle';
+export type CloudBackupState = 'checking' | 'synced' | 'pending' | 'uploading' | 'offline' | 'remote-update' | 'conflict' | 'needs-choice' | 'initial-backup-required' | 'unavailable' | 'error' | 'idle';
 export interface SyncStatusMeta {
   lastManualUploadAt?: string; lastAutoUploadAt?: string; lastRestoreAt?: string; lastCheckAt?: string;
   latestSnapshot?: RemoteSnapshotMeta | null; lastSyncedSha256?: string; lastSyncedAt?: string;
@@ -62,10 +62,19 @@ export const getSyncStatus = async (): Promise<SyncStatusResponse> => syncReques
   setStatus({ lastCheckAt: new Date().toISOString(), latestSnapshot: status.latestSnapshot });
   return status;
 });
-export const getLatestSnapshotMeta = async (): Promise<RemoteSnapshotMeta | null> => syncRequest<RemoteSnapshotMeta | null>('/snapshot/latest/meta').then((meta) => {
+export const getLatestSnapshotMeta = async (): Promise<RemoteSnapshotMeta | null> => {
+  const response = await fetch(`${API_BASE}/snapshot/latest/meta`, { credentials: 'same-origin' });
+  // Older Workers may use 404 to mean that this sync identity has no snapshot yet.
+  // Keep that compatibility at this narrow boundary; authentication and service errors
+  // must still reject so callers never mistake them for an empty cloud backup.
+  if (response.status === 404) {
+    setStatus({ lastCheckAt: new Date().toISOString(), latestSnapshot: null });
+    return null;
+  }
+  const meta = await readJsonResponse<RemoteSnapshotMeta | null>(response);
   setStatus({ lastCheckAt: new Date().toISOString(), latestSnapshot: meta });
   return meta;
-});
+};
 export const uploadSnapshot = async (bytes: Uint8Array, meta: { sha256: string; schemaVersion: number; appVersion?: string; platform?: string }, mode: 'manual' | 'auto' = 'manual'): Promise<RemoteSnapshotMeta> => {
   const response = await fetch(`${API_BASE}/snapshot/latest`, {
     method: 'POST', credentials: 'same-origin', body: bytes,
