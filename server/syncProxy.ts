@@ -1,24 +1,25 @@
-import { jsonResponse, requestIsAuthenticated } from '../../server/webAuth';
+import {
+  jsonResponse,
+  methodNotAllowed,
+  requestIsAuthenticated,
+} from './webAuth';
 
 const MAX_SNAPSHOT_BYTES = 4 * 1024 * 1024;
 const WORKER_TIMEOUT_MS = 55_000;
 
-const ALLOWED_ROUTES: Record<string, readonly string[]> = {
-  status: ['GET'],
-  'snapshot/latest/meta': ['GET'],
-  'snapshot/latest': ['POST'],
-  'snapshot/latest/download': ['GET'],
-};
+const SYNC_PROXY_METHODS = {
+  status: 'GET',
+  'snapshot/latest': 'POST',
+  'snapshot/latest/meta': 'GET',
+  'snapshot/latest/download': 'GET',
+} as const;
 
-const getRoute = (request: Request): string | undefined => {
-  const pathname = new URL(request.url).pathname;
-  const prefix = '/api/sync/';
-  if (!pathname.startsWith(prefix)) return undefined;
-  const route = pathname.slice(prefix.length);
-  return Object.hasOwn(ALLOWED_ROUTES, route) ? route : undefined;
-};
+export type SyncProxyRoute = keyof typeof SYNC_PROXY_METHODS;
 
-const getWorkerUrl = (baseUrl: string, route: string): string | undefined => {
+const isSyncProxyRoute = (route: string): route is SyncProxyRoute =>
+  Object.hasOwn(SYNC_PROXY_METHODS, route);
+
+const getWorkerUrl = (baseUrl: string, route: SyncProxyRoute): string | undefined => {
   try {
     const normalizedBaseUrl = baseUrl.replace(/\/+$/, '');
     const url = new URL(`${normalizedBaseUrl}/sync/${route}`);
@@ -67,17 +68,21 @@ const responseHeaders = (upstream: Response): Headers => {
   return headers;
 };
 
-export async function handleProxySyncRequest(request: Request): Promise<Response> {
+export async function handleProxySyncRoute(
+  request: Request,
+  route: SyncProxyRoute,
+): Promise<Response> {
+  // The four Vercel Function files pass literals. Keep a runtime check as a
+  // defense-in-depth boundary so no internal caller can proxy an arbitrary path.
+  if (!isSyncProxyRoute(route)) return jsonResponse({ error: 'Not found' }, 404);
+
   const sessionSecret = process.env.IRONBASE_SESSION_SECRET;
   if (!sessionSecret || !requestIsAuthenticated(request, sessionSecret)) {
     return jsonResponse({ error: 'Unauthorized' }, 401);
   }
 
-  const route = getRoute(request);
-  if (!route) return jsonResponse({ error: 'Not found' }, 404);
-  if (!ALLOWED_ROUTES[route].includes(request.method)) {
-    return jsonResponse({ error: 'Method not allowed' }, 405, { Allow: ALLOWED_ROUTES[route].join(', ') });
-  }
+  const allowedMethod = SYNC_PROXY_METHODS[route];
+  if (request.method !== allowedMethod) return methodNotAllowed(allowedMethod);
 
   const recoveryKey = process.env.IRONBASE_SYNC_RECOVERY_KEY;
   const workerUrl = process.env.IRONBASE_SYNC_WORKER_URL
@@ -88,7 +93,7 @@ export async function handleProxySyncRequest(request: Request): Promise<Response
   }
 
   let body: ArrayBuffer | undefined;
-  if (request.method === 'POST') {
+  if (allowedMethod === 'POST') {
     body = await request.arrayBuffer();
     if (body.byteLength > MAX_SNAPSHOT_BYTES) {
       return jsonResponse({ error: 'Snapshot is too large' }, 413);
@@ -99,7 +104,7 @@ export async function handleProxySyncRequest(request: Request): Promise<Response
   const timeout = setTimeout(() => controller.abort(), WORKER_TIMEOUT_MS);
   try {
     const upstream = await fetch(workerUrl, {
-      method: request.method,
+      method: allowedMethod,
       headers: proxyHeaders(request, recoveryKey),
       ...(body ? { body } : {}),
       signal: controller.signal,
@@ -118,5 +123,3 @@ export async function handleProxySyncRequest(request: Request): Promise<Response
     clearTimeout(timeout);
   }
 }
-
-export default { fetch: handleProxySyncRequest };

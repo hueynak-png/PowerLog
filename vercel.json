@@ -8,7 +8,7 @@
     "api/ai/[endpoint].ts": {
       "maxDuration": 60
     },
-    "api/sync/[...path].ts": {
+    "api/sync/**/*.ts": {
       "maxDuration": 60
     }
   },
